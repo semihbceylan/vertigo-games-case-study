@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2129bca42a89a435b9f615f11083d7b8, type: 3}
+  m_Name: Pool_Golden
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.RewardPool
+  entries:
+  - reward: {fileID: 11400000, guid: 63b59b735419a4486ab22a13db8ac77e, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: 7f59d154eec084a729c5c9b1387cf4d5, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: ee8641ab732aa4e7bb635b677f360609, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: c1c8ee94003f648868f3ec33ab2fd87b, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: c42d58cd8fca34bd986f825645391a09, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: 8251524e854ab41ecb16fa4af891e93f, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: df69acc7b076b41c1af9ab0dd8900783, type: 2}
+    weight: 1
+  - reward: {fileID: 11400000, guid: f15e2b828ec6d462399429bfd68d4da4, type: 2}
+    weight: 1

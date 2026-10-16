@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79db9aa44fdb4420eb5a17b40e50bc77, type: 3}
+  m_Name: Reward_Tier1Shotgun
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.RewardDefinition
+  rewardId: t1_shotgun
+  displayName: Shotgun
+  icon: {fileID: 21300000, guid: d7c6bc4aa69614ccf966be16d61ff40b, type: 3}
+  amount: 5
+  category: 1
+  showcaseBig: 1

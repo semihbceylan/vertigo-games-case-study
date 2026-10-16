@@ -1,0 +1,141 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Icons_Atlas
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 0
+      compressionQuality: 0
+      maxTextureSize: 0
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 0
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings: []
+    packingSettings:
+      serializedVersion: 2
+      padding: 2
+      blockOffset: 0
+      allowAlphaSplitting: 0
+      enableRotation: 0
+      enableTightPacking: 0
+      enableAlphaDilation: 0
+    secondaryTextureSettings: {}
+    variantMultiplier: 1
+    packables:
+    - {fileID: 102900000, guid: 2d12b6dcd0ce94ec791f4122cc75c66a, type: 3}
+    bindAsDefault: 1
+    isAtlasV2: 0
+    cachedData: {fileID: 0}
+    packedSpriteRenderDataKeys:
+    - f1c17e105fd9a4b40801651dad36fd5d: 21300000
+    - 6605d6e0d78d243a096984e16d54d948: 21300000
+    - 6b9ac32124d494fa8876e087a37f74df: 21300000
+    - 27799061ea9554e98ad577373172c29a: 21300000
+    - 7c1d085349e12455d8e6ed453a464020: 21300000
+    - 3ecc3884ced94458b9d22ed024b95c30: 21300000
+    - d0354f253dda2444eba81f2b866fb6fe: 21300000
+    - d0c242952436e4d26bd84db1f7f7e25f: 21300000
+    - 774d16b5254a34de290fe9e70035f406: 21300000
+    - 7c654c16065924608998bf97f0b0d5d0: 21300000
+    - 4493ec76c25f0403a96d68d81848fbf7: 21300000
+    - 812ff796cbd684761a6ee71636b45151: 21300000
+    - 31c72bd6f3a024875ba04ff539afbd4e: 21300000
+    - 1d0365f6953554c5091e3e693c35d495: 21300000
+    - b2d05b4888a664e5ebcda69bae1521c7: 21300000
+    - 6a707b48c5fe04e4caa298592b494540: 21300000
+    - cbf200d81ac1c4eaabdda71e39ffdbb2: 21300000
+    - 626e67d8afe04434994b48578a5878a9: 21300000
+    - 3ce3833add9a1492cb9a722c6abd88e3: 21300000
+    - d7c6bc4aa69614ccf966be16d61ff40b: 21300000
+    - f0ee256b98cd74950b698bf4023f7adf: 21300000
+    - 255e4a9b6287a4076b2b6e26208087b1: 21300000
+    - 508c3b5ca8e2d4c2887462ab134d1a15: 21300000
+    - 8fc9d5bc4d99f4dbba62068630559706: 21300000
+    - 29361f5de18944aee97a71fe3ace3922: 21300000
+    - 31c4406de9ad344f6a13aead4d8202b9: 21300000
+    - c80ef16ddee50446ca2287bf4eb9929a: 21300000
+    - d768a28dd0402471a8945941ab85693c: 21300000
+    - 005d9cddeb21d483aa4e7beed4f51960: 21300000
+    - 7c7c1d6ec227a44b7bb7dc436ae13a80: 21300000
+    - ed426a7ea6b3645d58dcfbce0676576a: 21300000
+    - f8e0084f3f9194314bc38a4b920671da: 21300000
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: f1c17e105fd9a4b40801651dad36fd5d, type: 3}
+  - {fileID: 21300000, guid: 6605d6e0d78d243a096984e16d54d948, type: 3}
+  - {fileID: 21300000, guid: 6b9ac32124d494fa8876e087a37f74df, type: 3}
+  - {fileID: 21300000, guid: 27799061ea9554e98ad577373172c29a, type: 3}
+  - {fileID: 21300000, guid: 7c1d085349e12455d8e6ed453a464020, type: 3}
+  - {fileID: 21300000, guid: 3ecc3884ced94458b9d22ed024b95c30, type: 3}
+  - {fileID: 21300000, guid: d0354f253dda2444eba81f2b866fb6fe, type: 3}
+  - {fileID: 21300000, guid: d0c242952436e4d26bd84db1f7f7e25f, type: 3}
+  - {fileID: 21300000, guid: 774d16b5254a34de290fe9e70035f406, type: 3}
+  - {fileID: 21300000, guid: 7c654c16065924608998bf97f0b0d5d0, type: 3}
+  - {fileID: 21300000, guid: 4493ec76c25f0403a96d68d81848fbf7, type: 3}
+  - {fileID: 21300000, guid: 812ff796cbd684761a6ee71636b45151, type: 3}
+  - {fileID: 21300000, guid: 31c72bd6f3a024875ba04ff539afbd4e, type: 3}
+  - {fileID: 21300000, guid: 1d0365f6953554c5091e3e693c35d495, type: 3}
+  - {fileID: 21300000, guid: b2d05b4888a664e5ebcda69bae1521c7, type: 3}
+  - {fileID: 21300000, guid: 6a707b48c5fe04e4caa298592b494540, type: 3}
+  - {fileID: 21300000, guid: cbf200d81ac1c4eaabdda71e39ffdbb2, type: 3}
+  - {fileID: 21300000, guid: 626e67d8afe04434994b48578a5878a9, type: 3}
+  - {fileID: 21300000, guid: 3ce3833add9a1492cb9a722c6abd88e3, type: 3}
+  - {fileID: 21300000, guid: d7c6bc4aa69614ccf966be16d61ff40b, type: 3}
+  - {fileID: 21300000, guid: f0ee256b98cd74950b698bf4023f7adf, type: 3}
+  - {fileID: 21300000, guid: 255e4a9b6287a4076b2b6e26208087b1, type: 3}
+  - {fileID: 21300000, guid: 508c3b5ca8e2d4c2887462ab134d1a15, type: 3}
+  - {fileID: 21300000, guid: 8fc9d5bc4d99f4dbba62068630559706, type: 3}
+  - {fileID: 21300000, guid: 29361f5de18944aee97a71fe3ace3922, type: 3}
+  - {fileID: 21300000, guid: 31c4406de9ad344f6a13aead4d8202b9, type: 3}
+  - {fileID: 21300000, guid: c80ef16ddee50446ca2287bf4eb9929a, type: 3}
+  - {fileID: 21300000, guid: d768a28dd0402471a8945941ab85693c, type: 3}
+  - {fileID: 21300000, guid: 005d9cddeb21d483aa4e7beed4f51960, type: 3}
+  - {fileID: 21300000, guid: 7c7c1d6ec227a44b7bb7dc436ae13a80, type: 3}
+  - {fileID: 21300000, guid: ed426a7ea6b3645d58dcfbce0676576a, type: 3}
+  - {fileID: 21300000, guid: f8e0084f3f9194314bc38a4b920671da, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - ui_icon_chest_silver_nolight
+  - ui_icon_renders_tier2_mle
+  - ui_icon_chest_big_nolight
+  - ui_icon_chest_bronze_nolight
+  - ui_icon_render_cons_healthshot_2_regenerator
+  - ui_icon_mle_bayonet_easter_time
+  - ui_icons_knife_points
+  - ui_icon_render_cons_grenade_m26
+  - ui_icon_aviator_glasses_easter
+  - ui_icons_smg_points
+  - ui_icon_renders_tier3_shotgun
+  - ui_icons_sniper_points
+  - ui_icons_rifle_points
+  - ui_icon_mle_bayonet_summer_vice
+  - ui_icon_render_cons_healthshot_2_neurostim
+  - ui_icon_helmet_pumpkin
+  - ui_icon_chest_small_noligt
+  - ui_icon_renders_tier2_rifle
+  - ui_icon_cash
+  - ui_icon_renders_tier1_shotgun
+  - ui_icon_gold
+  - ui_icons_shotgun_points
+  - ui_icons_armor_points
+  - ui_icon_chest_gold_nolight
+  - ui_icon_render_cons_grenade_m67
+  - ui_icon_baseball_cap_easter
+  - ui_icon_render_t_cons_molotov
+  - ui_icon_chest_super_nolight
+  - ui_icons_pistol_points
+  - ui_icon_chest_standart_nolight
+  - ui_icon_renders_tier3_smg
+  - ui_icon_renders_tier3_sniper
+  m_RenderDataMap: {}
+  m_Tag: Icons_Atlas
+  m_IsVariant: 0

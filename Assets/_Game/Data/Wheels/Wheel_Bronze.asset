@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9726957a73bc4522ababe1d88441989, type: 3}
+  m_Name: Wheel_Bronze
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.WheelDefinition
+  tier: 0
+  baseSprite: {fileID: 21300000, guid: 0583e57b92c3943eda3d5b7ff608ac60, type: 3}
+  indicatorSprite: {fileID: 21300000, guid: 73beddf0c0a754d509ccde76c3048183, type: 3}
+  bombSprite: {fileID: 21300000, guid: e459f28875db840678b323d274ca70df, type: 3}
+  sliceCount: 8
+  rewardPool: {fileID: 11400000, guid: b7dcea8a0a25d423d9d6376a70f74c2a, type: 2}
+  useExplicitSlices: 1
+  slices:
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: ac6c03ec8baae45dbaf4adb811eba725, type: 2}
+    amount: 0
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: 33e5bfe5ec4fb48a0b37d47b636c9627, type: 2}
+    amount: 0
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: ec4c477db598a4b62aa21f321a7e3794, type: 2}
+    amount: 0
+  - isBomb: 1
+    reward: {fileID: 0}
+    amount: 0
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: 13bd9842a910e423aad081eeb065e9a6, type: 2}
+    amount: 0
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: 5f98cdcd5e8c24bab804c68a94dba019, type: 2}
+    amount: 0
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: 770f1b16e1b2b4e59a37013da2e9e4dd, type: 2}
+    amount: 0
+  - isBomb: 0
+    reward: {fileID: 11400000, guid: dcebd12a3c63b428686cf78ed55a8919, type: 2}
+    amount: 0
+  amountScalePerZone: 0.15

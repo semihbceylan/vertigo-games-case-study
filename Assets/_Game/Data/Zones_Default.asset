@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb09efae3471a482c88e9ba7ad586b65, type: 3}
+  m_Name: Zones_Default
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.ZoneConfiguration
+  startingZone: 1
+  safeZoneInterval: 5
+  superZoneInterval: 30
+  finalZone: 60
+  normalWheel: {fileID: 11400000, guid: 80719afb17fcc4dfda071f69a1d3b13e, type: 2}
+  safeWheel: {fileID: 11400000, guid: 76756f96cb3454a72921c6a6422a1c6a, type: 2}
+  superWheel: {fileID: 11400000, guid: d6b7a1900ce60455f97a614d71812ff0, type: 2}
