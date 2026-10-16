@@ -1,4 +1,4 @@
-# Wheel of Fortune 🎡
+# Wheel of Fortune 
 
 A mobile **wheel-spin gambling game** built in Unity for the **Vertigo Games game-developer case study**.
 
@@ -16,10 +16,10 @@ it before the bomb wipes it all out. Rewards get better the deeper you go.
 
 ## 📸 Screenshots
 
-> _Drop the captures into a `Screenshots/` folder in the repo root; the embeds below will pick them up._
 
-| 20:9 | 16:9 | 4:3 |
-|:---:|:---:|:---:|
+
+| 20:9 | 20:9 | 16:9 | 4:3 |
+|:---:|:---:|:---:|:---:|
 | ![20:9](Screenshots/gh_gameplay_20_9.png) | ![20:9](Screenshots/gh_gameplay_20_9_2.png) | ![16:9](Screenshots/gh_gameplay_16_9.png) | ![4:3](Screenshots/gh_gameplay_4_3.png)
 
 <!--
