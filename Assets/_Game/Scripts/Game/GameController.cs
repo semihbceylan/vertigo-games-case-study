@@ -28,6 +28,12 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private UIButton restartButton;
         [SerializeField] private RewardFlyAnimator rewardFly;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [Header("Debug (Editor / Development builds only)")]
+        [Tooltip("Start the run at this zone. 0 uses the configured starting zone.")]
+        [SerializeField, Min(0)] private int debugStartZone = 0;
+#endif
+
         [Header("Zone wheel transition")]
         [Tooltip("How long the finished wheel stays on screen before the next zone slides in.")]
         [SerializeField, Min(0f)] private float wheelHoldDuration = 0.5f;
@@ -106,6 +112,9 @@ namespace Vertigo.WheelOfFortune.Game
             _session.RunRestarted += OnRunRestarted;
 
             _session.StartNewRun();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (debugStartZone > 0) _session.JumpToZone(debugStartZone);
+#endif
             ApplyZoneWheel();
             RefreshState();
         }
@@ -769,6 +778,53 @@ namespace Vertigo.WheelOfFortune.Game
             }
             return null;
         }
+
+        // ---- development teleport (editor / development builds only) ----
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void Update()
+        {
+            if (_session == null) return;
+
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard == null) return;
+
+            // Step one zone ( ] / [ ), a whole safe-zone gap ( PageUp / PageDown ),
+            // or jump straight to a demo zone: 1 -> 54, 2 -> 60.
+            if (keyboard.rightBracketKey.wasPressedThisFrame) DebugJumpTo(_session.Zone + 1);
+            else if (keyboard.leftBracketKey.wasPressedThisFrame) DebugJumpTo(_session.Zone - 1);
+            else if (keyboard.pageUpKey.wasPressedThisFrame) DebugJumpTo(_session.Zone + 5);
+            else if (keyboard.pageDownKey.wasPressedThisFrame) DebugJumpTo(_session.Zone - 5);
+            else if (keyboard.digit1Key.wasPressedThisFrame) DebugJumpTo(54);
+            else if (keyboard.digit2Key.wasPressedThisFrame) DebugJumpTo(60);
+        }
+
+        /// <summary>Dev helper: teleports the live run to a zone and refreshes the whole view.</summary>
+        private void DebugJumpTo(int zone)
+        {
+            if (_session == null) return;
+
+            ClearJackpotState();
+            KillWheelTransition();
+            _session.JumpToZone(zone);
+            ApplyZoneWheel();
+            RefreshState();
+        }
+#endif
+
+#if UNITY_EDITOR
+        [ContextMenu("Debug/Jump To Zone 54")]
+        private void DebugJumpToZone54() => DebugJumpTo(54);
+
+        [ContextMenu("Debug/Jump To Zone 55 (Safe)")]
+        private void DebugJumpToZone55() => DebugJumpTo(55);
+
+        [ContextMenu("Debug/Jump To Zone 59")]
+        private void DebugJumpToZone59() => DebugJumpTo(59);
+
+        [ContextMenu("Debug/Jump To Zone 60 (Super)")]
+        private void DebugJumpToZone60() => DebugJumpTo(60);
+#endif
 
 #if UNITY_EDITOR
         private void OnValidate()

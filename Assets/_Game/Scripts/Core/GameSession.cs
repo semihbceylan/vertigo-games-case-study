@@ -166,6 +166,26 @@ namespace Vertigo.WheelOfFortune.Core
             RunRestarted?.Invoke();
         }
 
+        /// <summary>
+        /// Development helper: moves straight to <paramref name="zone"/> without playing the earlier
+        /// zones, keeping the current wallet. Ignored while a spin is animating. Used by the demo
+        /// teleport keys; has no effect on shipping gameplay.
+        /// </summary>
+        public void JumpToZone(int zone)
+        {
+            if (Phase == SessionPhase.Spinning)
+                return;
+
+            if (zone < 1) zone = 1;
+            if (_finalZone > 0 && zone > _finalZone) zone = _finalZone;
+
+            PendingSliceIndex = -1;
+            Zone = zone;
+            Phase = SessionPhase.Idle;
+            BuildWheel();
+            StateChanged?.Invoke();
+        }
+
         /// <summary>Resumes the run after a bomb without losing the current zone.</summary>
         public void Revive()
         {

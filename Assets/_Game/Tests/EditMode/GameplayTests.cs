@@ -421,6 +421,55 @@ namespace Vertigo.WheelOfFortune.Tests
         }
 
         [Test]
+        public void JumpToZoneMovesRunKeepsWalletAndStaysPlayable()
+        {
+            var random = new ScriptedRandom().EnqueueInt(0);
+            var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), random);
+
+            session.BeginSpin();
+            session.ResolvePendingSpin(); // zone 1 -> 2, wallet = 10
+
+            session.JumpToZone(54);
+
+            Assert.AreEqual(54, session.Zone);
+            Assert.AreEqual(SessionPhase.Idle, session.Phase);
+            Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
+            Assert.IsTrue(session.CanSpin);
+            Assert.AreEqual(ZoneKind.Normal, session.CurrentZoneKind);
+        }
+
+        [Test]
+        public void JumpToZoneClampsToFinalZoneAndLowestZone()
+        {
+            var session = new GameSession(
+                Rules,
+                new FakeWheelFactory((z, k) => Wheels.RewardOnly("gold")),
+                new ScriptedRandom(),
+                1,
+                60);
+
+            session.JumpToZone(9999);
+            Assert.AreEqual(60, session.Zone);
+            Assert.AreEqual(ZoneKind.Super, session.CurrentZoneKind);
+
+            session.JumpToZone(-5);
+            Assert.AreEqual(1, session.Zone);
+        }
+
+        [Test]
+        public void JumpToZoneIsIgnoredWhileSpinning()
+        {
+            var random = new ScriptedRandom().EnqueueInt(0);
+            var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), random);
+
+            session.BeginSpin();
+            session.JumpToZone(42);
+
+            Assert.AreEqual(1, session.Zone);
+            Assert.AreEqual(SessionPhase.Spinning, session.Phase);
+        }
+
+        [Test]
         public void CannotResolveWithoutSpin()
         {
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom());
