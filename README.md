@@ -10,8 +10,7 @@ it before the bomb wipes it all out. Rewards get better the deeper you go.
 
 ## 🎥 Gameplay video
 
-<!-- Add your gameplay video link below -->
-> _Gameplay video: **[ADD LINK HERE]**_
+> _Gameplay video: **https://youtu.be/mDGNfFYK1HE**_
 
 ---
 
@@ -21,7 +20,7 @@ it before the bomb wipes it all out. Rewards get better the deeper you go.
 
 | 20:9 | 16:9 | 4:3 |
 |:---:|:---:|:---:|
-| ![20:9](Screenshots/gameplay_20_9.png) | ![16:9](Screenshots/gameplay_16_9.png) | ![4:3](Screenshots/gameplay_4_3.png) |
+| ![20:9](Screenshots/gh_gameplay_20_9.png) | ![20:9](Screenshots/gh_gameplay_20_9_2.png) | ![16:9](Screenshots/gh_gameplay_16_9.png) | ![4:3](Screenshots/gh_gameplay_4_3.png)
 
 <!--
 Recommended set:
