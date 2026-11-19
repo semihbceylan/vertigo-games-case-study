@@ -64,6 +64,19 @@ namespace Vertigo.WheelOfFortune.UI
             foreach (var pair in _active) KillRowTweens(pair.Value);
         }
 
+        private void OnDisable()
+        {
+            foreach (var pair in _active)
+            {
+                RowWidgets row = pair.Value;
+                KillRowTweens(row);
+                row.Rect.localScale = Vector3.one;
+                if (row.Group) row.Group.alpha = _animation.VisibleAlpha;
+                if (row.Icon) row.Icon.rectTransform.localScale = Vector3.one;
+            }
+            foreach (RowWidgets row in _pool) KillRowTweens(row);
+        }
+
         private static void KillRowTweens(RowWidgets row)
         {
             if (row.Rect) row.Rect.DOKill();
