@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b908a074b1064bd093b003c53e84bde, type: 3}
+  m_Name: Animation_WheelSpin
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.WheelSpinAnimation
+  _duration: 4.2
+  _extraTurns: 4
+  _spinEase: 9
+  _settleEase: 1
+  _snapAmount: 0.45
+  _sliceOffsetLimit: 0.35
+  _minimumOffset: 1.5
+  _offsetRange: {x: 1.5, y: 7}
+  _stiffnessRange: {x: 22, y: 12}
+  _dampingRange: {x: 0.55, y: 0.18}
+  _settleDurationRange: {x: 0.7, y: 1.4}
+  _trajectoryClampMultiplier: 1.6
+  _trajectoryClampPadding: 0.5

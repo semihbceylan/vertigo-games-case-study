@@ -1,120 +1,193 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
+using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
-    /// <summary>
-    /// Spawns short-lived reward icon copies that pop out of a source rect and fly to a target rect
-    /// (e.g. a wheel slot to the rewards pane), then invokes a callback on arrival.
-    /// Expects to live on a full-canvas overlay rect rendered above the game.
-    /// </summary>
+    /// <summary>Owns a prewarmed icon pool. Cancellation never invokes gameplay completion.</summary>
     [DisallowMultipleComponent]
     public sealed class RewardFlyAnimator : MonoBehaviour
     {
-        [SerializeField] private RectTransform flyLayer;
-        [SerializeField] private float iconSize = 120f;
-        [SerializeField] private float popDuration = 0.16f;
-        [SerializeField] private float flyDuration = 0.55f;
-        [SerializeField] private float popScale = 1.4f;
-        [SerializeField] private float startScale = 0.6f;
-        [SerializeField] private float endScale = 0.7f;
-        [SerializeField] private Ease flyEase = Ease.InQuad;
+        #region Configuration
 
-        private Canvas _canvas;
+        [FormerlySerializedAs("flyLayer")]
+        [SerializeField] private RectTransform _flyLayer;
+        [SerializeField] private Canvas _canvas;
+        [SerializeField] private RewardFlyAnimation _animation;
+        [SerializeField, Min(1)] private int _poolCapacity = 4;
 
-        private Canvas OwnerCanvas
+        private readonly List<Flight> _flights = new List<Flight>();
+
+        private sealed class Flight
         {
-            get
+            private readonly RectTransform _rect;
+            private readonly Image _image;
+            private Sequence _sequence;
+            private Action _onArrive;
+
+            public bool IsActive { get; private set; }
+
+            public Flight(RectTransform rect, Image image)
             {
-                if (_canvas == null && flyLayer != null)
-                    _canvas = flyLayer.GetComponentInParent<Canvas>();
-                return _canvas;
+                _rect = rect;
+                _image = image;
+                _rect.gameObject.SetActive(false);
+            }
+
+            public void Play(Sprite icon, Vector2 start, Vector2 end, RewardFlyAnimation animation, GameObject owner, Action onArrive)
+            {
+                IsActive = true;
+                _onArrive = onArrive;
+                _image.sprite = icon;
+                _rect.sizeDelta = Vector2.one * animation.IconSize;
+                _rect.anchoredPosition = start;
+                _rect.localScale = Vector3.one * animation.StartScale;
+                _rect.gameObject.SetActive(true);
+                _sequence = DOTween.Sequence().SetUpdate(true).SetLink(owner);
+                _sequence.Append(_rect.DOScale(animation.PopScale, animation.PopDuration).SetEase(animation.PopEase));
+                _sequence.Append(_rect.DOAnchorPos(end, animation.FlyDuration).SetEase(animation.FlyEase));
+                _sequence.Join(_rect.DOScale(animation.EndScale, animation.FlyDuration).SetEase(animation.ScaleEase));
+                _sequence.OnComplete(Complete);
+            }
+
+            public void Cancel()
+            {
+                _sequence?.Kill(false);
+                _sequence = null;
+                _onArrive = null;
+                Release();
+            }
+
+            private void Complete()
+            {
+                _sequence = null;
+                Action completion = _onArrive;
+                _onArrive = null;
+                Release();
+                completion?.Invoke();
+            }
+
+            private void Release()
+            {
+                IsActive = false;
+                if (_image)
+                {
+                    _image.sprite = null;
+                }
+                if (_rect)
+                {
+                    _rect.gameObject.SetActive(false);
+                }
             }
         }
 
-        private Camera EventCamera
+        #endregion
+
+        #region Pool Lifecycle
+
+        private void Awake()
         {
-            get
+            if (!_flyLayer || !_canvas || !_animation)
             {
-                var canvas = OwnerCanvas;
-                return canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-                    ? canvas.worldCamera
-                    : null;
+                throw new InvalidOperationException("RewardFlyAnimator requires serialized layer, canvas and animation profile.");
+            }
+            for (int i = 0; i < _poolCapacity; i++)
+            {
+                var iconObject = new GameObject("ui_image_reward_fly_" + i + "_value", typeof(RectTransform));
+                iconObject.layer = _flyLayer.gameObject.layer;
+                iconObject.transform.SetParent(_flyLayer, false);
+                var rect = (RectTransform)iconObject.transform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * 0.5f;
+                Image image = iconObject.AddComponent<Image>();
+                image.preserveAspect = true;
+                image.raycastTarget = false;
+                image.maskable = false;
+                _flights.Add(new Flight(rect, image));
             }
         }
 
-        /// <summary>Flies <paramref name="icon"/> from <paramref name="from"/> to <paramref name="to"/>.</summary>
+        private void OnDisable()
+        {
+            CancelAll();
+        }
+
+        private void OnDestroy()
+        {
+            CancelAll();
+        }
+
+        private void CancelAll()
+        {
+            foreach (Flight flight in _flights)
+            {
+                flight.Cancel();
+            }
+        }
+
+        #endregion
+
+        #region Playback
+
         public void Fly(Sprite icon, RectTransform from, RectTransform to, Action onArrive = null)
         {
-            if (flyLayer == null || icon == null || from == null)
+            if (!icon || !from)
             {
                 onArrive?.Invoke();
                 return;
             }
-
             Vector2 start = WorldToLayer(from.position);
-            Vector2 end = to != null ? WorldToLayer(to.position) : start;
-            FlyLocal(icon, start, end, onArrive);
+            FlyLocal(icon, start, to ? WorldToLayer(to.position) : start, onArrive);
         }
 
-        /// <summary>Flies <paramref name="icon"/> from <paramref name="from"/> to a world position.</summary>
         public void FlyToPosition(Sprite icon, RectTransform from, Vector3 worldTarget, Action onArrive = null)
         {
-            if (flyLayer == null || icon == null || from == null)
+            if (!icon || !from)
             {
                 onArrive?.Invoke();
                 return;
             }
-
             FlyLocal(icon, WorldToLayer(from.position), WorldToLayer(worldTarget), onArrive);
         }
 
         private void FlyLocal(Sprite icon, Vector2 start, Vector2 end, Action onArrive)
         {
-            var go = new GameObject("ui_image_reward_fly", typeof(RectTransform), typeof(Image));
-            go.layer = flyLayer.gameObject.layer;
-            go.transform.SetParent(flyLayer, false);
-
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(iconSize, iconSize);
-            rect.anchoredPosition = start;
-            rect.localScale = Vector3.one * startScale;
-
-            var image = go.GetComponent<Image>();
-            image.sprite = icon;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-            image.maskable = false;
-
-            var seq = DOTween.Sequence();
-            seq.SetUpdate(true);
-            seq.Append(rect.DOScale(popScale, popDuration).SetEase(Ease.OutBack));
-            seq.Append(rect.DOAnchorPos(end, flyDuration).SetEase(flyEase));
-            seq.Join(rect.DOScale(endScale, flyDuration).SetEase(Ease.InQuad));
-            seq.OnComplete(() =>
+            foreach (Flight flight in _flights)
             {
-                if (go != null) Destroy(go);
-                onArrive?.Invoke();
-            });
+                if (!flight.IsActive)
+                {
+                    flight.Play(icon, start, end, _animation, gameObject, onArrive);
+                    return;
+                }
+            }
+            // Bounded cosmetic pool: skip the visual rather than allocating or blocking gameplay.
+            onArrive?.Invoke();
         }
 
         private Vector2 WorldToLayer(Vector3 world)
         {
-            Camera cam = EventCamera;
-            Vector2 screen = RectTransformUtility.WorldToScreenPoint(cam, world);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(flyLayer, screen, cam, out Vector2 local);
+            Camera camera = _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(camera, world);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(_flyLayer, screen, camera, out Vector2 local);
             return local;
         }
+
+        #endregion
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (flyLayer == null) flyLayer = (RectTransform)transform;
+            if (!_flyLayer)
+            {
+                _flyLayer = (RectTransform)transform;
+            }
+            if (!_canvas)
+            {
+                _canvas = GetComponentInParent<Canvas>();
+            }
         }
 #endif
     }
