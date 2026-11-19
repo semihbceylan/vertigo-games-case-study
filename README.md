@@ -171,8 +171,6 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
 
 ## ✅ Tests
 
-Feature completion and technical-review follow-ups are tracked in [TODO.md](TODO.md).
-
 Edit-mode unit tests cover zone classification, the wallet, wheel building and the full game
 session state machine:
 
