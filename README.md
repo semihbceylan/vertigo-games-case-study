@@ -48,8 +48,9 @@ Optional extras: super-zone spin, bomb screen, results screen.
 | **Safe** (every 5th zone) | Silver | ❌ risk-free |
 | **Super** (every 30th zone) | Golden | ❌ risk-free, special rewards |
 
-Reward amounts scale up with every zone, so pushing deeper is worth more — and hurts more if you
-bust. The run finishes at the final zone, banking everything collected.
+Normal and safe wheels use different reward pools for zones 1–9, 10–19, and 20 onward,
+introducing better chests, consumables, and weapon points. Reward amounts also scale with each zone;
+cosmetic item quantities do not scale. The run finishes at the final zone, banking everything collected.
 
 ---
 

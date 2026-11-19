@@ -154,6 +154,15 @@ namespace Vertigo.WheelOfFortune.Game
                     }
                 }
 
+                foreach (var band in wheel.RewardPoolBands)
+                {
+                    if (!band.Pool) continue;
+                    foreach (var entry in band.Pool.Entries)
+                    {
+                        if (entry.reward) _rewardLookup[entry.reward.RewardId] = entry.reward;
+                    }
+                }
+
             }
         }
 
@@ -163,37 +172,14 @@ namespace Vertigo.WheelOfFortune.Game
             return _rewardLookup.TryGetValue(rewardId, out definition) ? definition : null;
         }
 
-        private static readonly System.Collections.Generic.HashSet<string> PointsRewardIds =
-            new System.Collections.Generic.HashSet<string>
-            {
-                "armor", "knife", "pistol", "rifle", "shotgun", "smg", "sniper"
-            };
-
-        private static bool IsPointsReward(string rewardId)
-        {
-            return rewardId != null && PointsRewardIds.Contains(rewardId);
-        }
-
         /// <summary>
         /// True for jackpot rewards that deserve the big fullscreen showcase: weapon Renders
         /// (Assets/Art/Icons/Renders) and melee weapons (Assets/Art/Icons/Melee).
-        /// Explicit <see cref="RewardDefinition.ShowcaseBig"/> wins; the id / icon-name checks
-        /// below keep already-authored assets working without re-ticking every checkbox.
+        /// Behavior is explicitly authored in the reward asset.
         /// </summary>
         private static bool IsJackpotReward(RewardDefinition definition)
         {
-            if (definition == null) return false;
-            if (definition.ShowcaseBig) return true;
-
-            string id = (definition.RewardId ?? string.Empty).ToLowerInvariant();
-            if (id.StartsWith("t1_") ||
-                id.StartsWith("t2_") ||
-                id.StartsWith("t3_") ||
-                id.StartsWith("bayonet"))
-                return true;
-
-            string iconName = (definition.Icon != null ? definition.Icon.name : string.Empty).ToLowerInvariant();
-            return iconName.Contains("render") || iconName.Contains("mle") || iconName.Contains("melee") || iconName.Contains("bayonet");
+            return definition && definition.ShowcaseBig;
         }
 
         // ---- input ----
@@ -524,7 +510,9 @@ namespace Vertigo.WheelOfFortune.Game
                 {
                     var reward = ResolveReward(slice.Reward.RewardId);
                     icon.sprite = reward != null ? reward.Icon : null;
-                    layout.SetSlotIconScale(i, IsPointsReward(slice.Reward.RewardId) ? layout.PointsIconScale : layout.StandardIconScale);
+                    layout.SetSlotIconScale(i, reward
+                        ? layout.StandardIconScale * reward.IconScaleMultiplier
+                        : layout.StandardIconScale);
                     if (amount != null)
                     {
                         amount.gameObject.SetActive(true);

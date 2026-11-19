@@ -17,4 +17,14 @@ MonoBehaviour:
   bombSprite: {fileID: 21300000, guid: e459f28875db840678b323d274ca70df, type: 3}
   sliceCount: 8
   rewardPool: {fileID: 11400000, guid: b7dcea8a0a25d423d9d6376a70f74c2a, type: 2}
+  _rewardPoolBands:
+  - _minimumZone: 1
+    _maximumZone: 9
+    _pool: {fileID: 11400000, guid: d46a03b29d62d4151935b451e090cedd, type: 2}
+  - _minimumZone: 10
+    _maximumZone: 19
+    _pool: {fileID: 11400000, guid: 826929293c7ff4d3fb5dca7e3163dad5, type: 2}
+  - _minimumZone: 20
+    _maximumZone: 0
+    _pool: {fileID: 11400000, guid: ee2cea9ec060b491b97a6358ecd50203, type: 2}
   amountScalePerZone: 0.15

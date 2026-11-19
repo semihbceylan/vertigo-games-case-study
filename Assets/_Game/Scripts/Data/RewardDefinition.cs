@@ -36,11 +36,33 @@ namespace Vertigo.WheelOfFortune.Data
         [Tooltip("When enabled, this reward pops up big fullscreen until the player taps to dismiss (use for weapon Renders and melee).")]
         [SerializeField] private bool showcaseBig = false;
 
+        [Header("Progression and presentation")]
+        [SerializeField, Min(1)] private int minimumZone = 1;
+        [Tooltip("Zero means no upper limit.")]
+        [SerializeField, Min(0)] private int maximumZone;
+        [SerializeField] private bool isAmountScaled = true;
+        [SerializeField, Min(0.01f)] private float iconScaleMultiplier = 1f;
+
         public string RewardId => rewardId;
         public string DisplayName => displayName;
         public Sprite Icon => icon;
         public long Amount => amount;
         public RewardCategory Category => category;
         public bool ShowcaseBig => showcaseBig;
+
+        public bool IsAmountScaled
+        {
+            get { return isAmountScaled; }
+        }
+
+        public float IconScaleMultiplier
+        {
+            get { return iconScaleMultiplier; }
+        }
+
+        public bool IsAvailableAt(int zone)
+        {
+            return zone >= minimumZone && (maximumZone == 0 || zone <= maximumZone);
+        }
     }
 }

@@ -18,3 +18,7 @@ MonoBehaviour:
   amount: 5
   category: 2
   showcaseBig: 0
+  minimumZone: 1
+  maximumZone: 0
+  isAmountScaled: 0
+  iconScaleMultiplier: 1
