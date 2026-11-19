@@ -134,6 +134,10 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   `ISessionPresentation` operations. Completion callbacks advance the flow; versioned, single-use
   callbacks ignore obsolete/duplicate completions after reset. There is no `SessionPhase` enum
   or separate set of controller transition/showcase flow flags.
+- **Reward presentation ownership:** `RewardPresentationController` implements
+  `IRewardPresentation` and owns showcase dismissal, flight targeting, and completion.
+  It pairs showcase subscriptions in `OnEnable`/`OnDisable`, cancels owned flights on
+  disable/destruction, and drops cancelled callbacks without advancing the session.
 - **Persistent currency** is separate from run loot. Authored currency references on reward assets
   determine which balances are credited on successful cash-out/completion. `CurrencyWallet`
   supports multiple currencies and checked credit/spend operations; insufficient funds cause no
@@ -160,8 +164,9 @@ Assets/_Game/Tests/EditMode/EventBusTests.cs
 Assets/_Game/Tests/EditMode/CurrencyWalletTests.cs
 Assets/_Game/Tests/EditMode/SessionFlowTests.cs
 Assets/_Game/Tests/EditMode/ZoneRuleTests.cs
+Assets/_Game/Tests/EditMode/RewardPresentationTests.cs
 
-66 EditMode test cases total
+69 EditMode test cases total
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

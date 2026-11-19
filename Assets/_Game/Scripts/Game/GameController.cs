@@ -25,7 +25,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private SpinButton spinButton;
         [SerializeField] private UIButton leaveButton;
         [SerializeField] private UIButton restartButton;
-        [SerializeField] private RewardFlyAnimator rewardFly;
+        [SerializeField] private RewardPresentationController _rewardPresentation;
         [SerializeField] private RectTransform _canvasRect;
         [SerializeField] private WheelTransitionController _wheelTransitionController;
 
@@ -40,9 +40,7 @@ namespace Vertigo.WheelOfFortune.Game
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
         private Vector2 _wheelHomePosition;
-        private Action _rewardPresentationComplete;
         private Action _zoneTransitionComplete;
-        private string _presentedRewardId;
 
         private void Awake()
         {
@@ -58,11 +56,6 @@ namespace Vertigo.WheelOfFortune.Game
             if (restartButton != null) restartButton.Clicked += OnRestartClicked;
             if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested += OnFeedbackAction;
             if (screen != null && screen.Results != null) screen.Results.RestartRequested += OnResultsRestartRequested;
-            if (screen != null)
-            {
-                var showcase = screen.Showcase;
-                if (showcase != null) showcase.Dismissed += OnShowcaseDismissed;
-            }
         }
 
         private void OnDisable()
@@ -73,7 +66,6 @@ namespace Vertigo.WheelOfFortune.Game
             if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
             if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested -= OnFeedbackAction;
             if (screen != null && screen.Results != null) screen.Results.RestartRequested -= OnResultsRestartRequested;
-            if (screen != null && screen.Showcase != null) screen.Showcase.Dismissed -= OnShowcaseDismissed;
         }
 
         private void Start()
@@ -175,16 +167,6 @@ namespace Vertigo.WheelOfFortune.Game
             return _rewardLookup.TryGetValue(rewardId, out definition) ? definition : null;
         }
 
-        /// <summary>
-        /// True for jackpot rewards that deserve the big fullscreen showcase: weapon Renders
-        /// (Assets/Art/Icons/Renders) and melee weapons (Assets/Art/Icons/Melee).
-        /// Behavior is explicitly authored in the reward asset.
-        /// </summary>
-        private static bool IsJackpotReward(RewardDefinition definition)
-        {
-            return definition && definition.ShowcaseBig;
-        }
-
         // ---- input ----
 
         private void OnSpinClicked()
@@ -204,75 +186,12 @@ namespace Vertigo.WheelOfFortune.Game
             wheelSpinner.SpinToSlice(sliceIndex, wheel.SliceCount, startAngle, onComplete);
         }
 
-        /// <summary>
-        /// Called when the wheel stops. Jackpots resolve immediately so the showcase pops
-        /// first, then the icon flies; normal rewards fly first and resolve on arrival.
-        /// </summary>
+        /// <summary>Refresh the collected row before delegating its presentation.</summary>
         public void PresentReward(RewardGrant grant, int sliceIndex, Action onComplete)
         {
-            _rewardPresentationComplete = onComplete;
-            _presentedRewardId = grant.RewardId;
             RefreshRewards();
-            RewardDefinition definition = ResolveReward(grant.RewardId);
-            if (IsJackpotReward(definition) && screen && screen.Showcase)
-            {
-                screen.HideFeedback();
-                screen.ShowJackpot(definition.Icon, definition.DisplayName, grant.Amount);
-                return;
-            }
-            if (screen) screen.ShowReward(definition ? definition.Icon : null,
-                definition ? definition.DisplayName : grant.RewardId, grant.Amount);
-            PlayPresentedRewardFlight();
-        }
-
-        private void PlayPresentedRewardFlight()
-        {
-            Image source = wheelLayout ? wheelLayout.GetIcon(_session.PendingSliceIndex) : null;
-            if (rewardFly && source && source.sprite)
-            {
-                rewardFly.Fly(source.sprite, source.rectTransform, ResolveRewardTarget(_presentedRewardId), OnRewardFlightComplete);
-                return;
-            }
-            OnRewardFlightComplete();
-        }
-
-        private void OnRewardFlightComplete()
-        {
-            if (screen && screen.RewardsList) screen.RewardsList.PunchRow(_presentedRewardId);
-            Action completion = _rewardPresentationComplete;
-            _rewardPresentationComplete = null;
-            completion?.Invoke();
-        }
-
-        /// <summary>The rewards-pane rect a flown reward should home in on (its row, else the list).</summary>
-        private RectTransform ResolveRewardTarget(string rewardId)
-        {
-            if (screen == null || screen.RewardsList == null) return null;
-
-            if (screen.RewardsList.TryGetRowIcon(rewardId, out var rowIcon)) return rowIcon;
-            return screen.RewardsList.ListRect;
-        }
-
-        /// <summary>
-        /// World position the icon of a not-yet-banked <paramref name="rewardId"/> will occupy, using
-        /// the display category order. The stable sort keeps existing equal-category rows first and a
-        /// brand-new wallet key is appended last, so the insertion index is just the count of existing
-        /// rows whose category sorts at or before this reward's.
-        /// </summary>
-        private bool TryGetPredictedRowIconWorldPosition(string rewardId, out Vector3 worldPosition)
-        {
-            worldPosition = default;
-            if (_session == null || screen == null || screen.RewardsList == null) return false;
-            if (_session.Wallet.Totals.ContainsKey(rewardId)) return false;
-
-            int rank = CategoryRank(ResolveReward(rewardId));
-            int index = 0;
-            foreach (var pair in _session.Wallet.Totals)
-            {
-                if (CategoryRank(ResolveReward(pair.Key)) <= rank) index++;
-            }
-
-            return screen.RewardsList.TryGetSlotIconWorldPosition(index, out worldPosition);
+            IRewardPresentation presentation = _rewardPresentation;
+            presentation.Play(grant, ResolveReward(grant.RewardId), sliceIndex, onComplete);
         }
 
         private void OnLeaveClicked()
@@ -331,17 +250,10 @@ namespace Vertigo.WheelOfFortune.Game
             if (screen.Results != null) screen.Results.Show(BuildRewardRows());
         }
 
-        /// <summary>Player tapped the jackpot showcase away. Flush whatever it was pausing.</summary>
-        private void OnShowcaseDismissed()
-        {
-            PlayPresentedRewardFlight();
-        }
-
         /// <summary>Silently drops any visible/deferred showcase (restart or new run).</summary>
         private void ClearJackpotState()
         {
-            _rewardPresentationComplete = null;
-            if (screen != null) screen.HideJackpot();
+            if (_rewardPresentation) _rewardPresentation.Cancel();
         }
 
         private void OnResultsRestartRequested()
@@ -366,10 +278,9 @@ namespace Vertigo.WheelOfFortune.Game
 
         public void Cancel()
         {
-            _rewardPresentationComplete = null;
             _zoneTransitionComplete = null;
             if (wheelSpinner) wheelSpinner.CancelSpin();
-            if (rewardFly) rewardFly.CancelAll();
+            if (_rewardPresentation) _rewardPresentation.Cancel();
             KillWheelTransition();
             if (screen) screen.HideJackpot();
         }
@@ -622,7 +533,7 @@ namespace Vertigo.WheelOfFortune.Game
             if (!wheelSpinner) wheelSpinner = GetComponentInChildren<WheelSpinner>(true);
             if (!screen) screen = GetComponentInChildren<GameScreenView>(true);
             if (!spinButton) spinButton = GetComponentInChildren<SpinButton>(true);
-            if (!rewardFly) rewardFly = GetComponentInChildren<RewardFlyAnimator>(true);
+            if (!_rewardPresentation) _rewardPresentation = GetComponent<RewardPresentationController>();
             if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
             if (!_canvasRect)
             {
