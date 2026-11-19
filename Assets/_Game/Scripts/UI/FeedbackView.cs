@@ -60,6 +60,12 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void OnDestroy()
         {
+            KillToast();
+            _fade?.Kill(false);
+            if (_dimMaterial)
+            {
+                Destroy(_dimMaterial);
+            }
             if (actionButton != null)
                 actionButton.Clicked -= OnActionClicked;
 
@@ -127,8 +133,14 @@ namespace Vertigo.WheelOfFortune.UI
 
             _toastSequence = DOTween.Sequence();
             _toastSequence.AppendInterval(1.1f);
-            _toastSequence.AppendCallback(() => FadeTo(0f));
+            _toastSequence.AppendCallback(HideToast);
             _toastSequence.SetUpdate(true);
+            _toastSequence.SetLink(gameObject);
+        }
+
+        private void HideToast()
+        {
+            FadeTo(0f);
         }
 
         public void Hide()
@@ -199,7 +211,7 @@ namespace Vertigo.WheelOfFortune.UI
             }
 
             _fade?.Kill();
-            _fade = group.DOFade(target, fadeDuration).SetUpdate(true);
+            _fade = group.DOFade(target, fadeDuration).SetUpdate(true).SetLink(gameObject);
         }
 
 #if UNITY_EDITOR

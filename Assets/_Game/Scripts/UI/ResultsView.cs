@@ -27,6 +27,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private ScrollRect scroll;
         [SerializeField] private TMP_Text titleLabel;
         [SerializeField] private UIButton restartButton;
+        [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
         [Tooltip("Optional tile prefab. When set, tiles are cloned from it instead of built in code.")]
         [SerializeField] private GameObject tilePrefab;
 
@@ -70,6 +71,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void OnDestroy()
         {
+            _fade?.Kill(false);
             if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
         }
 
@@ -109,6 +111,16 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void SetVisible(bool visible)
         {
+            foreach (CanvasGroup hud in _underlyingHud)
+            {
+                if (!hud)
+                {
+                    continue;
+                }
+                hud.alpha = visible ? 0f : 1f;
+                hud.interactable = !visible;
+                hud.blocksRaycasts = !visible;
+            }
             if (group == null)
             {
                 gameObject.SetActive(visible);
@@ -119,7 +131,7 @@ namespace Vertigo.WheelOfFortune.UI
             group.interactable = visible;
 
             _fade?.Kill();
-            _fade = group.DOFade(visible ? 1f : 0f, fadeDuration).SetUpdate(true);
+            _fade = group.DOFade(visible ? 1f : 0f, fadeDuration).SetUpdate(true).SetLink(gameObject);
         }
 
         /// <summary>Points the ScrollRect and content rect at the configured axis.</summary>
@@ -259,13 +271,14 @@ namespace Vertigo.WheelOfFortune.UI
             count.color = Color.white;
             count.raycastTarget = false;
             count.textWrappingMode = TextWrappingModes.NoWrap;
-            count.overflowMode = TextOverflowModes.Overflow;
+            count.overflowMode = TextOverflowModes.Ellipsis;
+            count.enableAutoSizing = true;
 
             var countRect = (RectTransform)countGo.transform;
             countRect.anchorMin = new Vector2(0.5f, horizontal ? 0.5f : 1f);
             countRect.anchorMax = new Vector2(0.5f, horizontal ? 0.5f : 1f);
             countRect.pivot = new Vector2(0.5f, horizontal ? 0.5f : 1f);
-            countRect.sizeDelta = new Vector2(horizontal ? Mathf.Max(countWidth, tileWidth) : countWidth, countHeight);
+            countRect.sizeDelta = new Vector2(horizontal ? Mathf.Min(countWidth, tileWidth) : countWidth, countHeight);
             countRect.anchoredPosition = new Vector2(0f, countY);
 
             return new TileWidgets
