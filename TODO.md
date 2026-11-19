@@ -100,7 +100,8 @@ they do not necessarily mean the feature is entirely missing.
 - [x] Add PlayMode coverage for presentation interruption, modal handoff and pooled slot reuse.
 - [x] Update README with measured test counts and presentation architecture.
 - [x] Confirm installed Android modules are detected by Unity (`androidSupported = true`).
-- [ ] Build a non-development Android IL2CPP APK (local build requested).
+- [ ] Build a non-development Android IL2CPP APK. First attempt reported success but
+      produced no APK; investigate `Build target 'Android' not supported` in the running Editor.
 - [ ] Inspect build report, APK metadata/architecture and build warnings/errors.
 - [ ] Install and smoke-test APK on an Android device/emulator; verify touch, loss/restart,
       safe-zone exit, results, persistence and pause/resume.
@@ -116,6 +117,10 @@ they do not necessarily mean the feature is entirely missing.
 - Branch: `feature/technical-review-revision`; last verified code commit: `4f7e200`.
 - EditMode job `d8c39d8c18c24118a9e2bf16a83d0292`: 90 passed, 0 failed.
 - PlayMode job `5b1da582278541bab402ab6179ac7c75`: 13 passed, 0 failed.
-- Android build job: `build-b38ef4ca58` (requested; result not yet recorded).
+- Android build job `build-b38ef4ca58`: tooling reported success in 47.2 seconds with
+  2 errors and 11 warnings, but the expected APK does not exist. Do not treat this as a
+  validated build. Console includes `Build target 'Android' not supported`; warnings concern
+  compressed source textures packed into a SpriteAtlas. Module support query returns true,
+  so restarting the Editor after the module installation may be necessary.
 - Existing user modifications to `ProjectSettings/ProjectSettings.asset` are excluded from commits.
 - No release or merge has been authorized or performed for this revision.
