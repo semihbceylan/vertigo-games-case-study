@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -27,6 +26,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private UIButton leaveButton;
         [SerializeField] private UIButton restartButton;
         [SerializeField] private RewardFlyAnimator rewardFly;
+        [SerializeField] private RectTransform _canvasRect;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Header("Debug (Editor / Development builds only)")]
@@ -42,6 +42,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private Ease wheelSlideEase = Ease.InOutCubic;
 
         private readonly Dictionary<string, RewardDefinition> _rewardLookup = new Dictionary<string, RewardDefinition>();
+        private readonly List<RewardRowData> _rewardRows = new List<RewardRowData>();
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
         private Sequence _wheelTransition;
@@ -55,8 +56,6 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void Awake()
         {
-            ResolveReferences();
-
             if (wheelView != null && wheelView.WheelRotation != null)
                 _wheelHomePosition = wheelView.WheelRotation.anchoredPosition;
         }
@@ -629,19 +628,13 @@ namespace Vertigo.WheelOfFortune.Game
         /// </summary>
         private float ComputeSlideDistance(RectTransform parent, Vector2 home)
         {
-            float halfCanvas = 960f;
-
-            var canvas = GetComponentInParent<Canvas>();
-            var canvasRect = canvas != null && canvas.rootCanvas != null
-                ? canvas.rootCanvas.transform as RectTransform
-                : null;
-
-            if (canvasRect != null)
+            if (!_canvasRect)
             {
-                Vector3 canvasCorner = canvasRect.TransformPoint(new Vector3(canvasRect.rect.width * 0.5f, 0f, 0f));
-                Vector3 cornerInParent = parent.InverseTransformPoint(canvasCorner);
-                halfCanvas = Mathf.Abs(cornerInParent.x - home.x);
+                throw new InvalidOperationException("A serialized canvas rect is required for wheel transitions.");
             }
+            Vector3 canvasCorner = _canvasRect.TransformPoint(new Vector3(_canvasRect.rect.width * 0.5f, 0f, 0f));
+            Vector3 cornerInParent = parent.InverseTransformPoint(canvasCorner);
+            float halfCanvas = Mathf.Abs(cornerInParent.x - home.x);
 
             return halfCanvas + parent.rect.width * 0.5f;
         }
@@ -726,23 +719,27 @@ namespace Vertigo.WheelOfFortune.Game
         /// </summary>
         private List<RewardRowData> BuildRewardRows()
         {
-            var rows = new List<RewardRowData>();
-            if (_session == null) return rows;
+            _rewardRows.Clear();
+            if (_session == null) return _rewardRows;
 
-            var ordered = _session.Wallet.Totals
-                .OrderBy(pair => CategoryRank(ResolveReward(pair.Key)));
-
-            foreach (var pair in ordered)
+            foreach (var pair in _session.Wallet.Totals)
             {
                 var definition = ResolveReward(pair.Key);
-                rows.Add(new RewardRowData(
+                int rank = CategoryRank(definition);
+                int insertionIndex = _rewardRows.Count;
+                while (insertionIndex > 0 &&
+                    CategoryRank(ResolveReward(_rewardRows[insertionIndex - 1].Id)) > rank)
+                {
+                    insertionIndex--;
+                }
+                _rewardRows.Insert(insertionIndex, new RewardRowData(
                     pair.Key,
                     definition != null ? definition.Icon : null,
                     definition != null ? definition.DisplayName : pair.Key,
                     pair.Value));
             }
 
-            return rows;
+            return _rewardRows;
         }
 
         /// <summary>Sort rank for a reward's display category; unassigned rewards sort last.</summary>
@@ -752,28 +749,6 @@ namespace Vertigo.WheelOfFortune.Game
                 return int.MaxValue;
 
             return (int)definition.Category;
-        }
-
-        private void ResolveReferences()
-        {
-            if (wheelView == null) wheelView = GetComponentInChildren<WheelView>(true);
-            if (wheelLayout == null) wheelLayout = GetComponentInChildren<WheelLayout>(true);
-            if (wheelSpinner == null) wheelSpinner = GetComponentInChildren<WheelSpinner>(true);
-            if (screen == null) screen = GetComponentInChildren<GameScreenView>(true);
-            if (spinButton == null) spinButton = GetComponentInChildren<SpinButton>(true);
-            if (leaveButton == null) leaveButton = FindButton("ui_button_leave");
-            if (restartButton == null) restartButton = FindButton("ui_button_restart");
-            if (rewardFly == null) rewardFly = GetComponentInChildren<RewardFlyAnimator>(true);
-        }
-
-        private UIButton FindButton(string name)
-        {
-            var buttons = GetComponentsInChildren<UIButton>(true);
-            for (int i = 0; i < buttons.Length; i++)
-            {
-                if (buttons[i].name == name) return buttons[i];
-            }
-            return null;
         }
 
         // ---- development teleport (editor / development builds only) ----
@@ -826,7 +801,22 @@ namespace Vertigo.WheelOfFortune.Game
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            ResolveReferences();
+            if (!wheelView) wheelView = GetComponentInChildren<WheelView>(true);
+            if (!wheelLayout) wheelLayout = GetComponentInChildren<WheelLayout>(true);
+            if (!wheelSpinner) wheelSpinner = GetComponentInChildren<WheelSpinner>(true);
+            if (!screen) screen = GetComponentInChildren<GameScreenView>(true);
+            if (!spinButton) spinButton = GetComponentInChildren<SpinButton>(true);
+            if (!rewardFly) rewardFly = GetComponentInChildren<RewardFlyAnimator>(true);
+            if (!_canvasRect)
+            {
+                Canvas canvas = GetComponentInParent<Canvas>();
+                if (canvas) _canvasRect = (RectTransform)canvas.rootCanvas.transform;
+            }
+            foreach (UIButton button in GetComponentsInChildren<UIButton>(true))
+            {
+                if (!leaveButton && button.name == "ui_button_leave") leaveButton = button;
+                if (!restartButton && button.name == "ui_button_restart") restartButton = button;
+            }
             PreviewZoneOneInEditor();
         }
 

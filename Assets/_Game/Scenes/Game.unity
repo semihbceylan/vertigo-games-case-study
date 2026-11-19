@@ -10696,6 +10696,7 @@ MonoBehaviour:
   leaveButton: {fileID: 641241523}
   restartButton: {fileID: 776047850}
   rewardFly: {fileID: 155976359}
+  _canvasRect: {fileID: 1385580593}
   debugStartZone: 0
   wheelHoldDuration: 0.5
   wheelSlideDuration: 0.35
