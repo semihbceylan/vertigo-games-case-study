@@ -4,7 +4,7 @@ namespace Vertigo.WheelOfFortune.Data
 {
     /// <summary>
     /// Display grouping for accumulated rewards. Declaration order doubles as the sort order used
-    /// when the rewards panel and the end-of-run summary are built (see GameController.BuildRewardRows).
+    /// when the rewards panel and the end-of-run summary are built by RewardCatalogPresenter.
     /// <see cref="Uncategorized"/> is the default so a reward that has not been assigned yet sinks to
     /// the bottom of the list instead of jumping to the top.
     /// </summary>

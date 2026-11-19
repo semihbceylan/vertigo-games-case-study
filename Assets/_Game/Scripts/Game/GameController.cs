@@ -35,8 +35,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField, Min(0)] private int debugStartZone = 0;
 #endif
 
-        private readonly Dictionary<string, RewardDefinition> _rewardLookup = new Dictionary<string, RewardDefinition>();
-        private readonly List<RewardRowData> _rewardRows = new List<RewardRowData>();
+        private readonly RewardCatalogPresenter _rewardCatalog = new RewardCatalogPresenter();
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
         private Vector2 _wheelHomePosition;
@@ -133,38 +132,12 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void BuildRewardLookup()
         {
-            _rewardLookup.Clear();
-
-            foreach (var wheel in configuration.Zones.AllWheels)
-            {
-                if (wheel == null) continue;
-
-                if (wheel.RewardPool != null)
-                {
-                    var entries = wheel.RewardPool.Entries;
-                    for (int e = 0; e < entries.Length; e++)
-                    {
-                        if (entries[e].reward == null) continue;
-                        _rewardLookup[entries[e].reward.RewardId] = entries[e].reward;
-                    }
-                }
-
-                foreach (var band in wheel.RewardPoolBands)
-                {
-                    if (!band.Pool) continue;
-                    foreach (var entry in band.Pool.Entries)
-                    {
-                        if (entry.reward) _rewardLookup[entry.reward.RewardId] = entry.reward;
-                    }
-                }
-
-            }
+            _rewardCatalog.Configure(configuration.Zones);
         }
 
         private RewardDefinition ResolveReward(string rewardId)
         {
-            RewardDefinition definition;
-            return _rewardLookup.TryGetValue(rewardId, out definition) ? definition : null;
+            return _rewardCatalog.Resolve(rewardId);
         }
 
         // ---- input ----
@@ -446,36 +419,7 @@ namespace Vertigo.WheelOfFortune.Game
         /// </summary>
         private List<RewardRowData> BuildRewardRows()
         {
-            _rewardRows.Clear();
-            if (_session == null) return _rewardRows;
-
-            foreach (var pair in _session.Wallet.Totals)
-            {
-                var definition = ResolveReward(pair.Key);
-                int rank = CategoryRank(definition);
-                int insertionIndex = _rewardRows.Count;
-                while (insertionIndex > 0 &&
-                    CategoryRank(ResolveReward(_rewardRows[insertionIndex - 1].Id)) > rank)
-                {
-                    insertionIndex--;
-                }
-                _rewardRows.Insert(insertionIndex, new RewardRowData(
-                    pair.Key,
-                    definition != null ? definition.Icon : null,
-                    definition != null ? definition.DisplayName : pair.Key,
-                    pair.Value));
-            }
-
-            return _rewardRows;
-        }
-
-        /// <summary>Sort rank for a reward's display category; unassigned rewards sort last.</summary>
-        private static int CategoryRank(RewardDefinition definition)
-        {
-            if (definition == null || definition.Category == RewardCategory.Uncategorized)
-                return int.MaxValue;
-
-            return (int)definition.Category;
+            return _rewardCatalog.BuildRows(_session.Wallet);
         }
 
         // ---- development teleport (editor / development builds only) ----

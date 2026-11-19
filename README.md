@@ -143,6 +143,8 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   is silent, and the modal hides/disables the HUD then restores its previous state.
 - **Results modal lifecycle:** results share the HUD snapshot helper, preserve previously disabled
   controls, keep the input barrier through fade-out, and cancel tweens/restore the HUD on disable.
+- **Reward catalogue projection:** `RewardCatalogPresenter` owns session-local content lookup and
+  reusable, stable category-sorted reward rows, separate from controller composition and flow.
 - **Authored zone nodes:** the progress strip uses serialized node/background/frame/text
   references. It neither discovers components nor creates or repairs hierarchy at runtime;
   changing the visible window size requires updating its authored node array.
@@ -177,7 +179,7 @@ Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
 Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
-79 EditMode test cases total
+81 EditMode test cases total
 6 PlayMode test cases total (showcase/results timing, feedback cancellation and zone transition replacement)
 ```
 
