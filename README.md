@@ -111,8 +111,13 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   `RewardWallet`, `ZoneWheel`/`ZoneWheelBuilder`, and an `IRandomSource` abstraction so
   randomness is deterministic and injectable.
 - **ScriptableObjects** drive all content: `GameConfiguration`, `ZoneConfiguration`,
-  `WheelDefinition` (weighted reward pools with code-controlled bomb placement), `RewardPool`, `RewardDefinition`.
+  `ZoneRuleDefinition`, `WheelDefinition` (weighted reward pools with code-controlled bomb placement), `RewardPool`, `RewardDefinition`.
   Designers tune everything from the inspector; runtime state never lives in assets.
+- **Data-defined zones:** rule assets configure interval/range matching, priority, wheel,
+  bomb policy, leave permission, and progress-strip visuals. Gameplay receives immutable core
+  rule snapshots; the strip and authored map entries resolve the same asset rules. There is no
+  fixed zone-type enum or UI-specific safe/super modulo logic. Default intervals remain 5/30,
+  with super priority; conflicting highest priorities and uncovered zones are rejected.
 - **`WheelTierFactory`** adapts the ScriptableObject data to the core (`IZoneWheelFactory`) —
   a clean seam between configuration and simulation.
 - **SOLID**: single-responsibility components, dependency injection into `GameSession`
@@ -154,8 +159,9 @@ Assets/_Game/Tests/EditMode/GameplayTests.cs
 Assets/_Game/Tests/EditMode/EventBusTests.cs
 Assets/_Game/Tests/EditMode/CurrencyWalletTests.cs
 Assets/_Game/Tests/EditMode/SessionFlowTests.cs
+Assets/_Game/Tests/EditMode/ZoneRuleTests.cs
 
-61 EditMode test cases total
+66 EditMode test cases total
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

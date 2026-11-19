@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
+using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
@@ -33,16 +34,16 @@ namespace Vertigo.WheelOfFortune.UI
         public ResultsView Results => results;
         public JackpotShowcaseView Showcase => showcase;
 
-        public void SetZone(int zone, int safeInterval, int superInterval, int finalZone = 0)
+        public void SetZone(int zone, ZoneConfiguration configuration)
         {
-            if (zoneBar != null) zoneBar.Set(zone, safeInterval, superInterval, finalZone);
-            if (zoneMaps != null) zoneMaps.Set(zone, safeInterval, superInterval, finalZone);
+            if (zoneBar) zoneBar.Set(zone, configuration);
+            if (zoneMaps) zoneMaps.Set(zone, configuration);
         }
 
         /// <summary>Updates only the side maps, leaving the zone strip untouched (used while it animates).</summary>
-        public void SetZoneMaps(int zone, int safeInterval, int superInterval, int finalZone = 0)
+        public void SetZoneMaps(int zone, ZoneConfiguration configuration)
         {
-            if (zoneMaps != null) zoneMaps.Set(zone, safeInterval, superInterval, finalZone);
+            if (zoneMaps) zoneMaps.Set(zone, configuration);
         }
 
         public void SetRewards(IReadOnlyList<RewardRowData> rows)

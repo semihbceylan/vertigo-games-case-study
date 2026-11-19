@@ -13,12 +13,13 @@ namespace Vertigo.WheelOfFortune.Core
             if (zone < 1)
                 throw new ArgumentOutOfRangeException(nameof(zone), "Zone must be >= 1.");
 
-            if (zone % rules.SuperInterval == 0) return ZoneKind.Super;
-            if (zone % rules.SafeInterval == 0) return ZoneKind.Safe;
-            return ZoneKind.Normal;
+            return rules.Resolve(zone);
         }
 
         /// <summary>Safe and Super zones never contain bombs.</summary>
-        public static bool IsBombFree(ZoneKind kind) => kind == ZoneKind.Safe || kind == ZoneKind.Super;
+        public static bool IsBombFree(ZoneKind kind)
+        {
+            return kind.IsBombFree;
+        }
     }
 }

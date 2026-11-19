@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79bd2c8d64424f0b97b9f724bb8956bf, type: 3}
+  m_Name: ZoneRule_Normal
+  _id: normal
+  _interval: 1
+  _minimumZone: 1
+  _maximumZone: 0
+  _priority: 0
+  _isBombFree: 0
+  _isLeaveAllowed: 0
+  _wheel: {fileID: 11400000, guid: 80719afb17fcc4dfda071f69a1d3b13e, type: 2}
+  _currentBackground: {fileID: 3680065742417715221, guid: 8391d587bdccd469bae755de2b74f091, type: 3}
+  _textColor: {r: 1, g: 1, b: 1, a: 1}
+  _currentTextColor: {r: 0, g: 0, b: 0, a: 1}

@@ -42,7 +42,7 @@ namespace Vertigo.WheelOfFortune.Tests
         public void SetUp()
         {
             _presentation = new Presentation();
-            _session = new GameSession(new ZoneRules(5, 30),
+            _session = new GameSession(TestZones.CreateRules(),
                 new FakeWheelFactory(RewardWheel), new ScriptedRandom(),
                 startingZone: 5, presentation: _presentation);
         }
@@ -68,7 +68,7 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void FinalResultsWaitForRewardPresentation()
         {
-            _session = new GameSession(new ZoneRules(5, 30),
+            _session = new GameSession(TestZones.CreateRules(),
                 new FakeWheelFactory(RewardWheel), new ScriptedRandom(),
                 startingZone: 5, finalZone: 5, presentation: _presentation);
             _session.BeginSpin();
@@ -107,7 +107,7 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void BombClearsWalletBeforeLossPresentationAndRestartsAtConfiguredZone()
         {
-            _session = new GameSession(new ZoneRules(5, 30),
+            _session = new GameSession(TestZones.CreateRules(),
                 new FakeWheelFactory(BombWheel), new ScriptedRandom(),
                 startingZone: 2, presentation: _presentation);
             _session.Wallet.Add(new RewardGrant("gold", 100));

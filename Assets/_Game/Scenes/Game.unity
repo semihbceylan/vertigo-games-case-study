@@ -9269,13 +9269,7 @@ MonoBehaviour:
   nodePrefab: {fileID: 8402232877156875174, guid: bf73cef2e70ec4b85af2f16992766d87, type: 3}
   visibleNodes: 13
   currentSlot: 6
-  normalTextColor: {r: 1, g: 1, b: 1, a: 1}
-  safeTextColor: {r: 0.55, g: 1, b: 0.45, a: 1}
-  superTextColor: {r: 1, g: 0.85, b: 0.2, a: 1}
-  currentTextColor: {r: 0, g: 0, b: 0, a: 1}
-  currentZoneBackground: {fileID: 3680065742417715221, guid: 8391d587bdccd469bae755de2b74f091, type: 3}
-  currentSafeZoneBackground: {fileID: 1191495608715028336, guid: eeb87878f3a854777b3a60b105b936a1, type: 3}
-  currentSuperZoneBackground: {fileID: 21300000, guid: 2dc06a404e5f6c909030b4c7d8e9f223, type: 3}
+  _configuration: {fileID: 11400000, guid: 3f5a981da05de4cc999dc7acc216f4d5, type: 2}
   currentZoneFrame: {fileID: 21300000, guid: 876a375a855794221bbec5ef2b4dfae9, type: 3}
 --- !u!1 &1630594046
 GameObject:
@@ -9402,14 +9396,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b96229d4d43274097af3f06d77178203, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.UI.ZoneMapsView
-  superMap: {fileID: 1475984839}
-  superLabel: {fileID: 1518971697}
-  superValue: {fileID: 19606921}
-  safeMap: {fileID: 640080864}
-  safeLabel: {fileID: 1365042595}
-  safeValue: {fileID: 551055045}
-  mapFrame: {fileID: 21300000, guid: 057c0605913a5481090751fb6a1bbe4d, type: 3}
-  frameBleed: 6
+  _entries:
+  - _rule: {fileID: 11400000, guid: 59a688cb97904e048cb279288fb53e9d, type: 2}
+    _root: {fileID: 1475984837}
+    _value: {fileID: 19606921}
+  - _rule: {fileID: 11400000, guid: 54ea2bc2558349db9443909e8d754843, type: 2}
+    _root: {fileID: 640080862}
+    _value: {fileID: 551055045}
 --- !u!1 &1643441865
 GameObject:
   m_ObjectHideFlags: 0

@@ -222,7 +222,7 @@ namespace Vertigo.WheelOfFortune.Core
         {
             public ReadyState(GameSession session) : base(session) { }
             public override bool CanSpin { get { return true; } }
-            public override bool CanLeave { get { return ZoneClassifier.IsBombFree(Session.CurrentZoneKind); } }
+            public override bool CanLeave { get { return Session.CurrentZoneKind.IsLeaveAllowed; } }
 
             public override void BeginSpin()
             {

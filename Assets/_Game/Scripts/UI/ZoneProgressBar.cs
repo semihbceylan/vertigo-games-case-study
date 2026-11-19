@@ -3,7 +3,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Vertigo.WheelOfFortune.Core;
+using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
@@ -31,25 +31,15 @@ namespace Vertigo.WheelOfFortune.UI
         [Tooltip("Index within the window where the current zone sits. Set to the middle to centre it.")]
         [SerializeField, Min(0)] private int currentSlot = 6;
 
-        [Header("Number Colors")]
-        [SerializeField] private Color normalTextColor = Color.white;
-        [SerializeField] private Color safeTextColor = new Color(0.05f, 0.45f, 0.18f);
-        [SerializeField] private Color superTextColor = new Color(1f, 0.85f, 0.2f);
-        [Tooltip("Color of the current zone number for normal and super zones.")]
-        [SerializeField] private Color currentTextColor = Color.black;
-
         [Header("Current Zone Card")]
-        [Tooltip("Rounded card for normal zones (generated assets).")]
-        [SerializeField] private Sprite currentZoneBackground;
-        [Tooltip("Rounded card for safe zones (generated assets).")]
-        [SerializeField] private Sprite currentSafeZoneBackground;
-        [Tooltip("Gold card for super zones (generated assets).")]
-        [SerializeField] private Sprite currentSuperZoneBackground;
         [Tooltip("Border frame drawn around the current zone card.")]
         [SerializeField] private Sprite currentZoneFrame;
 
         private readonly List<Node> _nodes = new List<Node>();
         private int _displayedZone = int.MinValue;
+        [SerializeField] private ZoneConfiguration _configuration;
+        private int _transitionZone;
+        private Sequence _transition;
 
         private sealed class Node
         {
@@ -59,9 +49,10 @@ namespace Vertigo.WheelOfFortune.UI
             public TMP_Text Label;
         }
 
-        public void Set(int currentZone, int safeInterval, int superInterval, int finalZone = 0)
+        public void Set(int currentZone, ZoneConfiguration configuration)
         {
-            var rules = new ZoneRules(safeInterval, superInterval);
+            _configuration = configuration;
+            int finalZone = configuration.FinalZone;
 
             var self = (RectTransform)transform;
             float slot = self.rect.width / visibleNodes;
@@ -86,7 +77,7 @@ namespace Vertigo.WheelOfFortune.UI
                 }
 
                 node.Rect.gameObject.SetActive(true);
-                var kind = ZoneClassifier.Classify(zone, rules);
+                var kind = configuration.Resolve(zone);
                 bool isCurrent = zone == currentZone;
 
                 PlaceNode(node, i, slot, nodeWidth, nodeHeight, isCurrent);
@@ -131,15 +122,16 @@ namespace Vertigo.WheelOfFortune.UI
         /// The final layout is applied on completion. Returns the tween, or null when there is
         /// nothing to animate (in which case the strip is set instantly).
         /// </summary>
-        public Sequence PlayTransition(int newZone, int safeInterval, int superInterval, float duration, Ease ease, int finalZone = 0)
+        public Sequence PlayTransition(int newZone, ZoneConfiguration configuration, float duration, Ease ease)
         {
+            _configuration = configuration;
+            _transitionZone = newZone;
             if (duration <= 0f || newZone == _displayedZone)
             {
-                Set(newZone, safeInterval, superInterval, finalZone);
+                Set(newZone, configuration);
                 return null;
             }
 
-            var rules = new ZoneRules(safeInterval, superInterval);
             var self = (RectTransform)transform;
             float slot = self.rect.width / visibleNodes;
             int step = newZone - _displayedZone;
@@ -150,6 +142,8 @@ namespace Vertigo.WheelOfFortune.UI
             int incomingIndex = Mathf.Clamp(currentSlot + step, 0, visibleNodes - 1);
 
             var seq = DOTween.Sequence();
+            _transition = seq;
+            seq.SetLink(gameObject);
             seq.SetUpdate(true);
 
             // Slide every visible node by one step; the reset on completion is visually seamless
@@ -166,7 +160,7 @@ namespace Vertigo.WheelOfFortune.UI
             var incoming = _nodes[incomingIndex];
             if (incoming != null)
             {
-                var kind = ZoneClassifier.Classify(newZone, rules);
+                var kind = configuration.Resolve(newZone);
 
                 if (incoming.Bg != null)
                 {
@@ -201,11 +195,22 @@ namespace Vertigo.WheelOfFortune.UI
 
                 // ...and the number that was current fades back to its plain colour.
                 if (outgoing.Label != null)
-                    seq.Join(TweenTextColor(outgoing.Label, TextColor(ZoneClassifier.Classify(_displayedZone, rules), false), duration, ease));
+                    seq.Join(TweenTextColor(outgoing.Label, TextColor(configuration.Resolve(_displayedZone), false), duration, ease));
             }
 
-            seq.OnComplete(() => Set(newZone, safeInterval, superInterval, finalZone));
+            seq.OnComplete(CompleteTransition);
             return seq;
+        }
+
+        private void CompleteTransition()
+        {
+            _transition = null;
+            Set(_transitionZone, _configuration);
+        }
+
+        private void OnDestroy()
+        {
+            _transition?.Kill(false);
         }
 
         /// <summary>Tweens a label's colour from its current value to <paramref name="target"/>.</summary>
@@ -249,15 +254,10 @@ namespace Vertigo.WheelOfFortune.UI
         }
 
         /// <summary>Applies the current-zone card: rounded white for normal, rounded safe for safe, gold for super.</summary>
-        private void ApplyCurrentBackground(Image bg, ZoneKind kind, bool faded = false)
+        private void ApplyCurrentBackground(Image bg, ZoneRuleDefinition kind, bool faded = false)
         {
             // Sliced + square node = no stretch; rounding is baked in the generated asset.
-            if (kind == ZoneKind.Safe)
-                bg.sprite = currentSafeZoneBackground;
-            else if (kind == ZoneKind.Super)
-                bg.sprite = currentSuperZoneBackground != null ? currentSuperZoneBackground : currentZoneBackground;
-            else
-                bg.sprite = currentZoneBackground;
+            bg.sprite = kind.CurrentBackground;
             bg.type = Image.Type.Sliced;
             bg.preserveAspect = true;
             bg.color = faded ? new Color(1f, 1f, 1f, 0f) : Color.white;
@@ -266,17 +266,9 @@ namespace Vertigo.WheelOfFortune.UI
             bg.maskable = false;
         }
 
-        private Color TextColor(ZoneKind kind, bool isCurrent)
+        private Color TextColor(ZoneRuleDefinition kind, bool isCurrent)
         {
-            if (isCurrent)
-                return kind == ZoneKind.Safe ? safeTextColor : currentTextColor;
-
-            switch (kind)
-            {
-                case ZoneKind.Super: return superTextColor;
-                case ZoneKind.Safe: return safeTextColor;
-                default: return normalTextColor;
-            }
+            return isCurrent ? kind.CurrentTextColor : kind.TextColor;
         }
 
         /// <summary>Shows the border frame on the current node and hides it everywhere else.</summary>
@@ -384,7 +376,6 @@ namespace Vertigo.WheelOfFortune.UI
             rect.pivot = new Vector2(0.5f, 0.5f);
 
             var image = go.GetComponent<Image>();
-            image.sprite = currentZoneBackground;
             image.type = Image.Type.Sliced;
             image.preserveAspect = true;
             image.raycastTarget = false;
@@ -462,13 +453,13 @@ namespace Vertigo.WheelOfFortune.UI
 
         /// <summary>Applies the runtime node sizing in edit mode so the scene preview matches play.</summary>
         /// <remarks>
-        /// Renders a fresh zone-1 run (intervals mirror Zones_Default: safe 5 / super 30) so the
+        /// Renders a fresh run using the assigned configuration so the
         /// editor shows the current-zone card, frame and numbers exactly like play mode.
         /// The side maps are owned by ZoneMapsView and intentionally left untouched here.
         /// </remarks>
         private void ApplyEditorPreview()
         {
-            Set(1, 5, 30);
+            if (_configuration) Set(_configuration.StartingZone, _configuration);
         }
 #endif
     }

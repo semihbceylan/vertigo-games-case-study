@@ -66,28 +66,28 @@ namespace Vertigo.WheelOfFortune.Tests
 
     public sealed class ZoneClassifierTests
     {
-        private static readonly ZoneRules Rules = new ZoneRules(5, 30);
+        private static readonly ZoneRules Rules = TestZones.CreateRules();
 
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(4)]
         [TestCase(7)]
-        public void NormalZones(int zone) => Assert.AreEqual(ZoneKind.Normal, ZoneClassifier.Classify(zone, Rules));
+        public void NormalZones(int zone) => Assert.AreEqual(TestZones.Normal, ZoneClassifier.Classify(zone, Rules));
 
         [TestCase(5)]
         [TestCase(10)]
         [TestCase(25)]
-        public void EveryFifthZoneIsSafe(int zone) => Assert.AreEqual(ZoneKind.Safe, ZoneClassifier.Classify(zone, Rules));
+        public void EveryFifthZoneIsSafe(int zone) => Assert.AreEqual(TestZones.Safe, ZoneClassifier.Classify(zone, Rules));
 
         [TestCase(30)]
         [TestCase(60)]
         [TestCase(90)]
-        public void EveryThirtiethZoneIsSuper(int zone) => Assert.AreEqual(ZoneKind.Super, ZoneClassifier.Classify(zone, Rules));
+        public void EveryThirtiethZoneIsSuper(int zone) => Assert.AreEqual(TestZones.Super, ZoneClassifier.Classify(zone, Rules));
 
         [Test]
         public void SuperTakesPrecedenceOverSafe()
         {
-            Assert.AreEqual(ZoneKind.Super, ZoneClassifier.Classify(30, Rules));
+            Assert.AreEqual(TestZones.Super, ZoneClassifier.Classify(30, Rules));
         }
 
         [Test]
@@ -99,9 +99,9 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void SafeAndSuperAreBombFree()
         {
-            Assert.IsTrue(ZoneClassifier.IsBombFree(ZoneKind.Safe));
-            Assert.IsTrue(ZoneClassifier.IsBombFree(ZoneKind.Super));
-            Assert.IsFalse(ZoneClassifier.IsBombFree(ZoneKind.Normal));
+            Assert.IsTrue(ZoneClassifier.IsBombFree(TestZones.Safe));
+            Assert.IsTrue(ZoneClassifier.IsBombFree(TestZones.Super));
+            Assert.IsFalse(ZoneClassifier.IsBombFree(TestZones.Normal));
         }
     }
 
@@ -164,7 +164,7 @@ namespace Vertigo.WheelOfFortune.Tests
             var builder = new ZoneWheelBuilder();
             var random = new ScriptedRandom().EnqueueInt(3).EnqueueDouble(0.5);
 
-            var wheel = builder.Build(8, ZoneKind.Normal, Pool, random);
+            var wheel = builder.Build(8, TestZones.Normal, Pool, random);
 
             Assert.AreEqual(8, wheel.SliceCount);
             Assert.AreEqual(1, wheel.BombCount);
@@ -175,7 +175,7 @@ namespace Vertigo.WheelOfFortune.Tests
         public void SafeZoneHasNoBombs()
         {
             var builder = new ZoneWheelBuilder();
-            var wheel = builder.Build(8, ZoneKind.Safe, Pool, new ScriptedRandom());
+            var wheel = builder.Build(8, TestZones.Safe, Pool, new ScriptedRandom());
 
             Assert.AreEqual(0, wheel.BombCount);
         }
@@ -184,7 +184,7 @@ namespace Vertigo.WheelOfFortune.Tests
         public void SuperZoneHasNoBombsAndFillsRewards()
         {
             var builder = new ZoneWheelBuilder();
-            var wheel = builder.Build(10, ZoneKind.Super, Pool, new ScriptedRandom());
+            var wheel = builder.Build(10, TestZones.Super, Pool, new ScriptedRandom());
 
             Assert.AreEqual(0, wheel.BombCount);
             for (int i = 0; i < wheel.SliceCount; i++)
@@ -199,8 +199,8 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             var builder = new ZoneWheelBuilder();
             var random = new ScriptedRandom().EnqueueInt(1).EnqueueInt(6);
-            var first = builder.Build(8, ZoneKind.Normal, Pool, random);
-            var second = builder.Build(8, ZoneKind.Normal, Pool, random);
+            var first = builder.Build(8, TestZones.Normal, Pool, random);
+            var second = builder.Build(8, TestZones.Normal, Pool, random);
             Assert.IsTrue(first[1].IsBomb);
             Assert.IsTrue(second[6].IsBomb);
             Assert.AreEqual(1, first.BombCount);
@@ -211,7 +211,7 @@ namespace Vertigo.WheelOfFortune.Tests
         public void EmptyPoolIsRejected()
         {
             Assert.Throws<ArgumentException>(() => new ZoneWheelBuilder().Build(
-                8, ZoneKind.Normal, new List<RewardPoolEntry>(), new ScriptedRandom()));
+                8, TestZones.Normal, new List<RewardPoolEntry>(), new ScriptedRandom()));
         }
 
         [Test]
@@ -219,7 +219,7 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             var pool = new[] { new RewardPoolEntry("gold", 100, 0d) };
             Assert.Throws<ArgumentException>(() => new ZoneWheelBuilder().Build(
-                8, ZoneKind.Normal, pool, new ScriptedRandom()));
+                8, TestZones.Normal, pool, new ScriptedRandom()));
         }
 
         [Test]
@@ -230,7 +230,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 new RewardPoolEntry("excluded", 100, 0d),
                 new RewardPoolEntry("gold", 100, 1d)
             };
-            var wheel = new ZoneWheelBuilder().Build(2, ZoneKind.Safe, pool,
+            var wheel = new ZoneWheelBuilder().Build(2, TestZones.Safe, pool,
                 new ScriptedRandom().EnqueueDouble(0d));
             Assert.AreEqual("gold", wheel[0].Reward.RewardId);
         }
@@ -240,7 +240,7 @@ namespace Vertigo.WheelOfFortune.Tests
 
     public sealed class GameSessionTests
     {
-        private static readonly ZoneRules Rules = new ZoneRules(5, 30);
+        private static readonly ZoneRules Rules = TestZones.CreateRules();
 
         private static GameSession CreateSession(Func<int, ZoneKind, ZoneWheel> resolver, ScriptedRandom random, int startingZone = 1)
         {
@@ -354,7 +354,7 @@ namespace Vertigo.WheelOfFortune.Tests
             }
 
             Assert.AreEqual(5, session.Zone);
-            Assert.AreEqual(ZoneKind.Safe, session.CurrentZoneKind);
+            Assert.AreEqual(TestZones.Safe, session.CurrentZoneKind);
             Assert.IsTrue(session.CanLeave);
 
             session.Leave();
@@ -444,7 +444,7 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.IsTrue(session.IsIdle);
             Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
             Assert.IsTrue(session.CanSpin);
-            Assert.AreEqual(ZoneKind.Normal, session.CurrentZoneKind);
+            Assert.AreEqual(TestZones.Normal, session.CurrentZoneKind);
         }
 
         [Test]
@@ -459,7 +459,7 @@ namespace Vertigo.WheelOfFortune.Tests
 
             session.JumpToZone(9999);
             Assert.AreEqual(60, session.Zone);
-            Assert.AreEqual(ZoneKind.Super, session.CurrentZoneKind);
+            Assert.AreEqual(TestZones.Super, session.CurrentZoneKind);
 
             session.JumpToZone(-5);
             Assert.AreEqual(1, session.Zone);

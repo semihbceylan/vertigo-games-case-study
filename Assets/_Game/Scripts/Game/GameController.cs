@@ -472,11 +472,9 @@ namespace Vertigo.WheelOfFortune.Game
 
             var tween = screen.ZoneBar.PlayTransition(
                 _session.Zone,
-                configuration.Zones.SafeZoneInterval,
-                configuration.Zones.SuperZoneInterval,
+                configuration.Zones,
                 _wheelTransitionController.Animation.SlideDuration,
-                _wheelTransitionController.Animation.SlideEase,
-                configuration.Zones.FinalZone);
+                _wheelTransitionController.Animation.SlideEase);
 
             return tween;
         }
@@ -512,9 +510,9 @@ namespace Vertigo.WheelOfFortune.Game
             int zone = _session.Zone;
 
             if (_session.IsZoneTransitioning)
-                screen.SetZoneMaps(zone, configuration.Zones.SafeZoneInterval, configuration.Zones.SuperZoneInterval, configuration.Zones.FinalZone);
+                screen.SetZoneMaps(zone, configuration.Zones);
             else
-                screen.SetZone(zone, configuration.Zones.SafeZoneInterval, configuration.Zones.SuperZoneInterval, configuration.Zones.FinalZone);
+                screen.SetZone(zone, configuration.Zones);
 
             screen.SetLeaveAvailable(_session.CanLeave);
             SetSpinInput(_session.CanSpin);
@@ -705,7 +703,7 @@ namespace Vertigo.WheelOfFortune.Game
                 wheelView.WheelBase,
                 wheelLayout);
 
-            screen.ZoneBar.Set(1, zones.SafeZoneInterval, zones.SuperZoneInterval);
+            screen.ZoneBar.Set(zones.StartingZone, zones);
         }
 #endif
     }

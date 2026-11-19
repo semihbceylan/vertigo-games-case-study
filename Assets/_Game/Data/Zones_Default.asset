@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: Zones_Default
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.ZoneConfiguration
   startingZone: 1
-  safeZoneInterval: 5
-  superZoneInterval: 30
   finalZone: 60
-  normalWheel: {fileID: 11400000, guid: 80719afb17fcc4dfda071f69a1d3b13e, type: 2}
-  safeWheel: {fileID: 11400000, guid: 76756f96cb3454a72921c6a6422a1c6a, type: 2}
-  superWheel: {fileID: 11400000, guid: d6b7a1900ce60455f97a614d71812ff0, type: 2}
+  _zoneRules:
+  - {fileID: 11400000, guid: 879330bfd4ce444f87352cf8d2fdf259, type: 2}
+  - {fileID: 11400000, guid: 54ea2bc2558349db9443909e8d754843, type: 2}
+  - {fileID: 11400000, guid: 59a688cb97904e048cb279288fb53e9d, type: 2}
