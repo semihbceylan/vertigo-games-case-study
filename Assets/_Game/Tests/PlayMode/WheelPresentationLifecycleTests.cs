@@ -10,6 +10,43 @@ namespace Vertigo.WheelOfFortune.Tests
 {
     public sealed class WheelPresentationLifecycleTests
     {
+        private int _completions;
+
+        [UnityTest]
+        public IEnumerator SessionPresenterCancelsTransitionSilentlyAndCanPlayAgain()
+        {
+            yield return SceneManager.LoadSceneAsync("Game");
+            yield return null;
+            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
+            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameController, Assembly-CSharp", true);
+            Component controller = null;
+            foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(controllerType))
+            {
+                var component = (Component)candidate;
+                if (component.gameObject.scene == SceneManager.GetActiveScene()) controller = component;
+            }
+            Assert.IsTrue(controller);
+            object presenter = controllerType.GetField("_presentation", FLAGS).GetValue(controller);
+            Type presenterType = presenter.GetType();
+            object transition = controllerType.GetField("_wheelTransitionController", FLAGS).GetValue(controller);
+            object profile = transition.GetType().GetProperty("Animation").GetValue(transition);
+            float duration = (float)profile.GetType().GetProperty("SlideDuration").GetValue(profile);
+            duration += (float)profile.GetType().GetProperty("HoldDuration").GetValue(profile);
+            _completions = 0;
+            presenterType.GetMethod("PlayZoneTransition").Invoke(presenter, new object[] { (Action)OnComplete });
+            presenterType.GetMethod("Cancel").Invoke(presenter, null);
+            yield return new WaitForSecondsRealtime(duration + 0.1f);
+            Assert.AreEqual(0, _completions);
+            presenterType.GetMethod("PlayZoneTransition").Invoke(presenter, new object[] { (Action)OnComplete });
+            yield return new WaitForSecondsRealtime(duration + 0.2f);
+            Assert.AreEqual(1, _completions);
+        }
+
+        private void OnComplete()
+        {
+            _completions++;
+        }
+
         [UnityTest]
         public IEnumerator ZoneChangesReuseSlotsAndMatchBombQuantityVisibility()
         {

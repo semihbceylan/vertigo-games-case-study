@@ -145,6 +145,9 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   controls, keep the input barrier through fade-out, and cancel tweens/restore the HUD on disable.
 - **Reward catalogue projection:** `RewardCatalogPresenter` owns session-local content lookup and
   reusable, stable category-sorted reward rows, separate from controller composition and flow.
+- **Session presentation:** `SessionPresenter` implements the core presentation boundary and owns
+  spin/reward/zone completion callbacks, loss/results display and cancellation. `GameController`
+  composes these collaborators and wires input rather than implementing presentation itself.
 - **HUD and wheel projection:** `SessionHudPresenter` maps session capabilities to HUD controls;
   `WheelVisualPresenter` supplies the shared live/incoming/editor wheel-rendering path. Wheel
   layouts retain typed slice slots and reuse them across zone changes.
@@ -183,7 +186,7 @@ Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
 87 EditMode test cases total
-10 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, zone transitions and live wheel slot reuse)
+11 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, session presentation cancellation, zone transitions and live wheel slot reuse)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

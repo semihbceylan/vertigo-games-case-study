@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Core;
@@ -15,7 +12,7 @@ namespace Vertigo.WheelOfFortune.Game
     /// HUD. All button listeners are registered here in code.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class GameController : MonoBehaviour, ISessionPresentation
+    public sealed class GameController : MonoBehaviour
     {
         [SerializeField] private GameConfiguration configuration;
         [SerializeField] private WheelView wheelView;
@@ -41,14 +38,7 @@ namespace Vertigo.WheelOfFortune.Game
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
         private RunCurrencySettlement _currencySettlement;
-        private Vector2 _wheelHomePosition;
-        private Action _zoneTransitionComplete;
-
-        private void Awake()
-        {
-            if (wheelView != null && wheelView.WheelRotation != null)
-                _wheelHomePosition = wheelView.WheelRotation.anchoredPosition;
-        }
+        private SessionPresenter _presentation;
 
         private void OnEnable()
         {
@@ -81,17 +71,22 @@ namespace Vertigo.WheelOfFortune.Game
 
             BuildRewardLookup();
 
+            _presentation = new SessionPresenter(configuration.Zones, wheelView, wheelLayout,
+                wheelSpinner, screen, _rewardPresentation, _wheelTransitionController,
+                _wheelTransitionController.Animation, _wheelVisualPresenter, _rewardCatalog);
+
             _session = new GameSession(
                 configuration.Zones.ToRules(),
                 new WheelTierFactory(configuration.Zones),
                 CreateRandomSource(),
                 configuration.Zones.StartingZone,
                 configuration.Zones.FinalZone,
-                presentation: this);
+                presentation: _presentation);
 
             _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), _session.Events);
             _currencySettlement = new RunCurrencySettlement(_session.Events, _session.Wallet, _currencyWallet, _rewardCatalog);
             _hudPresenter = new SessionHudPresenter(_session, configuration.Zones, screen, spinButton, _rewardCatalog);
+            _presentation.Bind(_session, _hudPresenter);
 
             SubscribeSessionEvents();
 
@@ -105,7 +100,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnDestroy()
         {
-            Cancel();
+            _presentation?.Cancel();
             UnsubscribeSessionEvents();
         }
 
@@ -141,36 +136,12 @@ namespace Vertigo.WheelOfFortune.Game
             if (_wheelVisualPresenter == null) _wheelVisualPresenter = new WheelVisualPresenter(_rewardCatalog);
         }
 
-        private RewardDefinition ResolveReward(string rewardId)
-        {
-            return _rewardCatalog.Resolve(rewardId);
-        }
-
         // ---- input ----
 
         private void OnSpinClicked()
         {
             if (_session == null || !_session.CanSpin) return;
             _session.BeginSpin();
-        }
-
-        public void PlaySpin(int sliceIndex, ZoneWheel wheel, Action onComplete)
-        {
-            float startAngle = wheelLayout != null ? wheelLayout.StartAngle : 0f;
-            if (!wheelSpinner)
-            {
-                onComplete();
-                return;
-            }
-            wheelSpinner.SpinToSlice(sliceIndex, wheel.SliceCount, startAngle, onComplete);
-        }
-
-        /// <summary>Refresh the collected row before delegating its presentation.</summary>
-        public void PresentReward(RewardGrant grant, int sliceIndex, Action onComplete)
-        {
-            RefreshRewards();
-            IRewardPresentation presentation = _rewardPresentation;
-            presentation.Play(grant, ResolveReward(grant.RewardId), sliceIndex, onComplete);
         }
 
         private void OnLeaveClicked()
@@ -192,96 +163,21 @@ namespace Vertigo.WheelOfFortune.Game
             else if (_session.IsCompleted) _session.StartNewRun();
         }
 
-        // ---- session events ----
-
-        public void ShowLoss(int zone)
-        {
-            if (screen == null) return;
-            var definition = configuration.Zones.GetWheelForZone(zone);
-            screen.ShowBomb(definition != null ? definition.BombSprite : null);
-        }
-
-        public void PlayZoneTransition(Action onComplete)
-        {
-            _zoneTransitionComplete = onComplete;
-            if (screen != null) screen.HideFeedback();
-            PlayZoneTransition();
-        }
-
-        public void ShowResults()
-        {
-            if (screen == null) return;
-
-            screen.HideFeedback();
-            if (screen.Results != null) screen.Results.Show(BuildRewardRows());
-        }
-
-        /// <summary>Silently drops any visible/deferred showcase (restart or new run).</summary>
-        private void ClearJackpotState()
-        {
-            if (_rewardPresentation) _rewardPresentation.Cancel();
-        }
-
         private void OnResultsRestartRequested()
         {
             if (_session == null) return;
 
-            ClearJackpotState();
-            KillWheelTransition();
+            _presentation.Cancel();
             _session.StartNewRun();
             ApplyZoneWheel();
             RefreshState();
-        }
-
-        public void Reset()
-        {
-            ClearJackpotState();
-            KillWheelTransition();
-            ApplyZoneWheel();
-            if (screen != null) screen.HideFeedback();
-            if (screen != null && screen.Results != null) screen.Results.Hide();
-        }
-
-        public void Cancel()
-        {
-            _zoneTransitionComplete = null;
-            if (wheelSpinner) wheelSpinner.CancelSpin();
-            if (_rewardPresentation) _rewardPresentation.Cancel();
-            KillWheelTransition();
-            if (screen) screen.HideJackpot();
         }
 
         // ---- view ----
 
         private void ApplyZoneWheel()
         {
-            if (_session == null || wheelLayout == null) return;
-
-            var definition = configuration.Zones.GetWheelForZone(_session.Zone);
-
-            if (wheelView != null && wheelView.WheelRotation != null)
-                wheelView.WheelRotation.anchoredPosition = _wheelHomePosition;
-
-            if (wheelView != null && wheelView.WheelIndicator != null && definition != null && definition.IndicatorSprite != null)
-                wheelView.WheelIndicator.sprite = definition.IndicatorSprite;
-
-            PopulateWheelVisual(
-                wheelView != null ? wheelView.WheelRotation : null,
-                wheelView != null ? wheelView.WheelBase : null,
-                wheelLayout);
-        }
-
-        /// <summary>Fills a wheel disc (base sprite + slice icons) with the current zone's wheel.</summary>
-        private void PopulateWheelVisual(RectTransform rotation, Image baseImage, WheelLayout layout)
-        {
-            if (_session == null || layout == null) return;
-
-            FillWheelVisual(
-                _session.CurrentWheel,
-                configuration.Zones.GetWheelForZone(_session.Zone),
-                rotation,
-                baseImage,
-                layout);
+            _presentation.ApplyZoneWheel();
         }
 
         /// <summary>Shared wheel filler used by both the live session and the edit-mode preview.</summary>
@@ -290,68 +186,9 @@ namespace Vertigo.WheelOfFortune.Game
             _wheelVisualPresenter.Fill(wheel, definition, rotation, baseImage, layout);
         }
 
-        private void PlayZoneTransition()
-        {
-            IWheelTransition transition = _wheelTransitionController;
-            transition.Play(PopulateIncomingWheel, StartZoneBarTransition(), FinishZoneTransition);
-        }
-
-        private void PopulateIncomingWheel(WheelDiscView incoming)
-        {
-            PopulateWheelVisual(incoming.Rect, incoming.Base, incoming.Layout);
-        }
-
-        /// <summary>Slides the numbered zone strip to the new zone in step with the wheel.</summary>
-        private Sequence StartZoneBarTransition()
-        {
-            if (screen == null || screen.ZoneBar == null || _session == null) return null;
-
-            var tween = screen.ZoneBar.PlayTransition(
-                _session.Zone,
-                configuration.Zones,
-                _wheelTransitionController.Animation.SlideDuration,
-                _wheelTransitionController.Animation.SlideEase);
-
-            return tween;
-        }
-
-        private void FinishZoneTransition()
-        {
-            ApplyZoneWheel();
-
-            CompleteZonePresentation();
-        }
-
-        private void CompleteZonePresentation()
-        {
-            Action completion = _zoneTransitionComplete;
-            _zoneTransitionComplete = null;
-            completion?.Invoke();
-        }
-
-        private void KillWheelTransition()
-        {
-            if (_wheelTransitionController) _wheelTransitionController.Cancel();
-        }
-
         private void RefreshState()
         {
             _hudPresenter?.Refresh();
-        }
-
-        private void RefreshRewards()
-        {
-            _hudPresenter?.RefreshRewards();
-        }
-
-        /// <summary>
-        /// Snapshot of the wallet as view rows, resolved to their configured icons/labels.
-        /// Rows are grouped by <see cref="RewardDefinition.Category"/> (renders, helmets, chests,
-        /// currency, consumables, points); the stable sort keeps first-obtained order within a group.
-        /// </summary>
-        private List<RewardRowData> BuildRewardRows()
-        {
-            return _rewardCatalog.BuildRows(_session.Wallet);
         }
 
         // ---- development teleport (editor / development builds only) ----
@@ -379,8 +216,7 @@ namespace Vertigo.WheelOfFortune.Game
         {
             if (_session == null || !_session.CanSpin) return;
 
-            ClearJackpotState();
-            KillWheelTransition();
+            _presentation.Cancel();
             _session.JumpToZone(zone);
             ApplyZoneWheel();
             RefreshState();
