@@ -48,20 +48,14 @@ namespace Vertigo.WheelOfFortune.UI
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            Rebuild();
-        }
-
-        private void Reset()
-        {
-            target = GetComponent<Image>();
+            if (!target) target = GetComponent<Image>();
             Rebuild();
         }
 #endif
 
         public void Rebuild()
         {
-            if (target == null) target = GetComponent<Image>();
-            if (target == null) return;
+            if (!target) return;
 
             int hash = ComputeHash();
             if (_sprite != null && hash == _lastHash) return;
@@ -136,6 +130,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void ReleaseGenerated()
         {
+            if (target && target.sprite == _sprite) target.sprite = null;
             if (_sprite != null)
             {
                 DestroySafe(_sprite);
