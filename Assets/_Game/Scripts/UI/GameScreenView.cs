@@ -25,14 +25,14 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private ResultsView results;
         [SerializeField] private JackpotShowcaseView showcase;
 
-        public ZoneProgressBar ZoneBar => zoneBar;
-        public ZoneMapsView ZoneMaps => zoneMaps;
-        public RewardsListView RewardsList => rewardsList;
-        public UIButton LeaveButton => leaveButton;
-        public UIButton RestartButton => restartButton;
-        public FeedbackView Feedback => feedback;
-        public ResultsView Results => results;
-        public JackpotShowcaseView Showcase => showcase;
+        public ZoneProgressBar ZoneBar { get { return zoneBar; } }
+        public ZoneMapsView ZoneMaps { get { return zoneMaps; } }
+        public RewardsListView RewardsList { get { return rewardsList; } }
+        public UIButton LeaveButton { get { return leaveButton; } }
+        public UIButton RestartButton { get { return restartButton; } }
+        public FeedbackView Feedback { get { return feedback; } }
+        public ResultsView Results { get { return results; } }
+        public JackpotShowcaseView Showcase { get { return showcase; } }
 
         public void SetZone(int zone, ZoneConfiguration configuration)
         {
@@ -79,7 +79,7 @@ namespace Vertigo.WheelOfFortune.UI
             else ShowReward(icon, label, amount);
         }
 
-        public bool IsJackpotShowing => showcase != null && showcase.IsShowing;
+        public bool IsJackpotShowing { get { return showcase && showcase.IsShowing; } }
 
         public void HideJackpot()
         {

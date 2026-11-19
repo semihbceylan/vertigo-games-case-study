@@ -15,11 +15,11 @@ namespace Vertigo.WheelOfFortune.Wheel
         [SerializeField] private RectTransform slicesRoot;
         [SerializeField] private Button spinButton;
 
-        public RectTransform WheelRotation => wheelRotation;
-        public Image WheelBase => wheelBase;
-        public Image WheelIndicator => wheelIndicator;
-        public RectTransform SlicesRoot => slicesRoot;
-        public Button SpinButton => spinButton;
+        public RectTransform WheelRotation { get { return wheelRotation; } }
+        public Image WheelBase { get { return wheelBase; } }
+        public Image WheelIndicator { get { return wheelIndicator; } }
+        public RectTransform SlicesRoot { get { return slicesRoot; } }
+        public Button SpinButton { get { return spinButton; } }
 
 #if UNITY_EDITOR
         private void OnValidate()

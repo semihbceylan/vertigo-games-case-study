@@ -14,10 +14,10 @@ namespace Vertigo.WheelOfFortune.Core
 
         public event Action Changed;
 
-        public IReadOnlyList<RewardGrant> Grants => _grants;
-        public IReadOnlyDictionary<string, long> Totals => _totals;
-        public int Count => _grants.Count;
-        public bool IsEmpty => _grants.Count == 0;
+        public IReadOnlyList<RewardGrant> Grants { get { return _grants; } }
+        public IReadOnlyDictionary<string, long> Totals { get { return _totals; } }
+        public int Count { get { return _grants.Count; } }
+        public bool IsEmpty { get { return _grants.Count == 0; } }
         public long AccumulatedAmount { get; private set; }
 
         public void Add(RewardGrant grant)

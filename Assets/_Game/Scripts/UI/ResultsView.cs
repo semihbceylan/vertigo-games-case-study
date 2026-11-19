@@ -65,7 +65,7 @@ namespace Vertigo.WheelOfFortune.UI
             public TMP_Text Count;
         }
 
-        private bool IsHorizontal => layout == ResultsLayout.Horizontal;
+        private bool IsHorizontal { get { return layout == ResultsLayout.Horizontal; } }
 
         private void Awake()
         {

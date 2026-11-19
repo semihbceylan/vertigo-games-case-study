@@ -15,7 +15,7 @@ namespace Vertigo.WheelOfFortune.Core
             Reward = reward;
         }
 
-        public static WheelSlice Bomb => new WheelSlice(true, default(RewardGrant));
+        public static WheelSlice Bomb { get { return new WheelSlice(true, default(RewardGrant)); } }
     }
 
     /// <summary>Immutable slice layout for one zone.</summary>
@@ -28,9 +28,9 @@ namespace Vertigo.WheelOfFortune.Core
             _slices = slices ?? throw new ArgumentNullException(nameof(slices));
         }
 
-        public int SliceCount => _slices.Length;
+        public int SliceCount { get { return _slices.Length; } }
 
-        public WheelSlice this[int index] => _slices[index];
+        public WheelSlice this[int index] { get { return _slices[index]; } }
 
         public int BombCount
         {

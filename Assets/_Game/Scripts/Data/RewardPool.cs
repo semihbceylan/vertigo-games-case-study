@@ -20,6 +20,6 @@ namespace Vertigo.WheelOfFortune.Data
     {
         [SerializeField] private RewardPoolItem[] entries = new RewardPoolItem[0];
 
-        public RewardPoolItem[] Entries => entries;
+        public RewardPoolItem[] Entries { get { return entries; } }
     }
 }

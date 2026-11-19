@@ -50,12 +50,12 @@ namespace Vertigo.WheelOfFortune.Data
             get { return _currency; }
         }
 
-        public string RewardId => rewardId;
-        public string DisplayName => displayName;
-        public Sprite Icon => icon;
-        public long Amount => amount;
-        public RewardCategory Category => category;
-        public bool ShowcaseBig => showcaseBig;
+        public string RewardId { get { return rewardId; } }
+        public string DisplayName { get { return displayName; } }
+        public Sprite Icon { get { return icon; } }
+        public long Amount { get { return amount; } }
+        public RewardCategory Category { get { return category; } }
+        public bool ShowcaseBig { get { return showcaseBig; } }
 
         public bool IsAmountScaled
         {

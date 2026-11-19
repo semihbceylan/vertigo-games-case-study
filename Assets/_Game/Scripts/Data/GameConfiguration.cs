@@ -13,8 +13,8 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField] private bool deterministicRandom;
         [SerializeField] private int randomSeed = 12345;
 
-        public ZoneConfiguration Zones => zones;
-        public bool DeterministicRandom => deterministicRandom;
-        public int RandomSeed => randomSeed;
+        public ZoneConfiguration Zones { get { return zones; } }
+        public bool DeterministicRandom { get { return deterministicRandom; } }
+        public int RandomSeed { get { return randomSeed; } }
     }
 }

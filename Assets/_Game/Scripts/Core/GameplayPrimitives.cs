@@ -116,6 +116,9 @@ namespace Vertigo.WheelOfFortune.Core
             return _random.Next(minInclusive, maxExclusive);
         }
 
-        public double NextDouble() => _random.NextDouble();
+        public double NextDouble()
+        {
+            return _random.NextDouble();
+        }
     }
 }

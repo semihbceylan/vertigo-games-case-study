@@ -43,12 +43,12 @@ namespace Vertigo.WheelOfFortune.Data
         [Tooltip("Reward amounts grow by this fraction for every zone above the first.")]
         [SerializeField, Min(0f)] private float amountScalePerZone = 0.1f;
 
-        public Sprite BaseSprite => baseSprite;
-        public Sprite IndicatorSprite => indicatorSprite;
-        public Sprite BombSprite => bombSprite;
-        public int SliceCount => sliceCount;
-        public RewardPool RewardPool => rewardPool;
-        public float AmountScalePerZone => amountScalePerZone;
+        public Sprite BaseSprite { get { return baseSprite; } }
+        public Sprite IndicatorSprite { get { return indicatorSprite; } }
+        public Sprite BombSprite { get { return bombSprite; } }
+        public int SliceCount { get { return sliceCount; } }
+        public RewardPool RewardPool { get { return rewardPool; } }
+        public float AmountScalePerZone { get { return amountScalePerZone; } }
 
         public RewardPoolBand[] RewardPoolBands
         {

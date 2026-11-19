@@ -85,7 +85,7 @@ namespace Vertigo.WheelOfFortune.UI
         }
 
         /// <summary>The visible list rect, used as a fallback target for reward fly animations.</summary>
-        public RectTransform ListRect => (RectTransform)transform;
+        public RectTransform ListRect { get { return (RectTransform)transform; } }
 
         /// <summary>True when an active row for <paramref name="id"/> exists; returns its icon rect.</summary>
         public bool TryGetRowIcon(string id, out RectTransform icon)

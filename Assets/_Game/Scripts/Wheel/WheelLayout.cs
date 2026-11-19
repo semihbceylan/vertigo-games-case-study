@@ -48,14 +48,14 @@ namespace Vertigo.WheelOfFortune.Wheel
             public TMP_Text Amount;
         }
 
-        public RectTransform SlicesRoot => slicesRoot != null ? slicesRoot : (RectTransform)transform;
+        public RectTransform SlicesRoot { get { return slicesRoot ? slicesRoot : (RectTransform)transform; } }
         public int SliceCount { get { return _sliceCount; } }
-        public float StartAngle => startAngle;
-        public float Radius => radius;
-        public float IconScale => iconScale;
-        public float PointsIconScale => pointsIconScale;
-        public float StandardIconScale => standardIconScale;
-        public float BombIconScale => bombIconScale;
+        public float StartAngle { get { return startAngle; } }
+        public float Radius { get { return radius; } }
+        public float IconScale { get { return iconScale; } }
+        public float PointsIconScale { get { return pointsIconScale; } }
+        public float StandardIconScale { get { return standardIconScale; } }
+        public float BombIconScale { get { return bombIconScale; } }
 
         public float AngleStep { get { return _sliceCount > 0 ? 360f / _sliceCount : 0f; } }
 

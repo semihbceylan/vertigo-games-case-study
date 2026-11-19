@@ -225,16 +225,28 @@ namespace Vertigo.WheelOfFortune.Game
 
 #if UNITY_EDITOR
         [ContextMenu("Debug/Jump To Zone 54")]
-        private void DebugJumpToZone54() => DebugJumpTo(54);
+        private void DebugJumpToZone54()
+        {
+            DebugJumpTo(54);
+        }
 
         [ContextMenu("Debug/Jump To Zone 55 (Safe)")]
-        private void DebugJumpToZone55() => DebugJumpTo(55);
+        private void DebugJumpToZone55()
+        {
+            DebugJumpTo(55);
+        }
 
         [ContextMenu("Debug/Jump To Zone 59")]
-        private void DebugJumpToZone59() => DebugJumpTo(59);
+        private void DebugJumpToZone59()
+        {
+            DebugJumpTo(59);
+        }
 
         [ContextMenu("Debug/Jump To Zone 60 (Super)")]
-        private void DebugJumpToZone60() => DebugJumpTo(60);
+        private void DebugJumpToZone60()
+        {
+            DebugJumpTo(60);
+        }
 #endif
 
 #if UNITY_EDITOR
