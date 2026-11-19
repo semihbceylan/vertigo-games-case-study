@@ -145,6 +145,9 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   controls, keep the input barrier through fade-out, and cancel tweens/restore the HUD on disable.
 - **Reward catalogue projection:** `RewardCatalogPresenter` owns session-local content lookup and
   reusable, stable category-sorted reward rows, separate from controller composition and flow.
+- **HUD and wheel projection:** `SessionHudPresenter` maps session capabilities to HUD controls;
+  `WheelVisualPresenter` supplies the shared live/incoming/editor wheel-rendering path. Wheel
+  layouts retain typed slice slots and reuse them across zone changes.
 - **Authored zone nodes:** the progress strip uses serialized node/background/frame/text
   references. It neither discovers components nor creates or repairs hierarchy at runtime;
   changing the visible window size requires updating its authored node array.

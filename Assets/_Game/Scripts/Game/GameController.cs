@@ -37,6 +37,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private readonly RewardCatalogPresenter _rewardCatalog = new RewardCatalogPresenter();
         private IWheelVisualPresenter _wheelVisualPresenter;
+        private ISessionHudPresenter _hudPresenter;
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
         private Vector2 _wheelHomePosition;
@@ -88,6 +89,7 @@ namespace Vertigo.WheelOfFortune.Game
                 presentation: this);
 
             _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), _session.Events);
+            _hudPresenter = new SessionHudPresenter(_session, configuration.Zones, screen, spinButton, _rewardCatalog);
 
             SubscribeSessionEvents();
 
@@ -343,34 +345,14 @@ namespace Vertigo.WheelOfFortune.Game
             if (_wheelTransitionController) _wheelTransitionController.Cancel();
         }
 
-        private void SetSpinInput(bool enabled)
-        {
-            if (spinButton != null) spinButton.Interactable = enabled;
-        }
-
         private void RefreshState()
         {
-            if (_session == null || screen == null) return;
-
-            int zone = _session.Zone;
-
-            if (_session.IsZoneTransitioning)
-                screen.SetZoneMaps(zone, configuration.Zones);
-            else
-                screen.SetZone(zone, configuration.Zones);
-
-            screen.SetLeaveAvailable(_session.CanLeave);
-            SetSpinInput(_session.CanSpin);
-            screen.SetLeaveVisible(!_session.CanRestart && !_session.IsCompleted);
-            screen.SetRestartAvailable(_session.CanRestart);
-
-            RefreshRewards();
+            _hudPresenter?.Refresh();
         }
 
         private void RefreshRewards()
         {
-            if (_session == null || screen == null) return;
-            screen.SetRewards(BuildRewardRows());
+            _hudPresenter?.RefreshRewards();
         }
 
         /// <summary>
