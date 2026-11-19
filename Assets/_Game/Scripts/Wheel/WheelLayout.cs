@@ -17,7 +17,7 @@ namespace Vertigo.WheelOfFortune.Wheel
     {
         [SerializeField] private RectTransform slicesRoot;
         [Tooltip("Optional slot prefab. When set, slices are cloned from it instead of built in code.")]
-        [SerializeField] private GameObject slotPrefab;
+        [SerializeField] private WheelSliceView slotPrefab;
 
         [Header("Radial Layout")]
         [SerializeField, Range(0f, 360f)] private float startAngle = 0f;
@@ -39,6 +39,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         [SerializeField, Min(0.1f)] private float bombIconScale = 1.5f;
 
         private readonly List<SliceSlot> _slots = new List<SliceSlot>();
+        private int _sliceCount;
 
         private sealed class SliceSlot
         {
@@ -48,7 +49,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         }
 
         public RectTransform SlicesRoot => slicesRoot != null ? slicesRoot : (RectTransform)transform;
-        public int SliceCount => _slots.Count;
+        public int SliceCount { get { return _sliceCount; } }
         public float StartAngle => startAngle;
         public float Radius => radius;
         public float IconScale => iconScale;
@@ -56,7 +57,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         public float StandardIconScale => standardIconScale;
         public float BombIconScale => bombIconScale;
 
-        public float AngleStep => _slots.Count > 0 ? 360f / _slots.Count : 0f;
+        public float AngleStep { get { return _sliceCount > 0 ? 360f / _sliceCount : 0f; } }
 
         public Image GetIcon(int index)
         {
@@ -81,34 +82,37 @@ namespace Vertigo.WheelOfFortune.Wheel
 
         private bool IsValid(int index)
         {
-            return index >= 0 && index < _slots.Count && _slots[index] != null;
+            return index >= 0 && index < _sliceCount && _slots[index] != null;
         }
 
-        /// <summary>Rebuilds exactly <paramref name="count"/> slice slots, then lays them out.</summary>
+        /// <summary>Reuses slots up to the largest requested wheel, then lays out the active subset.</summary>
         public void SetSliceCount(int count)
         {
             if (count < 1) count = 1;
 
             var root = SlicesRoot;
 
-            for (int i = root.childCount - 1; i >= 0; i--)
+            if (_slots.Count == 0)
             {
-                var child = root.GetChild(i).gameObject;
-                if (Application.isPlaying) Destroy(child);
-                else DestroyImmediate(child);
+                // Authored editor-preview children are replaced only on first initialization.
+                for (int i = root.childCount - 1; i >= 0; i--)
+                {
+                    var child = root.GetChild(i).gameObject;
+                    child.SetActive(false);
+                    if (Application.isPlaying) Destroy(child);
+                    else DestroyImmediate(child);
+                }
             }
-
-            _slots.Clear();
-            for (int i = 0; i < count; i++)
-                _slots.Add(CreateSlot(root, i));
-
+            while (_slots.Count < count) _slots.Add(CreateSlot(root, _slots.Count));
+            _sliceCount = count;
+            for (int i = 0; i < _slots.Count; i++) _slots[i].Root.gameObject.SetActive(i < count);
             ApplyLayout();
         }
 
         /// <summary>Recomputes every slot position, rotation and size from the radial formula.</summary>
         public void ApplyLayout()
         {
-            int count = _slots.Count;
+            int count = _sliceCount;
             if (count == 0) return;
 
             float angleStep = 360f / count;
@@ -144,11 +148,11 @@ namespace Vertigo.WheelOfFortune.Wheel
             rootGo.layer = gameObject.layer;
             rootGo.transform.SetParent(parent, false);
 
-            var iconGo = new GameObject("ui_image_wheel_reward_" + (index + 1) + "_value", typeof(RectTransform), typeof(Image));
+            var iconGo = new GameObject("ui_image_wheel_reward_" + (index + 1) + "_value", typeof(RectTransform));
             iconGo.layer = gameObject.layer;
             iconGo.transform.SetParent(rootGo.transform, false);
 
-            var icon = iconGo.GetComponent<Image>();
+            var icon = iconGo.AddComponent<Image>();
             icon.raycastTarget = false;
             icon.type = Image.Type.Simple;
             icon.preserveAspect = true;
@@ -186,13 +190,13 @@ namespace Vertigo.WheelOfFortune.Wheel
         {
             var instance = Instantiate(slotPrefab, parent, false);
             instance.name = "ui_wheel_slice_" + (index + 1) + "_value";
-            instance.layer = gameObject.layer;
+            instance.gameObject.layer = gameObject.layer;
 
             return new SliceSlot
             {
                 Root = (RectTransform)instance.transform,
-                Icon = instance.GetComponentInChildren<Image>(true),
-                Amount = instance.GetComponentInChildren<TMP_Text>(true)
+                Icon = instance.Icon,
+                Amount = instance.Amount
             };
         }
 

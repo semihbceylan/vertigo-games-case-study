@@ -36,6 +36,7 @@ namespace Vertigo.WheelOfFortune.Game
 #endif
 
         private readonly RewardCatalogPresenter _rewardCatalog = new RewardCatalogPresenter();
+        private IWheelVisualPresenter _wheelVisualPresenter;
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
         private Vector2 _wheelHomePosition;
@@ -133,6 +134,7 @@ namespace Vertigo.WheelOfFortune.Game
         private void BuildRewardLookup()
         {
             _rewardCatalog.Configure(configuration.Zones);
+            if (_wheelVisualPresenter == null) _wheelVisualPresenter = new WheelVisualPresenter(_rewardCatalog);
         }
 
         private RewardDefinition ResolveReward(string rewardId)
@@ -294,48 +296,7 @@ namespace Vertigo.WheelOfFortune.Game
         /// <summary>Shared wheel filler used by both the live session and the edit-mode preview.</summary>
         private void FillWheelVisual(ZoneWheel wheel, WheelDefinition definition, RectTransform rotation, Image baseImage, WheelLayout layout)
         {
-            if (wheel == null || layout == null) return;
-
-            if (baseImage != null && definition != null && definition.BaseSprite != null)
-                baseImage.sprite = definition.BaseSprite;
-
-            int count = wheel.SliceCount;
-            layout.SetSliceCount(count);
-
-            Sprite bombSprite = definition != null ? definition.BombSprite : null;
-
-            for (int i = 0; i < count; i++)
-            {
-                var icon = layout.GetIcon(i);
-                var amount = layout.GetAmountText(i);
-                if (icon == null) continue;
-
-                var slice = wheel[i];
-                if (slice.IsBomb)
-                {
-                    icon.sprite = bombSprite;
-                    layout.SetSlotIconScale(i, layout.BombIconScale);
-                    if (amount != null) amount.gameObject.SetActive(false);
-                }
-                else
-                {
-                    var reward = ResolveReward(slice.Reward.RewardId);
-                    icon.sprite = reward != null ? reward.Icon : null;
-                    layout.SetSlotIconScale(i, reward
-                        ? layout.StandardIconScale * reward.IconScaleMultiplier
-                        : layout.StandardIconScale);
-                    if (amount != null)
-                    {
-                        amount.gameObject.SetActive(true);
-                        amount.text = RewardAmountFormatter.Format(slice.Reward.Amount);
-                    }
-                }
-
-                icon.color = Color.white;
-            }
-
-            if (rotation != null) rotation.localRotation = Quaternion.identity;
-            layout.ApplyLayout();
+            _wheelVisualPresenter.Fill(wheel, definition, rotation, baseImage, layout);
         }
 
         private void PlayZoneTransition()

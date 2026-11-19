@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4254270573417855141}
+  - component: {fileID: 781392501467208001}
   m_Layer: 5
   m_Name: ui_wheel_slice
   m_TagString: Untagged
@@ -16,6 +17,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &781392501467208001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1270509246273799368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 281fc59dd4614d72a99f7dbd583a62bc, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Wheel.WheelSliceView
+  _icon: {fileID: 91100123061664301}
+  _amount: {fileID: 3960899669163255508}
 --- !u!224 &4254270573417855141
 RectTransform:
   m_ObjectHideFlags: 0

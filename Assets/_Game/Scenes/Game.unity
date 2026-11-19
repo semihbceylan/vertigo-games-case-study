@@ -10492,7 +10492,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Wheel.WheelLayout
   slicesRoot: {fileID: 1868522355}
-  slotPrefab: {fileID: 1270509246273799368, guid: 3e48644d5099b4fe885baa1c1a4a25e1, type: 3}
+  slotPrefab: {fileID: 781392501467208001, guid: 3e48644d5099b4fe885baa1c1a4a25e1, type: 3}
   startAngle: 0
   radius: 177.5
   iconSize: 56
