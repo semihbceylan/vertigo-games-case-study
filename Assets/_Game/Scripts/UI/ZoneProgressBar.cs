@@ -50,6 +50,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         public void Set(int currentZone, ZoneConfiguration configuration)
         {
+            CancelTransition();
             _configuration = configuration;
             int finalZone = configuration.FinalZone;
 
@@ -123,6 +124,8 @@ namespace Vertigo.WheelOfFortune.UI
         /// </summary>
         public Sequence PlayTransition(int newZone, ZoneConfiguration configuration, float duration, Ease ease)
         {
+            CancelTransition();
+            if (_displayedZone != int.MinValue) Set(_displayedZone, configuration);
             _configuration = configuration;
             _transitionZone = newZone;
             if (duration <= 0f || newZone == _displayedZone)
@@ -207,17 +210,26 @@ namespace Vertigo.WheelOfFortune.UI
             Set(_transitionZone, _configuration);
         }
 
-        private void OnDestroy()
+        public void CancelTransition()
         {
             _transition?.Kill(false);
+            _transition = null;
+        }
+
+        private void OnDisable()
+        {
+            CancelTransition();
+        }
+
+        private void OnDestroy()
+        {
+            CancelTransition();
         }
 
         /// <summary>Tweens a label's colour from its current value to <paramref name="target"/>.</summary>
         private static Tweener TweenTextColor(TMP_Text label, Color target, float duration, Ease ease)
         {
-            return DOTween
-                .To(() => label.color, c => label.color = c, target, duration)
-                .SetEase(ease);
+            return label.DOColor(target, duration).SetEase(ease);
         }
 
         /// <summary>Positions a node and applies the shared number styling (size, bold, no wrap).</summary>
