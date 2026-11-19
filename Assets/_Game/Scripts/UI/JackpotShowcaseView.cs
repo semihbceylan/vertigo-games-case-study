@@ -79,7 +79,7 @@ namespace Vertigo.WheelOfFortune.UI
             }
 
             if (titleLabel != null) titleLabel.text = string.IsNullOrEmpty(label) ? "JACKPOT!" : label;
-            if (amountLabel != null) amountLabel.text = "x" + amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            if (amountLabel != null) amountLabel.text = "x" + RewardAmountFormatter.Format(amount);
             if (hintLabel != null) hintLabel.text = hintText;
 
             IsShowing = true;

@@ -147,7 +147,7 @@ namespace Vertigo.WheelOfFortune.UI
                 widgets.Root.SetActive(true);
                 if (widgets.Icon != null) widgets.Icon.sprite = row.Icon;
                 if (widgets.Amount != null)
-                    widgets.Amount.text = row.Amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+                    widgets.Amount.text = RewardAmountFormatter.Format(row.Amount);
 
                 float targetY = -(i * rowHeight);
 

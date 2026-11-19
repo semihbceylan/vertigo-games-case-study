@@ -169,8 +169,9 @@ Assets/_Game/Tests/EditMode/SessionFlowTests.cs
 Assets/_Game/Tests/EditMode/ZoneRuleTests.cs
 Assets/_Game/Tests/EditMode/RewardPresentationTests.cs
 Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
+Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 
-71 EditMode test cases total
+77 EditMode test cases total
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

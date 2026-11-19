@@ -188,7 +188,7 @@ namespace Vertigo.WheelOfFortune.UI
                     tile.Icon.enabled = data.Icon != null;
                 }
 
-                if (tile.Count != null) tile.Count.text = data.Amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+                if (tile.Count != null) tile.Count.text = RewardAmountFormatter.Format(data.Amount);
 
                 tile.Root.SetActive(true);
             }

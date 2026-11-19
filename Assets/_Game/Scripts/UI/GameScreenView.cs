@@ -69,7 +69,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         public void ShowReward(Sprite icon, string label, long amount)
         {
-            if (feedback != null) feedback.ShowToast("+" + amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + "  " + label, Color.white, icon);
+            if (feedback != null) feedback.ShowToast("+" + RewardAmountFormatter.Format(amount) + "  " + label, Color.white, icon);
         }
 
         /// <summary>Big jackpot popup for weapon Renders / melee. Stays until the player taps.</summary>

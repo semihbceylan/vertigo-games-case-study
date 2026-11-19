@@ -354,7 +354,7 @@ namespace Vertigo.WheelOfFortune.Game
                     if (amount != null)
                     {
                         amount.gameObject.SetActive(true);
-                        amount.text = slice.Reward.Amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+                        amount.text = RewardAmountFormatter.Format(slice.Reward.Amount);
                     }
                 }
 
