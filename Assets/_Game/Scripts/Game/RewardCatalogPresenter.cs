@@ -6,7 +6,7 @@ using Vertigo.WheelOfFortune.UI;
 namespace Vertigo.WheelOfFortune.Game
 {
     /// <summary>Session-local content lookup and reusable reward-row projection, not a flow owner.</summary>
-    public sealed class RewardCatalogPresenter
+    public sealed class RewardCatalogPresenter : IRewardCurrencyResolver
     {
         private readonly Dictionary<string, RewardDefinition> _definitions = new Dictionary<string, RewardDefinition>();
         private readonly List<RewardRowData> _rows = new List<RewardRowData>();
@@ -35,6 +35,12 @@ namespace Vertigo.WheelOfFortune.Game
         {
             RewardDefinition definition;
             return _definitions.TryGetValue(rewardId, out definition) ? definition : null;
+        }
+
+        public string ResolveCurrencyId(string rewardId)
+        {
+            RewardDefinition definition = Resolve(rewardId);
+            return definition && definition.Currency ? definition.Currency.CurrencyId : null;
         }
 
         public List<RewardRowData> BuildRows(RewardWallet wallet)

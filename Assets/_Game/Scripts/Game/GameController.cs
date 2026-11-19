@@ -40,6 +40,7 @@ namespace Vertigo.WheelOfFortune.Game
         private ISessionHudPresenter _hudPresenter;
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
+        private RunCurrencySettlement _currencySettlement;
         private Vector2 _wheelHomePosition;
         private Action _zoneTransitionComplete;
 
@@ -89,6 +90,7 @@ namespace Vertigo.WheelOfFortune.Game
                 presentation: this);
 
             _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), _session.Events);
+            _currencySettlement = new RunCurrencySettlement(_session.Events, _session.Wallet, _currencyWallet, _rewardCatalog);
             _hudPresenter = new SessionHudPresenter(_session, configuration.Zones, screen, spinButton, _rewardCatalog);
 
             SubscribeSessionEvents();
@@ -111,14 +113,14 @@ namespace Vertigo.WheelOfFortune.Game
         {
             if (_session == null) return;
             _session.Events.Subscribe<SessionChanged>(OnSessionChanged);
-            _session.Events.Subscribe<RunCompleted>(OnRunCompleted);
+            _currencySettlement.Subscribe();
         }
 
         private void UnsubscribeSessionEvents()
         {
             if (_session == null) return;
             _session.Events.Unsubscribe<SessionChanged>(OnSessionChanged);
-            _session.Events.Unsubscribe<RunCompleted>(OnRunCompleted);
+            _currencySettlement.Unsubscribe();
         }
 
         private void OnSessionChanged(SessionChanged message)
@@ -204,19 +206,6 @@ namespace Vertigo.WheelOfFortune.Game
             _zoneTransitionComplete = onComplete;
             if (screen != null) screen.HideFeedback();
             PlayZoneTransition();
-        }
-
-        private void OnRunCompleted(RunCompleted message)
-        {
-            foreach (var pair in _session.Wallet.Totals)
-            {
-                RewardDefinition reward = ResolveReward(pair.Key);
-                if (reward && reward.Currency)
-                {
-                    _currencyWallet.Credit(reward.Currency.CurrencyId, pair.Value);
-                }
-            }
-
         }
 
         public void ShowResults()
