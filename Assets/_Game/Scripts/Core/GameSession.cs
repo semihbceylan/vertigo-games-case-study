@@ -59,12 +59,10 @@ namespace Vertigo.WheelOfFortune.Core
         public bool CanSpin => Phase == SessionPhase.Idle;
 
         /// <summary>
-        /// Leaving (banking the rewards) is possible while idle whenever the player has something
-        /// to bank, or in a risk-free Safe/Super zone.
+        /// Leaving is possible only while idle in a risk-free zone.
         /// </summary>
-        public bool CanLeave => Phase == SessionPhase.Idle && (!Wallet.IsEmpty || ZoneClassifier.IsBombFree(CurrentZoneKind));
+        public bool CanLeave => Phase == SessionPhase.Idle && ZoneClassifier.IsBombFree(CurrentZoneKind);
         public bool CanRestart => Phase == SessionPhase.Bust;
-        public bool CanRevive => Phase == SessionPhase.Bust;
 
         private void BuildWheel()
         {
@@ -114,8 +112,7 @@ namespace Vertigo.WheelOfFortune.Core
 
             if (slice.IsBomb)
             {
-                // Rewards are kept on a bust so a revive can continue the same run.
-                // They are only wiped when the player restarts (see StartNewRun).
+                Wallet.Clear();
                 int bustedZone = Zone;
                 Phase = SessionPhase.Bust;
                 BombHit?.Invoke(bustedZone);
@@ -144,7 +141,7 @@ namespace Vertigo.WheelOfFortune.Core
             StateChanged?.Invoke();
         }
 
-        /// <summary>Banks the accumulated rewards. Possible while idle once rewards exist or in a Safe/Super zone.</summary>
+        /// <summary>Banks accumulated rewards while idle in a safe or super zone.</summary>
         public void Leave()
         {
             if (!CanLeave)
@@ -186,16 +183,5 @@ namespace Vertigo.WheelOfFortune.Core
             StateChanged?.Invoke();
         }
 
-        /// <summary>Resumes the run after a bomb without losing the current zone.</summary>
-        public void Revive()
-        {
-            if (!CanRevive)
-                throw new InvalidOperationException("Revive is only allowed after a bust.");
-
-            PendingSliceIndex = -1;
-            Phase = SessionPhase.Idle;
-            BuildWheel();
-            StateChanged?.Invoke();
-        }
     }
 }

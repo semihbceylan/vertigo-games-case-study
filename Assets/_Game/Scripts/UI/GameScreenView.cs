@@ -121,7 +121,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         public void ShowBomb(Sprite bombIcon)
         {
-            if (feedback != null) feedback.ShowBanner("OH NO, A BOMB EXPLODED RIGHT IN YOUR HANDS!", Color.white, bombIcon, "RESTART", true);
+            if (feedback != null) feedback.ShowBanner("OH NO, A BOMB EXPLODED RIGHT IN YOUR HANDS!", Color.white, bombIcon, "RESTART");
         }
 
         public void ShowComplete()

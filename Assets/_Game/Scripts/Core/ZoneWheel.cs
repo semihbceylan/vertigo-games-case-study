@@ -78,6 +78,30 @@ namespace Vertigo.WheelOfFortune.Core
             if (sliceCount < 1)
                 throw new ArgumentOutOfRangeException(nameof(sliceCount), "A wheel needs at least one slice.");
 
+            if (random == null)
+            {
+                throw new ArgumentNullException(nameof(random));
+            }
+            if (rewardPool == null || rewardPool.Count == 0)
+            {
+                throw new ArgumentException("A wheel needs a nonempty reward pool.", nameof(rewardPool));
+            }
+            double totalWeight = 0d;
+            for (int i = 0; i < rewardPool.Count; i++)
+            {
+                var entry = rewardPool[i];
+                if (string.IsNullOrWhiteSpace(entry.RewardId) || entry.Amount <= 0 ||
+                    double.IsNaN(entry.Weight) || double.IsInfinity(entry.Weight) || entry.Weight < 0d)
+                {
+                    throw new ArgumentException("Reward entries require an ID, positive amount and finite nonnegative weight.", nameof(rewardPool));
+                }
+                totalWeight += entry.Weight;
+            }
+            if (totalWeight <= 0d || double.IsInfinity(totalWeight))
+            {
+                throw new ArgumentException("Reward pool total weight must be positive and finite.", nameof(rewardPool));
+            }
+
             var slices = new WheelSlice[sliceCount];
 
             int bombIndex = ZoneClassifier.IsBombFree(kind) ? -1 : random.NextInt(0, sliceCount);
@@ -94,24 +118,18 @@ namespace Vertigo.WheelOfFortune.Core
 
         private static RewardGrant PickReward(IReadOnlyList<RewardPoolEntry> pool, IRandomSource random)
         {
-            if (pool == null || pool.Count == 0)
-                return new RewardGrant("empty", 0);
-
             double total = 0d;
             for (int i = 0; i < pool.Count; i++)
             {
                 if (pool[i].Weight > 0d) total += pool[i].Weight;
             }
 
-            if (total <= 0d)
-                return new RewardGrant(pool[0].RewardId, pool[0].Amount);
-
             double roll = random.NextDouble() * total;
             double accumulated = 0d;
             for (int i = 0; i < pool.Count; i++)
             {
                 accumulated += pool[i].Weight;
-                if (roll <= accumulated)
+                if (pool[i].Weight > 0d && roll < accumulated)
                     return new RewardGrant(pool[i].RewardId, pool[i].Amount);
             }
 

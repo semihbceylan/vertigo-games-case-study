@@ -122,7 +122,7 @@ namespace Vertigo.WheelOfFortune.UI
             Dismissed?.Invoke();
         }
 
-        /// <summary>Silent hide for restarts/revives. Does not fire <see cref="Dismissed"/>.</summary>
+        /// <summary>Silent hide for restarts. Does not fire <see cref="Dismissed"/>.</summary>
         public void HideImmediate()
         {
             IsShowing = false;

@@ -193,6 +193,47 @@ namespace Vertigo.WheelOfFortune.Tests
                 Assert.AreEqual("gold", wheel[i].Reward.RewardId);
             }
         }
+
+        [Test]
+        public void EachBuildSelectsBombPositionAgain()
+        {
+            var builder = new ZoneWheelBuilder();
+            var random = new ScriptedRandom().EnqueueInt(1).EnqueueInt(6);
+            var first = builder.Build(8, ZoneKind.Normal, Pool, random);
+            var second = builder.Build(8, ZoneKind.Normal, Pool, random);
+            Assert.IsTrue(first[1].IsBomb);
+            Assert.IsTrue(second[6].IsBomb);
+            Assert.AreEqual(1, first.BombCount);
+            Assert.AreEqual(1, second.BombCount);
+        }
+
+        [Test]
+        public void EmptyPoolIsRejected()
+        {
+            Assert.Throws<ArgumentException>(() => new ZoneWheelBuilder().Build(
+                8, ZoneKind.Normal, new List<RewardPoolEntry>(), new ScriptedRandom()));
+        }
+
+        [Test]
+        public void ZeroWeightPoolIsRejected()
+        {
+            var pool = new[] { new RewardPoolEntry("gold", 100, 0d) };
+            Assert.Throws<ArgumentException>(() => new ZoneWheelBuilder().Build(
+                8, ZoneKind.Normal, pool, new ScriptedRandom()));
+        }
+
+        [Test]
+        public void ZeroWeightEntryIsNotSelectedAtZeroRoll()
+        {
+            var pool = new[]
+            {
+                new RewardPoolEntry("excluded", 100, 0d),
+                new RewardPoolEntry("gold", 100, 1d)
+            };
+            var wheel = new ZoneWheelBuilder().Build(2, ZoneKind.Safe, pool,
+                new ScriptedRandom().EnqueueDouble(0d));
+            Assert.AreEqual("gold", wheel[0].Reward.RewardId);
+        }
     }
 
     // ---- session ----
@@ -244,7 +285,7 @@ namespace Vertigo.WheelOfFortune.Tests
         }
 
         [Test]
-        public void BombBustsButKeepsRewards()
+        public void BombBustsAndClearsRewards()
         {
             // zone 1: reward, zone 2+: bomb
             var resolver = (Func<int, ZoneKind, ZoneWheel>)((zone, kind) =>
@@ -261,7 +302,9 @@ namespace Vertigo.WheelOfFortune.Tests
             session.ResolvePendingSpin();
 
             Assert.AreEqual(SessionPhase.Bust, session.Phase);
-            Assert.AreEqual(10, session.Wallet.AccumulatedAmount); // kept until restart
+            Assert.AreEqual(0, session.Wallet.AccumulatedAmount);
+            Assert.IsTrue(session.Wallet.IsEmpty);
+            Assert.IsEmpty(session.Wallet.Totals);
             Assert.IsFalse(session.CanSpin);
             Assert.IsTrue(session.CanRestart);
         }
@@ -322,7 +365,7 @@ namespace Vertigo.WheelOfFortune.Tests
         }
 
         [Test]
-        public void LeaveIsAllowedInNormalZoneOnceRewardsExist()
+        public void LeaveIsBlockedInNormalZoneEvenWithRewards()
         {
             var random = new ScriptedRandom().EnqueueInt(0);
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), random);
@@ -332,12 +375,10 @@ namespace Vertigo.WheelOfFortune.Tests
 
             Assert.AreEqual(2, session.Zone);
             Assert.IsFalse(ZoneClassifier.IsBombFree(session.CurrentZoneKind));
-            Assert.IsTrue(session.CanLeave);
-
-            session.Leave();
-
-            Assert.AreEqual(SessionPhase.Completed, session.Phase);
-            Assert.AreEqual(10, session.BankedTotal);
+            Assert.IsFalse(session.CanLeave);
+            Assert.Throws<InvalidOperationException>(() => session.Leave());
+            Assert.AreEqual(0, session.BankedTotal);
+            Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
         }
 
         [Test]
@@ -368,56 +409,24 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.Throws<InvalidOperationException>(() => session.Restart());
         }
 
-        [Test]
-        public void ReviveResumesRunAtSameZoneAfterBomb()
+        [TestCase(5)]
+        [TestCase(30)]
+        public void LeaveIsBlockedDuringSpinInBombFreeZone(int zone)
         {
-            var resolver = (Func<int, ZoneKind, ZoneWheel>)((zone, kind) => Wheels.WithBomb(2, 0, "gold"));
-            var random = new ScriptedRandom().EnqueueInt(0);
-            var session = CreateSession(resolver, random);
-
+            var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom(), zone);
+            Assert.IsTrue(session.CanLeave);
             session.BeginSpin();
-            session.ResolvePendingSpin();
-            Assert.AreEqual(SessionPhase.Bust, session.Phase);
-            Assert.AreEqual(1, session.Zone);
-            Assert.IsTrue(session.CanRevive);
-
-            session.Revive();
-
-            Assert.AreEqual(SessionPhase.Idle, session.Phase);
-            Assert.AreEqual(1, session.Zone);
-            Assert.IsTrue(session.CanSpin);
-            Assert.IsFalse(session.CanRevive);
+            Assert.IsFalse(session.CanLeave);
+            Assert.Throws<InvalidOperationException>(() => session.Leave());
         }
 
         [Test]
-        public void ReviveKeepsRewards()
+        public void LeaveIsAllowedInSuperZone()
         {
-            var resolver = (Func<int, ZoneKind, ZoneWheel>)((zone, kind) =>
-                zone == 1 ? Wheels.RewardOnly("gold") : Wheels.WithBomb(2, 0, "gold"));
-
-            var random = new ScriptedRandom().EnqueueInt(0).EnqueueInt(0);
-            var session = CreateSession(resolver, random);
-
-            session.BeginSpin();
-            session.ResolvePendingSpin(); // zone 1 reward, advance to zone 2
-            Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
-
-            session.BeginSpin();
-            session.ResolvePendingSpin(); // zone 2 bomb
-            Assert.AreEqual(SessionPhase.Bust, session.Phase);
-
-            session.Revive();
-
-            Assert.AreEqual(SessionPhase.Idle, session.Phase);
-            Assert.AreEqual(2, session.Zone);
-            Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
-        }
-
-        [Test]
-        public void ReviveIsBlockedWhileNotBusted()
-        {
-            var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom());
-            Assert.Throws<InvalidOperationException>(() => session.Revive());
+            var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom(), 30);
+            session.Leave();
+            Assert.IsFalse(session.CanSpin);
+            Assert.IsFalse(session.CanLeave);
         }
 
         [Test]

@@ -22,47 +22,16 @@ namespace Vertigo.WheelOfFortune.Data
         {
             WheelDefinition wheel = _zones.GetWheel(kind);
 
-            if (wheel != null && wheel.UseExplicitSlices && wheel.Slices != null && wheel.Slices.Length > 0)
-                return BuildExplicit(wheel, zone, kind);
+            if (!wheel)
+            {
+                throw new InvalidOperationException("A wheel definition is required for each zone.");
+            }
 
-            int sliceCount = wheel != null ? wheel.SliceCount : 8;
+            int sliceCount = wheel.SliceCount;
             var pool = BuildPool(wheel, zone);
             if (kind == ZoneKind.Super)
                 pool = FilterSuperPool(pool, zone);
             return _builder.Build(sliceCount, kind, pool, random);
-        }
-
-        /// <summary>Builds a wheel directly from the authored slice list, scaling amounts per zone.</summary>
-        private static ZoneWheel BuildExplicit(WheelDefinition wheel, int zone, ZoneKind kind)
-        {
-            var definitions = wheel.Slices;
-            var slices = new WheelSlice[definitions.Length];
-            double scale = 1d + wheel.AmountScalePerZone * (zone - 1);
-            bool bombFree = ZoneClassifier.IsBombFree(kind);
-
-            for (int i = 0; i < definitions.Length; i++)
-            {
-                var definition = definitions[i];
-
-                if (definition.isBomb && !bombFree)
-                {
-                    slices[i] = WheelSlice.Bomb;
-                    continue;
-                }
-
-                long baseAmount = definition.amount > 0
-                    ? definition.amount
-                    : (definition.reward != null ? definition.reward.Amount : 0);
-
-                // Skins are a single item; everything else keeps the per-zone scaling.
-                long amount = IsSkin(definition.reward) ? 1 : (long)Math.Round(baseAmount * scale);
-                if (amount < 1) amount = 1;
-
-                string rewardId = definition.reward != null ? definition.reward.RewardId : "empty";
-                slices[i] = new WheelSlice(false, new RewardGrant(rewardId, amount));
-            }
-
-            return new ZoneWheel(slices);
         }
 
         /// <summary>Builds the weighted pool for a zone, scaling reward amounts with progression.</summary>
@@ -88,7 +57,9 @@ namespace Vertigo.WheelOfFortune.Data
             }
 
             if (pool.Count == 0)
-                pool.Add(new RewardPoolEntry("empty", 1, 1));
+            {
+                throw new InvalidOperationException("The wheel reward pool must contain valid rewards.");
+            }
 
             return pool;
         }

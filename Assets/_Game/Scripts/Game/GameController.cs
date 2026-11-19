@@ -66,7 +66,6 @@ namespace Vertigo.WheelOfFortune.Game
             if (leaveButton != null) leaveButton.Clicked += OnLeaveClicked;
             if (restartButton != null) restartButton.Clicked += OnRestartClicked;
             if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested += OnFeedbackAction;
-            if (screen != null && screen.Feedback != null) screen.Feedback.ReviveRequested += OnReviveRequested;
             if (screen != null && screen.Results != null) screen.Results.RestartRequested += OnResultsRestartRequested;
             if (screen != null)
             {
@@ -81,7 +80,6 @@ namespace Vertigo.WheelOfFortune.Game
             if (leaveButton != null) leaveButton.Clicked -= OnLeaveClicked;
             if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
             if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested -= OnFeedbackAction;
-            if (screen != null && screen.Feedback != null) screen.Feedback.ReviveRequested -= OnReviveRequested;
             if (screen != null && screen.Results != null) screen.Results.RestartRequested -= OnResultsRestartRequested;
             if (screen != null && screen.Showcase != null) screen.Showcase.Dismissed -= OnShowcaseDismissed;
         }
@@ -156,16 +154,6 @@ namespace Vertigo.WheelOfFortune.Game
                     }
                 }
 
-                var slices = wheel.Slices;
-                if (slices != null)
-                {
-                    for (int s = 0; s < slices.Length; s++)
-                    {
-                        var reward = slices[s].reward;
-                        if (reward == null) continue;
-                        _rewardLookup[reward.RewardId] = reward;
-                    }
-                }
             }
         }
 
@@ -337,7 +325,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnLeaveClicked()
         {
-            if (_jackpotShowing) return;
+            if (_jackpotShowing || _isTransitioning) return;
             if (_session != null && _session.CanLeave) _session.Leave();
         }
 
@@ -353,17 +341,6 @@ namespace Vertigo.WheelOfFortune.Game
             if (_session == null) return;
             if (_session.CanRestart) _session.Restart();
             else if (_session.Phase == SessionPhase.Completed) _session.StartNewRun();
-        }
-
-        private void OnReviveRequested()
-        {
-            if (_session == null || !_session.CanRevive) return;
-
-            ClearJackpotState();
-            KillWheelTransition();
-            _session.Revive();
-            ApplyZoneWheel();
-            RefreshState();
         }
 
         // ---- session events ----
@@ -455,7 +432,7 @@ namespace Vertigo.WheelOfFortune.Game
             }
         }
 
-        /// <summary>Silently drops any visible/deferred showcase (restart, revive, new run).</summary>
+        /// <summary>Silently drops any visible/deferred showcase (restart or new run).</summary>
         private void ClearJackpotState()
         {
             _jackpotShowing = false;

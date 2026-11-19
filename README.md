@@ -35,9 +35,10 @@ Optional extras: super-zone spin, bomb screen, results screen.
 ## ▶️ How to play
 
 1. **SPIN** — the wheel stops on a slice. Rewards are added to your loot; a bomb ends the run.
-2. **LEAVE** — cash out and bank everything you have collected so far (available whenever the
-   wheel is stopped and you have something to lose).
-3. **RESTART / REVIVE** — after a bomb you can restart a fresh run or revive to keep your loot.
+2. **LEAVE** — cash out and bank everything collected so far, available only in safe or super
+   zones once the wheel and presentation transitions have stopped.
+3. **RESTART** — a bomb immediately clears the run's rewards. Dismiss the loss screen to restart
+   at the configured starting zone. There is no revive or continue.
 
 ### Zones
 
@@ -108,7 +109,7 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   `RewardWallet`, `ZoneWheel`/`ZoneWheelBuilder`, and an `IRandomSource` abstraction so
   randomness is deterministic and injectable.
 - **ScriptableObjects** drive all content: `GameConfiguration`, `ZoneConfiguration`,
-  `WheelDefinition` (queue-based *or* explicit per-slice authoring), `RewardPool`, `RewardDefinition`.
+  `WheelDefinition` (weighted reward pools with code-controlled bomb placement), `RewardPool`, `RewardDefinition`.
   Designers tune everything from the inspector; runtime state never lives in assets.
 - **`WheelTierFactory`** adapts the ScriptableObject data to the core (`IZoneWheelFactory`) —
   a clean seam between configuration and simulation.
@@ -136,7 +137,7 @@ Edit-mode unit tests cover zone classification, the wallet, wheel building and t
 session state machine:
 
 ```
-Assets/_Game/Tests/EditMode/GameplayTests.cs   (35 tests)
+Assets/_Game/Tests/EditMode/GameplayTests.cs   (42 test cases)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.
