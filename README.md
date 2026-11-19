@@ -138,6 +138,9 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   `IRewardPresentation` and owns showcase dismissal, flight targeting, and completion.
   It pairs showcase subscriptions in `OnEnable`/`OnDisable`, cancels owned flights on
   disable/destruction, and drops cancelled callbacks without advancing the session.
+- **Authored showcase:** serialized widgets replace runtime hierarchy repair. Its animation
+  asset configures fade, pop and flash rotation. Dismissal completes after fade-out; cancellation
+  is silent, and the modal hides/disables the HUD then restores its previous state.
 - **Authored zone nodes:** the progress strip uses serialized node/background/frame/text
   references. It neither discovers components nor creates or repairs hierarchy at runtime;
   changing the visible window size requires updating its authored node array.
@@ -172,7 +175,8 @@ Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
 Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
-78 EditMode test cases total
+79 EditMode test cases total
+2 PlayMode test cases total (natural showcase dismissal timing and cancellation lifecycle)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

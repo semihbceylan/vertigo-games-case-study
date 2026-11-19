@@ -9244,22 +9244,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af446b477f6de4b6a97d2ed52c748c24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.UI.JackpotShowcaseView
-  group: {fileID: 1644529502}
-  dim: {fileID: 182223970}
-  dismissButton: {fileID: 1396950395}
-  flashSprite: {fileID: 21300000, guid: 35309e0343d5244dc97f3399def1261c, type: 3}
-  bigIcon: {fileID: 980536315}
-  titleLabel: {fileID: 908979582}
-  amountLabel: {fileID: 136737394}
-  hintLabel: {fileID: 1493270010}
-  flashSize: 900
-  flashSpinDuration: 14
-  iconSize: 520
-  fadeDuration: 0.25
-  popDuration: 0.35
-  titleFontSize: 64
-  amountFontSize: 52
-  hintText: TAP ANYWHERE TO CONTINUE
+  _group: {fileID: 1644529502}
+  _dismissButton: {fileID: 1396950395}
+  _flash: {fileID: 1749917684}
+  _bigIcon: {fileID: 980536315}
+  _titleLabel: {fileID: 908979582}
+  _amountLabel: {fileID: 136737394}
+  _hintLabel: {fileID: 1493270010}
+  _animation: {fileID: 11400000, guid: 18cde081dc0c48f39b11f1738d268150, type: 2}
+  _underlyingHud:
+  - {fileID: 1012175708}
+  _hintText: TAP ANYWHERE TO CONTINUE
+  _fallbackTitle: JACKPOT!
 --- !u!225 &1644529502
 CanvasGroup:
   m_ObjectHideFlags: 0
