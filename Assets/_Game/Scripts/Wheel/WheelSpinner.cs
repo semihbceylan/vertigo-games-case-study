@@ -111,7 +111,7 @@ namespace Vertigo.WheelOfFortune.Wheel
             SpinCompleted?.Invoke();
         }
 
-        private void CancelSpin()
+        public void CancelSpin()
         {
             _tween?.Kill(false);
             _tween = null;

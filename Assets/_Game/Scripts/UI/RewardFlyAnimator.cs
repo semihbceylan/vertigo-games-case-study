@@ -120,7 +120,7 @@ namespace Vertigo.WheelOfFortune.UI
             CancelAll();
         }
 
-        private void CancelAll()
+        public void CancelAll()
         {
             foreach (Flight flight in _flights)
             {

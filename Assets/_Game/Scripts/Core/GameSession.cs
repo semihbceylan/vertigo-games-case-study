@@ -2,182 +2,353 @@ using System;
 
 namespace Vertigo.WheelOfFortune.Core
 {
-    public enum SessionPhase
-    {
-        Idle,
-        Spinning,
-        Bust,
-        Completed
-    }
-
     /// <summary>
-    /// Framework-independent gameplay state machine. Owns zone progression, spin eligibility,
-    /// reward accumulation and bomb handling. Rendering and animation are handled elsewhere.
+    /// Sole owner of gameplay and presentation flow. States accept commands polymorphically;
+    /// views report operation completion rather than maintaining a second set of flow flags.
+    /// A null presentation supports manually resolved spins in headless tests.
     /// </summary>
     public sealed class GameSession
     {
+        #region Configuration and State
+
+        private const int FIRST_ZONE = 1;
+        private const int NO_PENDING_SLICE = -1;
+        private const int ENDLESS_FINAL_ZONE = 0;
+
         private readonly ZoneRules _rules;
         private readonly IZoneWheelFactory _factory;
         private readonly IRandomSource _random;
         private readonly int _startingZone;
         private readonly int _finalZone;
+        private readonly ISessionPresentation _presentation;
+        private readonly ReadyState _ready;
+        private readonly SpinningState _spinning;
+        private readonly RewardPresentationState _rewardPresentation;
+        private readonly ZoneTransitionState _zoneTransition;
+        private readonly LostState _lost;
+        private readonly CompletedState _completed;
+        private SessionState _state;
+        private int _operationVersion;
 
-        public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random, int startingZone = 1, int finalZone = 0, IEventBus events = null)
+        private sealed class Completion
         {
-            Events = events ?? new EventBus();
+            private readonly GameSession _session;
+            private readonly int _version;
+            private Action _callback;
+
+            public Completion(GameSession session, Action callback)
+            {
+                _session = session;
+                _version = session._operationVersion;
+                _callback = callback;
+            }
+
+            public void Invoke()
+            {
+                Action callback = _callback;
+                _callback = null;
+                if (_session._operationVersion == _version)
+                {
+                    callback?.Invoke();
+                }
+            }
+        }
+
+        public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random,
+            int startingZone = FIRST_ZONE, int finalZone = ENDLESS_FINAL_ZONE,
+            IEventBus events = null, ISessionPresentation presentation = null)
+        {
             _rules = rules;
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _random = random ?? throw new ArgumentNullException(nameof(random));
-            _startingZone = startingZone < 1 ? 1 : startingZone;
-            _finalZone = finalZone < 0 ? 0 : finalZone;
-
+            _startingZone = Math.Max(FIRST_ZONE, startingZone);
+            _finalZone = Math.Max(ENDLESS_FINAL_ZONE, finalZone);
+            _presentation = presentation;
+            Events = events ?? new EventBus();
             Wallet = new RewardWallet();
+            _ready = new ReadyState(this);
+            _spinning = new SpinningState(this);
+            _rewardPresentation = new RewardPresentationState(this);
+            _zoneTransition = new ZoneTransitionState(this);
+            _lost = new LostState(this);
+            _completed = new CompletedState(this);
             Zone = _startingZone;
-            Phase = SessionPhase.Idle;
+            PendingSliceIndex = NO_PENDING_SLICE;
+            _state = _ready;
             BuildWheel();
         }
 
         public RewardWallet Wallet { get; }
-        public int Zone { get; private set; }
-        public SessionPhase Phase { get; private set; }
-        public ZoneWheel CurrentWheel { get; private set; }
-
-        /// <summary>Slice chosen before the animation starts, or -1 when not spinning.</summary>
-        public int PendingSliceIndex { get; private set; } = -1;
-
-        /// <summary>Total banked when the player leaves successfully.</summary>
-        public long BankedTotal { get; private set; }
-
         public IEventBus Events { get; }
+        public int Zone { get; private set; }
+        public ZoneWheel CurrentWheel { get; private set; }
+        public int PendingSliceIndex { get; private set; }
+        public long BankedTotal { get; private set; }
+        public ZoneKind CurrentZoneKind { get { return ZoneClassifier.Classify(Zone, _rules); } }
+        public bool IsIdle { get { return _state.CanSpin; } }
+        public bool CanSpin { get { return _state.CanSpin; } }
+        public bool CanLeave { get { return _state.CanLeave; } }
+        public bool CanRestart { get { return _state.CanRestart; } }
+        public bool IsCompleted { get { return _state.IsCompleted; } }
+        public bool IsZoneTransitioning { get { return _state.IsZoneTransitioning; } }
 
-        public ZoneKind CurrentZoneKind => ZoneClassifier.Classify(Zone, _rules);
-        public bool IsIdle => Phase == SessionPhase.Idle;
-        public bool CanSpin => Phase == SessionPhase.Idle;
+        #endregion
 
-        /// <summary>
-        /// Leaving is possible only while idle in a risk-free zone.
-        /// </summary>
-        public bool CanLeave => Phase == SessionPhase.Idle && ZoneClassifier.IsBombFree(CurrentZoneKind);
-        public bool CanRestart => Phase == SessionPhase.Bust;
+        #region Commands
+
+        public void StartNewRun()
+        {
+            _operationVersion++;
+            _presentation?.Cancel();
+            Zone = _startingZone;
+            BankedTotal = 0;
+            PendingSliceIndex = NO_PENDING_SLICE;
+            Wallet.Clear();
+            BuildWheel();
+            _presentation?.Reset();
+            ChangeState(_ready);
+        }
+
+        public void BeginSpin()
+        {
+            _state.BeginSpin();
+        }
+
+        public void ResolvePendingSpin()
+        {
+            _state.ResolveSpin(PendingSliceIndex);
+        }
+
+        public void ResolveSpin(int sliceIndex)
+        {
+            _state.ResolveSpin(sliceIndex);
+        }
+
+        public void Leave()
+        {
+            _state.Leave();
+        }
+
+        public void Restart()
+        {
+            _state.Restart();
+        }
+
+        /// <summary>Development command accepted only while ready, not during asynchronous work.</summary>
+        public void JumpToZone(int zone)
+        {
+            _state.JumpToZone(zone);
+        }
+
+        #endregion
+
+        #region Transitions
+
+        private void ChangeState(SessionState state)
+        {
+            _operationVersion++;
+            _state = state;
+            Events.Publish(new SessionChanged());
+            state.Enter();
+        }
 
         private void BuildWheel()
         {
             CurrentWheel = _factory.CreateWheel(Zone, CurrentZoneKind, _random);
         }
 
-        public void StartNewRun()
+        private void AdvanceAfterReward()
         {
-            Zone = _startingZone;
-            BankedTotal = 0;
-            PendingSliceIndex = -1;
-            Wallet.Clear();
-            Phase = SessionPhase.Idle;
-            BuildWheel();
-            Events.Publish(new SessionChanged());
-        }
-
-        /// <summary>Selects the outcome, then moves to the spinning phase. The animation completes it.</summary>
-        public void BeginSpin()
-        {
-            if (!CanSpin)
-                throw new InvalidOperationException("Spin is not allowed in phase " + Phase + ".");
-
-            PendingSliceIndex = _random.NextInt(0, CurrentWheel.SliceCount);
-            Phase = SessionPhase.Spinning;
-            Events.Publish(new SessionChanged());
-        }
-
-        /// <summary>Resolves the slice previously chosen by <see cref="BeginSpin"/>.</summary>
-        public void ResolvePendingSpin()
-        {
-            if (Phase != SessionPhase.Spinning || PendingSliceIndex < 0)
-                throw new InvalidOperationException("No spin is in progress.");
-
-            ResolveSpin(PendingSliceIndex);
-        }
-
-        public void ResolveSpin(int sliceIndex)
-        {
-            if (Phase != SessionPhase.Spinning)
-                throw new InvalidOperationException("No spin is in progress.");
-            if (sliceIndex < 0 || sliceIndex >= CurrentWheel.SliceCount)
-                throw new ArgumentOutOfRangeException(nameof(sliceIndex));
-
-            var slice = CurrentWheel[sliceIndex];
-            PendingSliceIndex = -1;
-
-            if (slice.IsBomb)
+            PendingSliceIndex = NO_PENDING_SLICE;
+            if (_finalZone > ENDLESS_FINAL_ZONE && Zone >= _finalZone)
             {
-                Wallet.Clear();
-                int bustedZone = Zone;
-                Phase = SessionPhase.Bust;
-                Events.Publish(new BombHit(bustedZone));
+                ChangeState(_completed);
+                return;
             }
-            else
-            {
-                Wallet.Add(slice.Reward);
-                Events.Publish(new RewardCollected(slice.Reward));
+            Zone++;
+            BuildWheel();
+            ChangeState(_zoneTransition);
+        }
 
-                // The final zone banks the run once its reward is collected (e.g. the super zone).
-                if (_finalZone > 0 && Zone >= _finalZone)
+        private void FinishZoneTransition()
+        {
+            ChangeState(_ready);
+        }
+
+        #endregion
+
+        #region State Implementations
+
+        private abstract class SessionState
+        {
+            protected readonly GameSession Session;
+
+            protected SessionState(GameSession session)
+            {
+                Session = session;
+            }
+
+            public virtual bool CanSpin { get { return false; } }
+            public virtual bool CanLeave { get { return false; } }
+            public virtual bool CanRestart { get { return false; } }
+            public virtual bool IsCompleted { get { return false; } }
+            public virtual bool IsZoneTransitioning { get { return false; } }
+            public virtual void Enter() { }
+
+            public virtual void BeginSpin()
+            {
+                throw new InvalidOperationException("Spin is not allowed in the current state.");
+            }
+
+            public virtual void ResolveSpin(int sliceIndex)
+            {
+                throw new InvalidOperationException("No unresolved spin is in progress.");
+            }
+
+            public virtual void Leave()
+            {
+                throw new InvalidOperationException("Leaving is not allowed in the current state.");
+            }
+
+            public virtual void Restart()
+            {
+                throw new InvalidOperationException("Restart is only allowed after a loss.");
+            }
+
+            public virtual void JumpToZone(int zone) { }
+        }
+
+        private sealed class ReadyState : SessionState
+        {
+            public ReadyState(GameSession session) : base(session) { }
+            public override bool CanSpin { get { return true; } }
+            public override bool CanLeave { get { return ZoneClassifier.IsBombFree(Session.CurrentZoneKind); } }
+
+            public override void BeginSpin()
+            {
+                Session.PendingSliceIndex = Session._random.NextInt(0, Session.CurrentWheel.SliceCount);
+                Session.ChangeState(Session._spinning);
+            }
+
+            public override void Leave()
+            {
+                if (!CanLeave)
                 {
-                    BankedTotal = Wallet.AccumulatedAmount;
-                    Phase = SessionPhase.Completed;
-                    Events.Publish(new SessionChanged());
-                    Events.Publish(new RunCompleted(BankedTotal));
+                    base.Leave();
                     return;
                 }
-
-                Zone++;
-                Phase = SessionPhase.Idle;
-                BuildWheel();
-                Events.Publish(new ZoneAdvanced(Zone));
+                Session.ChangeState(Session._completed);
             }
 
-            Events.Publish(new SessionChanged());
+            public override void JumpToZone(int zone)
+            {
+                zone = Math.Max(FIRST_ZONE, zone);
+                if (Session._finalZone > ENDLESS_FINAL_ZONE)
+                {
+                    zone = Math.Min(zone, Session._finalZone);
+                }
+                Session.Zone = zone;
+                Session.BuildWheel();
+                Session._presentation?.Reset();
+                Session.ChangeState(Session._ready);
+            }
         }
 
-        /// <summary>Banks accumulated rewards while idle in a safe or super zone.</summary>
-        public void Leave()
+        private sealed class SpinningState : SessionState
         {
-            if (!CanLeave)
-                throw new InvalidOperationException("Cannot leave in phase " + Phase + " while in a " + CurrentZoneKind + " zone.");
+            public SpinningState(GameSession session) : base(session) { }
 
-            BankedTotal = Wallet.AccumulatedAmount;
-            Phase = SessionPhase.Completed;
-            Events.Publish(new SessionChanged());
-            Events.Publish(new RunCompleted(BankedTotal));
+            public override void Enter()
+            {
+                Session._presentation?.PlaySpin(Session.PendingSliceIndex, Session.CurrentWheel,
+                    new Completion(Session, Session.ResolvePendingSpin).Invoke);
+            }
+
+            public override void ResolveSpin(int sliceIndex)
+            {
+                if (sliceIndex < 0 || sliceIndex >= Session.CurrentWheel.SliceCount)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(sliceIndex));
+                }
+                Session.PendingSliceIndex = sliceIndex;
+                if (Session.CurrentWheel[sliceIndex].IsBomb)
+                {
+                    Session.Wallet.Clear();
+                    Session.PendingSliceIndex = NO_PENDING_SLICE;
+                    Session.ChangeState(Session._lost);
+                    return;
+                }
+                Session.ChangeState(Session._rewardPresentation);
+            }
         }
 
-        /// <summary>Restarts the run after a bomb.</summary>
-        public void Restart()
+        private sealed class RewardPresentationState : SessionState
         {
-            if (!CanRestart)
-                throw new InvalidOperationException("Restart is only allowed after a bust.");
+            public RewardPresentationState(GameSession session) : base(session) { }
 
-            StartNewRun();
-            Events.Publish(new RunRestarted());
+            public override void Enter()
+            {
+                RewardGrant grant = Session.CurrentWheel[Session.PendingSliceIndex].Reward;
+                Session.Wallet.Add(grant);
+                Session.Events.Publish(new RewardCollected(grant));
+                if (Session._presentation == null)
+                {
+                    Session.AdvanceAfterReward();
+                    return;
+                }
+                Session._presentation.PresentReward(grant, Session.PendingSliceIndex,
+                    new Completion(Session, Session.AdvanceAfterReward).Invoke);
+            }
         }
 
-        /// <summary>
-        /// Development helper: moves straight to <paramref name="zone"/> without playing the earlier
-        /// zones, keeping the current wallet. Ignored while a spin is animating. Used by the demo
-        /// teleport keys; has no effect on shipping gameplay.
-        /// </summary>
-        public void JumpToZone(int zone)
+        private sealed class ZoneTransitionState : SessionState
         {
-            if (Phase == SessionPhase.Spinning)
-                return;
+            public ZoneTransitionState(GameSession session) : base(session) { }
+            public override bool IsZoneTransitioning { get { return true; } }
 
-            if (zone < 1) zone = 1;
-            if (_finalZone > 0 && zone > _finalZone) zone = _finalZone;
-
-            PendingSliceIndex = -1;
-            Zone = zone;
-            Phase = SessionPhase.Idle;
-            BuildWheel();
-            Events.Publish(new SessionChanged());
+            public override void Enter()
+            {
+                Session.Events.Publish(new ZoneAdvanced(Session.Zone));
+                if (Session._presentation == null)
+                {
+                    Session.FinishZoneTransition();
+                    return;
+                }
+                Session._presentation.PlayZoneTransition(new Completion(Session, Session.FinishZoneTransition).Invoke);
+            }
         }
 
+        private sealed class LostState : SessionState
+        {
+            public LostState(GameSession session) : base(session) { }
+            public override bool CanRestart { get { return true; } }
+
+            public override void Enter()
+            {
+                Session.Events.Publish(new BombHit(Session.Zone));
+                Session._presentation?.ShowLoss(Session.Zone);
+            }
+
+            public override void Restart()
+            {
+                Session.StartNewRun();
+                Session.Events.Publish(new RunRestarted());
+            }
+        }
+
+        private sealed class CompletedState : SessionState
+        {
+            public CompletedState(GameSession session) : base(session) { }
+            public override bool IsCompleted { get { return true; } }
+
+            public override void Enter()
+            {
+                Session.BankedTotal = Session.Wallet.AccumulatedAmount;
+                Session.Events.Publish(new RunCompleted(Session.BankedTotal));
+                Session._presentation?.ShowResults();
+            }
+        }
+
+        #endregion
     }
 }

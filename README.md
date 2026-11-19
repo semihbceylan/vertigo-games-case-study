@@ -106,7 +106,8 @@ Assets/
 The codebase is split so gameplay logic is **testable without Unity** and the views stay thin.
 
 - **`Vertigo.WheelOfFortune.Core`** — a pure-C# assembly with no `UnityEngine` dependency:
-  `GameSession` (a state machine: `Idle → Spinning → Bust/Completed`), `ZoneClassifier`,
+  `GameSession` (state objects for ready, spinning, reward presentation, zone transition,
+  loss, and completion), `ZoneClassifier`,
   `RewardWallet`, `ZoneWheel`/`ZoneWheelBuilder`, and an `IRandomSource` abstraction so
   randomness is deterministic and injectable.
 - **ScriptableObjects** drive all content: `GameConfiguration`, `ZoneConfiguration`,
@@ -124,6 +125,10 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
 - **Session notifications** use an instance-scoped, generic `IEventBus`, with paired subscriptions
   in the controller lifecycle. Button signals and individual animation completions retain local
   delegates; commands use direct method calls rather than broadcast events.
+- **One flow owner:** `GameSession` gates input through state behavior and invokes
+  `ISessionPresentation` operations. Completion callbacks advance the flow; versioned, single-use
+  callbacks ignore obsolete/duplicate completions after reset. There is no `SessionPhase` enum
+  or separate set of controller transition/showcase flow flags.
 - **Persistent currency** is separate from run loot. Authored currency references on reward assets
   determine which balances are credited on successful cash-out/completion. `CurrencyWallet`
   supports multiple currencies and checked credit/spend operations; insufficient funds cause no
@@ -148,8 +153,9 @@ session state machine:
 Assets/_Game/Tests/EditMode/GameplayTests.cs
 Assets/_Game/Tests/EditMode/EventBusTests.cs
 Assets/_Game/Tests/EditMode/CurrencyWalletTests.cs
+Assets/_Game/Tests/EditMode/SessionFlowTests.cs
 
-56 EditMode test cases total
+61 EditMode test cases total
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

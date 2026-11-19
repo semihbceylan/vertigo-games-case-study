@@ -15,7 +15,7 @@ namespace Vertigo.WheelOfFortune.Game
     /// HUD. All button listeners are registered here in code.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class GameController : MonoBehaviour
+    public sealed class GameController : MonoBehaviour, ISessionPresentation
     {
         [SerializeField] private GameConfiguration configuration;
         [SerializeField] private WheelView wheelView;
@@ -48,11 +48,9 @@ namespace Vertigo.WheelOfFortune.Game
         private Sequence _wheelTransition;
         private RectTransform _incomingWheel;
         private Vector2 _wheelHomePosition;
-        private bool _isTransitioning;
-        private bool _suppressZoneBarRefresh;
-        private bool _jackpotShowing;
-        private bool _pendingZoneAdvance;
-        private List<RewardRowData> _pendingResults;
+        private Action _rewardPresentationComplete;
+        private Action _zoneTransitionComplete;
+        private string _presentedRewardId;
 
         private void Awake()
         {
@@ -102,7 +100,8 @@ namespace Vertigo.WheelOfFortune.Game
                 new WheelTierFactory(configuration.Zones),
                 CreateRandomSource(),
                 configuration.Zones.StartingZone,
-                configuration.Zones.FinalZone);
+                configuration.Zones.FinalZone,
+                presentation: this);
 
             _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), _session.Events);
 
@@ -126,22 +125,14 @@ namespace Vertigo.WheelOfFortune.Game
         {
             if (_session == null) return;
             _session.Events.Subscribe<SessionChanged>(OnSessionChanged);
-            _session.Events.Subscribe<RewardCollected>(OnRewardCollected);
-            _session.Events.Subscribe<BombHit>(OnBombHit);
-            _session.Events.Subscribe<ZoneAdvanced>(OnZoneAdvanced);
             _session.Events.Subscribe<RunCompleted>(OnRunCompleted);
-            _session.Events.Subscribe<RunRestarted>(OnRunRestarted);
         }
 
         private void UnsubscribeSessionEvents()
         {
             if (_session == null) return;
             _session.Events.Unsubscribe<SessionChanged>(OnSessionChanged);
-            _session.Events.Unsubscribe<RewardCollected>(OnRewardCollected);
-            _session.Events.Unsubscribe<BombHit>(OnBombHit);
-            _session.Events.Unsubscribe<ZoneAdvanced>(OnZoneAdvanced);
             _session.Events.Unsubscribe<RunCompleted>(OnRunCompleted);
-            _session.Events.Unsubscribe<RunRestarted>(OnRunRestarted);
         }
 
         private void OnSessionChanged(SessionChanged message)
@@ -207,95 +198,58 @@ namespace Vertigo.WheelOfFortune.Game
         private void OnSpinClicked()
         {
             if (_session == null || !_session.CanSpin) return;
-            if (_isTransitioning) return;
-            if (_jackpotShowing) return;
-            if (wheelSpinner != null && wheelSpinner.IsSpinning) return;
-
             _session.BeginSpin();
+        }
 
-            int sliceIndex = _session.PendingSliceIndex;
-            int sliceCount = _session.CurrentWheel.SliceCount;
+        public void PlaySpin(int sliceIndex, ZoneWheel wheel, Action onComplete)
+        {
             float startAngle = wheelLayout != null ? wheelLayout.StartAngle : 0f;
-
-            RefreshState();
-
-            if (wheelSpinner == null)
+            if (!wheelSpinner)
             {
-                _session.ResolvePendingSpin();
+                onComplete();
                 return;
             }
-
-            wheelSpinner.SpinToSlice(sliceIndex, sliceCount, startAngle, OnSpinAnimationComplete);
+            wheelSpinner.SpinToSlice(sliceIndex, wheel.SliceCount, startAngle, onComplete);
         }
 
         /// <summary>
         /// Called when the wheel stops. Jackpots resolve immediately so the showcase pops
         /// first, then the icon flies; normal rewards fly first and resolve on arrival.
         /// </summary>
-        private void OnSpinAnimationComplete()
+        public void PresentReward(RewardGrant grant, int sliceIndex, Action onComplete)
         {
-            if (_session == null) return;
-
-            int sliceIndex = _session.PendingSliceIndex;
-            var wheel = _session.CurrentWheel;
-
-            if (wheel != null && sliceIndex >= 0 && sliceIndex < wheel.SliceCount && !wheel[sliceIndex].IsBomb)
+            _rewardPresentationComplete = onComplete;
+            _presentedRewardId = grant.RewardId;
+            RefreshRewards();
+            RewardDefinition definition = ResolveReward(grant.RewardId);
+            if (IsJackpotReward(definition) && screen && screen.Showcase)
             {
-                string rewardId = wheel[sliceIndex].Reward.RewardId;
-                var source = wheelLayout != null ? wheelLayout.GetIcon(sliceIndex) : null;
-
-                // Jackpot first: resolve now (shows showcase), fly after.
-                var definition = ResolveReward(rewardId);
-                if (IsJackpotReward(definition))
-                {
-                    var flySprite = source != null ? source.sprite : null;
-                    var flyRect = source != null ? source.rectTransform : null;
-                    _session.ResolvePendingSpin();
-                    if (rewardFly != null && flySprite != null)
-                    {
-                        // Resolved before this point, so the row already exists: aim at the real icon.
-                        var target = ResolveRewardTarget(rewardId);
-                        rewardFly.Fly(flySprite, flyRect, target, () =>
-                        {
-                            if (screen != null && screen.RewardsList != null) screen.RewardsList.PunchRow(rewardId);
-                        });
-                    }
-                    return;
-                }
-
-                if (rewardFly != null && source != null && source.sprite != null)
-                {
-                    var sprite = source.sprite;
-                    var fromRect = source.rectTransform;
-                    Action onArrive = () =>
-                    {
-                        _session.ResolvePendingSpin();
-                        if (screen != null && screen.RewardsList != null) screen.RewardsList.PunchRow(rewardId);
-                    };
-
-                    if (screen != null && screen.RewardsList != null)
-                    {
-                        // Already banked before: home in on the existing row.
-                        if (screen.RewardsList.TryGetRowIcon(rewardId, out var rowIcon))
-                        {
-                            rewardFly.Fly(sprite, fromRect, rowIcon, onArrive);
-                            return;
-                        }
-
-                        // First time this reward is earned: fly to the slot it will occupy.
-                        if (TryGetPredictedRowIconWorldPosition(rewardId, out var slotWorld))
-                        {
-                            rewardFly.FlyToPosition(sprite, fromRect, slotWorld, onArrive);
-                            return;
-                        }
-                    }
-
-                    rewardFly.Fly(sprite, fromRect, ResolveRewardTarget(rewardId), onArrive);
-                    return;
-                }
+                screen.HideFeedback();
+                screen.ShowJackpot(definition.Icon, definition.DisplayName, grant.Amount);
+                return;
             }
+            if (screen) screen.ShowReward(definition ? definition.Icon : null,
+                definition ? definition.DisplayName : grant.RewardId, grant.Amount);
+            PlayPresentedRewardFlight();
+        }
 
-            _session.ResolvePendingSpin();
+        private void PlayPresentedRewardFlight()
+        {
+            Image source = wheelLayout ? wheelLayout.GetIcon(_session.PendingSliceIndex) : null;
+            if (rewardFly && source && source.sprite)
+            {
+                rewardFly.Fly(source.sprite, source.rectTransform, ResolveRewardTarget(_presentedRewardId), OnRewardFlightComplete);
+                return;
+            }
+            OnRewardFlightComplete();
+        }
+
+        private void OnRewardFlightComplete()
+        {
+            if (screen && screen.RewardsList) screen.RewardsList.PunchRow(_presentedRewardId);
+            Action completion = _rewardPresentationComplete;
+            _rewardPresentationComplete = null;
+            completion?.Invoke();
         }
 
         /// <summary>The rewards-pane rect a flown reward should home in on (its row, else the list).</summary>
@@ -331,7 +285,6 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnLeaveClicked()
         {
-            if (_jackpotShowing || _isTransitioning) return;
             if (_session != null && _session.CanLeave) _session.Leave();
         }
 
@@ -346,52 +299,21 @@ namespace Vertigo.WheelOfFortune.Game
         {
             if (_session == null) return;
             if (_session.CanRestart) _session.Restart();
-            else if (_session.Phase == SessionPhase.Completed) _session.StartNewRun();
+            else if (_session.IsCompleted) _session.StartNewRun();
         }
 
         // ---- session events ----
 
-        private void OnRewardCollected(RewardCollected message)
+        public void ShowLoss(int zone)
         {
-            RewardGrant grant = message.Grant;
-            if (screen == null) return;
-            var definition = ResolveReward(grant.RewardId);
-            var icon = definition != null ? definition.Icon : null;
-            var label = definition != null ? definition.DisplayName : grant.RewardId;
-
-            if (IsJackpotReward(definition))
-            {
-                // Big fullscreen showcase. It stays until the player taps; the zone slide
-                // and the end-of-run results wait behind it (see OnShowcaseDismissed).
-                _jackpotShowing = true;
-                _pendingZoneAdvance = false;
-                _pendingResults = null;
-                screen.HideFeedback();
-                screen.ShowJackpot(icon, label, grant.Amount);
-                SetSpinInput(false);
-                return;
-            }
-
-            screen.ShowReward(icon, label, grant.Amount);
-        }
-
-        private void OnBombHit(BombHit message)
-        {
-            int zone = message.Zone;
             if (screen == null) return;
             var definition = configuration.Zones.GetWheelForZone(zone);
             screen.ShowBomb(definition != null ? definition.BombSprite : null);
         }
 
-        private void OnZoneAdvanced(ZoneAdvanced message)
+        public void PlayZoneTransition(Action onComplete)
         {
-            if (_jackpotShowing)
-            {
-                // Defer the slide until the player dismisses the showcase.
-                _pendingZoneAdvance = true;
-                return;
-            }
-
+            _zoneTransitionComplete = onComplete;
             if (screen != null) screen.HideFeedback();
             PlayZoneTransition();
         }
@@ -407,14 +329,10 @@ namespace Vertigo.WheelOfFortune.Game
                 }
             }
 
-            if (_jackpotShowing)
-            {
-                // Defer the results screen until the showcase is dismissed.
-                _pendingZoneAdvance = false;
-                _pendingResults = BuildRewardRows();
-                return;
-            }
+        }
 
+        public void ShowResults()
+        {
             if (screen == null) return;
 
             screen.HideFeedback();
@@ -424,37 +342,13 @@ namespace Vertigo.WheelOfFortune.Game
         /// <summary>Player tapped the jackpot showcase away. Flush whatever it was pausing.</summary>
         private void OnShowcaseDismissed()
         {
-            _jackpotShowing = false;
-
-            if (!_isTransitioning) SetSpinInput(true);
-
-            if (_pendingResults != null)
-            {
-                var rows = _pendingResults;
-                _pendingResults = null;
-                _pendingZoneAdvance = false;
-                if (screen != null)
-                {
-                    screen.HideFeedback();
-                    if (screen.Results != null) screen.Results.Show(rows);
-                }
-                return;
-            }
-
-            if (_pendingZoneAdvance)
-            {
-                _pendingZoneAdvance = false;
-                if (screen != null) screen.HideFeedback();
-                PlayZoneTransition();
-            }
+            PlayPresentedRewardFlight();
         }
 
         /// <summary>Silently drops any visible/deferred showcase (restart or new run).</summary>
         private void ClearJackpotState()
         {
-            _jackpotShowing = false;
-            _pendingZoneAdvance = false;
-            _pendingResults = null;
+            _rewardPresentationComplete = null;
             if (screen != null) screen.HideJackpot();
         }
 
@@ -469,13 +363,23 @@ namespace Vertigo.WheelOfFortune.Game
             RefreshState();
         }
 
-        private void OnRunRestarted(RunRestarted message)
+        public void Reset()
         {
             ClearJackpotState();
             KillWheelTransition();
             ApplyZoneWheel();
             if (screen != null) screen.HideFeedback();
             if (screen != null && screen.Results != null) screen.Results.Hide();
+        }
+
+        public void Cancel()
+        {
+            _rewardPresentationComplete = null;
+            _zoneTransitionComplete = null;
+            if (wheelSpinner) wheelSpinner.CancelSpin();
+            if (rewardFly) rewardFly.CancelAll();
+            KillWheelTransition();
+            if (screen) screen.HideJackpot();
         }
 
         // ---- view ----
@@ -570,13 +474,12 @@ namespace Vertigo.WheelOfFortune.Game
             if (outgoing == null || parent == null || wheelLayout == null)
             {
                 ApplyZoneWheel();
+                CompleteZonePresentation();
                 return;
             }
 
             KillWheelTransition();
 
-            _isTransitioning = true;
-            SetSpinInput(false);
 
             Vector2 home = outgoing.anchoredPosition;
             float distance = ComputeSlideDistance(parent, home);
@@ -602,7 +505,7 @@ namespace Vertigo.WheelOfFortune.Game
             var barTween = StartZoneBarTransition();
             if (barTween != null) _wheelTransition.Join(barTween);
 
-            _wheelTransition.OnComplete(() => FinishZoneTransition(outgoing, incoming, home));
+            _wheelTransition.SetLink(gameObject).OnComplete(FinishZoneTransition);
         }
 
         /// <summary>Slides the numbered zone strip to the new zone in step with the wheel.</summary>
@@ -618,7 +521,6 @@ namespace Vertigo.WheelOfFortune.Game
                 wheelSlideEase,
                 configuration.Zones.FinalZone);
 
-            _suppressZoneBarRefresh = tween != null;
             return tween;
         }
 
@@ -639,10 +541,9 @@ namespace Vertigo.WheelOfFortune.Game
             return halfCanvas + parent.rect.width * 0.5f;
         }
 
-        private void FinishZoneTransition(RectTransform outgoing, RectTransform incoming, Vector2 home)
+        private void FinishZoneTransition()
         {
             _wheelTransition = null;
-            _suppressZoneBarRefresh = false;
 
             if (_incomingWheel != null)
             {
@@ -652,15 +553,20 @@ namespace Vertigo.WheelOfFortune.Game
 
             ApplyZoneWheel();
 
-            _isTransitioning = false;
-            SetSpinInput(true);
+            CompleteZonePresentation();
+        }
+
+        private void CompleteZonePresentation()
+        {
+            Action completion = _zoneTransitionComplete;
+            _zoneTransitionComplete = null;
+            completion?.Invoke();
         }
 
         private void KillWheelTransition()
         {
             if (_wheelTransition != null && _wheelTransition.IsActive()) _wheelTransition.Kill(false);
             _wheelTransition = null;
-            _suppressZoneBarRefresh = false;
 
             if (_incomingWheel != null)
             {
@@ -668,8 +574,6 @@ namespace Vertigo.WheelOfFortune.Game
                 _incomingWheel = null;
             }
 
-            _isTransitioning = false;
-            SetSpinInput(true);
         }
 
         private void SetSpinInput(bool enabled)
@@ -694,13 +598,14 @@ namespace Vertigo.WheelOfFortune.Game
 
             int zone = _session.Zone;
 
-            if (_suppressZoneBarRefresh)
+            if (_session.IsZoneTransitioning)
                 screen.SetZoneMaps(zone, configuration.Zones.SafeZoneInterval, configuration.Zones.SuperZoneInterval, configuration.Zones.FinalZone);
             else
                 screen.SetZone(zone, configuration.Zones.SafeZoneInterval, configuration.Zones.SuperZoneInterval, configuration.Zones.FinalZone);
 
             screen.SetLeaveAvailable(_session.CanLeave);
-            screen.SetLeaveVisible(_session.Phase != SessionPhase.Bust);
+            SetSpinInput(_session.CanSpin);
+            screen.SetLeaveVisible(!_session.CanRestart && !_session.IsCompleted);
             screen.SetRestartAvailable(_session.CanRestart);
 
             RefreshRewards();
