@@ -29,19 +29,11 @@ namespace Vertigo.WheelOfFortune.UI
         private Tween _fade;
         private Tween _pop;
         private Tween _spin;
-        private HudState[] _hudStates;
-        private bool _isHudHidden;
-
-        private struct HudState
-        {
-            public float Alpha;
-            public bool IsInteractable;
-            public bool IsBlockingRaycasts;
-        }
+        private ModalHudVisibility _hudVisibility;
 
         private void Awake()
         {
-            _hudStates = new HudState[_underlyingHud.Length];
+            _hudVisibility = new ModalHudVisibility(_underlyingHud);
             ApplyHiddenImmediate();
         }
 
@@ -66,7 +58,7 @@ namespace Vertigo.WheelOfFortune.UI
             KillTweens();
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
-            HideHud();
+            _hudVisibility.Hide();
             _bigIcon.sprite = icon;
             _bigIcon.enabled = icon;
             _titleLabel.text = string.IsNullOrEmpty(label) ? _fallbackTitle : label;
@@ -104,7 +96,7 @@ namespace Vertigo.WheelOfFortune.UI
             IsShowing = false;
             KillTweens();
             ApplyHiddenImmediate();
-            RestoreHud();
+            _hudVisibility?.Restore();
         }
 
         private void OnDismissClicked()
@@ -116,7 +108,7 @@ namespace Vertigo.WheelOfFortune.UI
         {
             _fade = null;
             ApplyHiddenImmediate();
-            RestoreHud();
+            _hudVisibility.Restore();
             Dismissed?.Invoke();
         }
 
@@ -136,40 +128,6 @@ namespace Vertigo.WheelOfFortune.UI
             _group.alpha = _animation ? _animation.HiddenAlpha : 0f;
             _group.blocksRaycasts = false;
             _group.interactable = false;
-        }
-
-        private void HideHud()
-        {
-            if (_isHudHidden) return;
-            _isHudHidden = true;
-            for (int i = 0; i < _underlyingHud.Length; i++)
-            {
-                CanvasGroup hud = _underlyingHud[i];
-                if (!hud) continue;
-                _hudStates[i] = new HudState
-                {
-                    Alpha = hud.alpha,
-                    IsInteractable = hud.interactable,
-                    IsBlockingRaycasts = hud.blocksRaycasts
-                };
-                hud.alpha = 0f;
-                hud.interactable = false;
-                hud.blocksRaycasts = false;
-            }
-        }
-
-        private void RestoreHud()
-        {
-            if (!_isHudHidden) return;
-            _isHudHidden = false;
-            for (int i = 0; i < _underlyingHud.Length; i++)
-            {
-                CanvasGroup hud = _underlyingHud[i];
-                if (!hud) continue;
-                hud.alpha = _hudStates[i].Alpha;
-                hud.interactable = _hudStates[i].IsInteractable;
-                hud.blocksRaycasts = _hudStates[i].IsBlockingRaycasts;
-            }
         }
 
 #if UNITY_EDITOR

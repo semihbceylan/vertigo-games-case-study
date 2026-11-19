@@ -141,6 +141,8 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
 - **Authored showcase:** serialized widgets replace runtime hierarchy repair. Its animation
   asset configures fade, pop and flash rotation. Dismissal completes after fade-out; cancellation
   is silent, and the modal hides/disables the HUD then restores its previous state.
+- **Results modal lifecycle:** results share the HUD snapshot helper, preserve previously disabled
+  controls, keep the input barrier through fade-out, and cancel tweens/restore the HUD on disable.
 - **Authored zone nodes:** the progress strip uses serialized node/background/frame/text
   references. It neither discovers components nor creates or repairs hierarchy at runtime;
   changing the visible window size requires updating its authored node array.
@@ -176,7 +178,7 @@ Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
 79 EditMode test cases total
-2 PlayMode test cases total (natural showcase dismissal timing and cancellation lifecycle)
+4 PlayMode test cases total (natural showcase/results dismissal timing and cancellation lifecycle)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

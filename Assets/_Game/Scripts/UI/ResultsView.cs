@@ -55,6 +55,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private readonly List<TileWidgets> _tiles = new List<TileWidgets>();
         private Tween _fade;
+        private ModalHudVisibility _hudVisibility;
 
         private sealed class TileWidgets
         {
@@ -67,6 +68,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void Awake()
         {
+            _hudVisibility = new ModalHudVisibility(_underlyingHud);
             for (int i = 0; i < _poolCapacity; i++)
             {
                 TileWidgets tile = CreateTile(content, i);
@@ -74,13 +76,22 @@ namespace Vertigo.WheelOfFortune.UI
                 _tiles.Add(tile);
             }
             ApplyHiddenState();
-            if (restartButton != null) restartButton.Clicked += OnRestartClicked;
+        }
+
+        private void OnEnable()
+        {
+            if (restartButton) restartButton.Clicked += OnRestartClicked;
+        }
+
+        private void OnDisable()
+        {
+            if (restartButton) restartButton.Clicked -= OnRestartClicked;
+            HideImmediate();
         }
 
         private void OnDestroy()
         {
-            _fade?.Kill(false);
-            if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
+            HideImmediate();
         }
 
         private void OnRestartClicked()
@@ -106,7 +117,25 @@ namespace Vertigo.WheelOfFortune.UI
             SetVisible(true);
         }
 
-        public void Hide() => SetVisible(false);
+        public void Hide()
+        {
+            SetVisible(false);
+        }
+
+        public void HideImmediate()
+        {
+            _fade?.Kill(false);
+            _fade = null;
+            ApplyHiddenState();
+            _hudVisibility?.Restore();
+        }
+
+        private void OnHideComplete()
+        {
+            _fade = null;
+            ApplyHiddenState();
+            _hudVisibility.Restore();
+        }
 
         private void ApplyHiddenState()
         {
@@ -119,28 +148,20 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void SetVisible(bool visible)
         {
-            foreach (CanvasGroup hud in _underlyingHud)
-            {
-                if (!hud)
-                {
-                    continue;
-                }
-                hud.alpha = visible ? 0f : 1f;
-                hud.interactable = !visible;
-                hud.blocksRaycasts = !visible;
-            }
+            if (visible) _hudVisibility.Hide();
             if (group == null)
             {
                 gameObject.SetActive(visible);
                 return;
             }
 
-            group.blocksRaycasts = visible;
+            if (visible) group.blocksRaycasts = true;
             group.interactable = visible;
 
             _fade?.Kill();
             _fade = group.DOFade(visible ? _animation.VisibleAlpha : _animation.HiddenAlpha,
                 _animation.FadeDuration).SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject);
+            if (!visible) _fade.OnComplete(OnHideComplete);
         }
 
         /// <summary>Points the ScrollRect and content rect at the configured axis.</summary>
