@@ -497,7 +497,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 3);
 
             long banked = -1;
-            session.RunCompleted += total => banked = total;
+            session.Events.Subscribe<RunCompleted>(message => banked = message.BankedTotal);
 
             for (int i = 0; i < 2; i++)
             {

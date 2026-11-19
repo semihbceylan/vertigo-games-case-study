@@ -62,6 +62,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnEnable()
         {
+            SubscribeSessionEvents();
             if (spinButton != null) spinButton.Clicked += OnSpinClicked;
             if (leaveButton != null) leaveButton.Clicked += OnLeaveClicked;
             if (restartButton != null) restartButton.Clicked += OnRestartClicked;
@@ -76,6 +77,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnDisable()
         {
+            UnsubscribeSessionEvents();
             if (spinButton != null) spinButton.Clicked -= OnSpinClicked;
             if (leaveButton != null) leaveButton.Clicked -= OnLeaveClicked;
             if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
@@ -102,12 +104,7 @@ namespace Vertigo.WheelOfFortune.Game
                 configuration.Zones.StartingZone,
                 configuration.Zones.FinalZone);
 
-            _session.StateChanged += RefreshState;
-            _session.RewardCollected += OnRewardCollected;
-            _session.BombHit += OnBombHit;
-            _session.ZoneAdvanced += OnZoneAdvanced;
-            _session.RunCompleted += OnRunCompleted;
-            _session.RunRestarted += OnRunRestarted;
+            SubscribeSessionEvents();
 
             _session.StartNewRun();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -120,13 +117,34 @@ namespace Vertigo.WheelOfFortune.Game
         private void OnDestroy()
         {
             if (_wheelTransition != null && _wheelTransition.IsActive()) _wheelTransition.Kill(false);
+            UnsubscribeSessionEvents();
+        }
+
+        private void SubscribeSessionEvents()
+        {
             if (_session == null) return;
-            _session.StateChanged -= RefreshState;
-            _session.RewardCollected -= OnRewardCollected;
-            _session.BombHit -= OnBombHit;
-            _session.ZoneAdvanced -= OnZoneAdvanced;
-            _session.RunCompleted -= OnRunCompleted;
-            _session.RunRestarted -= OnRunRestarted;
+            _session.Events.Subscribe<SessionChanged>(OnSessionChanged);
+            _session.Events.Subscribe<RewardCollected>(OnRewardCollected);
+            _session.Events.Subscribe<BombHit>(OnBombHit);
+            _session.Events.Subscribe<ZoneAdvanced>(OnZoneAdvanced);
+            _session.Events.Subscribe<RunCompleted>(OnRunCompleted);
+            _session.Events.Subscribe<RunRestarted>(OnRunRestarted);
+        }
+
+        private void UnsubscribeSessionEvents()
+        {
+            if (_session == null) return;
+            _session.Events.Unsubscribe<SessionChanged>(OnSessionChanged);
+            _session.Events.Unsubscribe<RewardCollected>(OnRewardCollected);
+            _session.Events.Unsubscribe<BombHit>(OnBombHit);
+            _session.Events.Unsubscribe<ZoneAdvanced>(OnZoneAdvanced);
+            _session.Events.Unsubscribe<RunCompleted>(OnRunCompleted);
+            _session.Events.Unsubscribe<RunRestarted>(OnRunRestarted);
+        }
+
+        private void OnSessionChanged(SessionChanged message)
+        {
+            RefreshState();
         }
 
         private IRandomSource CreateRandomSource()
@@ -331,8 +349,9 @@ namespace Vertigo.WheelOfFortune.Game
 
         // ---- session events ----
 
-        private void OnRewardCollected(RewardGrant grant)
+        private void OnRewardCollected(RewardCollected message)
         {
+            RewardGrant grant = message.Grant;
             if (screen == null) return;
             var definition = ResolveReward(grant.RewardId);
             var icon = definition != null ? definition.Icon : null;
@@ -354,14 +373,15 @@ namespace Vertigo.WheelOfFortune.Game
             screen.ShowReward(icon, label, grant.Amount);
         }
 
-        private void OnBombHit(int zone)
+        private void OnBombHit(BombHit message)
         {
+            int zone = message.Zone;
             if (screen == null) return;
             var definition = configuration.Zones.GetWheelForZone(zone);
             screen.ShowBomb(definition != null ? definition.BombSprite : null);
         }
 
-        private void OnZoneAdvanced(int zone)
+        private void OnZoneAdvanced(ZoneAdvanced message)
         {
             if (_jackpotShowing)
             {
@@ -374,7 +394,7 @@ namespace Vertigo.WheelOfFortune.Game
             PlayZoneTransition();
         }
 
-        private void OnRunCompleted(long banked)
+        private void OnRunCompleted(RunCompleted message)
         {
             if (_jackpotShowing)
             {
@@ -438,7 +458,7 @@ namespace Vertigo.WheelOfFortune.Game
             RefreshState();
         }
 
-        private void OnRunRestarted()
+        private void OnRunRestarted(RunRestarted message)
         {
             ClearJackpotState();
             KillWheelTransition();

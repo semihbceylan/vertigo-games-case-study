@@ -22,8 +22,9 @@ namespace Vertigo.WheelOfFortune.Core
         private readonly int _startingZone;
         private readonly int _finalZone;
 
-        public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random, int startingZone = 1, int finalZone = 0)
+        public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random, int startingZone = 1, int finalZone = 0, IEventBus events = null)
         {
+            Events = events ?? new EventBus();
             _rules = rules;
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _random = random ?? throw new ArgumentNullException(nameof(random));
@@ -47,12 +48,7 @@ namespace Vertigo.WheelOfFortune.Core
         /// <summary>Total banked when the player leaves successfully.</summary>
         public long BankedTotal { get; private set; }
 
-        public event Action StateChanged;
-        public event Action<RewardGrant> RewardCollected;
-        public event Action<int> BombHit;
-        public event Action<int> ZoneAdvanced;
-        public event Action<long> RunCompleted;
-        public event Action RunRestarted;
+        public IEventBus Events { get; }
 
         public ZoneKind CurrentZoneKind => ZoneClassifier.Classify(Zone, _rules);
         public bool IsIdle => Phase == SessionPhase.Idle;
@@ -77,7 +73,7 @@ namespace Vertigo.WheelOfFortune.Core
             Wallet.Clear();
             Phase = SessionPhase.Idle;
             BuildWheel();
-            StateChanged?.Invoke();
+            Events.Publish(new SessionChanged());
         }
 
         /// <summary>Selects the outcome, then moves to the spinning phase. The animation completes it.</summary>
@@ -88,7 +84,7 @@ namespace Vertigo.WheelOfFortune.Core
 
             PendingSliceIndex = _random.NextInt(0, CurrentWheel.SliceCount);
             Phase = SessionPhase.Spinning;
-            StateChanged?.Invoke();
+            Events.Publish(new SessionChanged());
         }
 
         /// <summary>Resolves the slice previously chosen by <see cref="BeginSpin"/>.</summary>
@@ -115,30 +111,30 @@ namespace Vertigo.WheelOfFortune.Core
                 Wallet.Clear();
                 int bustedZone = Zone;
                 Phase = SessionPhase.Bust;
-                BombHit?.Invoke(bustedZone);
+                Events.Publish(new BombHit(bustedZone));
             }
             else
             {
                 Wallet.Add(slice.Reward);
-                RewardCollected?.Invoke(slice.Reward);
+                Events.Publish(new RewardCollected(slice.Reward));
 
                 // The final zone banks the run once its reward is collected (e.g. the super zone).
                 if (_finalZone > 0 && Zone >= _finalZone)
                 {
                     BankedTotal = Wallet.AccumulatedAmount;
                     Phase = SessionPhase.Completed;
-                    StateChanged?.Invoke();
-                    RunCompleted?.Invoke(BankedTotal);
+                    Events.Publish(new SessionChanged());
+                    Events.Publish(new RunCompleted(BankedTotal));
                     return;
                 }
 
                 Zone++;
                 Phase = SessionPhase.Idle;
                 BuildWheel();
-                ZoneAdvanced?.Invoke(Zone);
+                Events.Publish(new ZoneAdvanced(Zone));
             }
 
-            StateChanged?.Invoke();
+            Events.Publish(new SessionChanged());
         }
 
         /// <summary>Banks accumulated rewards while idle in a safe or super zone.</summary>
@@ -149,8 +145,8 @@ namespace Vertigo.WheelOfFortune.Core
 
             BankedTotal = Wallet.AccumulatedAmount;
             Phase = SessionPhase.Completed;
-            StateChanged?.Invoke();
-            RunCompleted?.Invoke(BankedTotal);
+            Events.Publish(new SessionChanged());
+            Events.Publish(new RunCompleted(BankedTotal));
         }
 
         /// <summary>Restarts the run after a bomb.</summary>
@@ -160,7 +156,7 @@ namespace Vertigo.WheelOfFortune.Core
                 throw new InvalidOperationException("Restart is only allowed after a bust.");
 
             StartNewRun();
-            RunRestarted?.Invoke();
+            Events.Publish(new RunRestarted());
         }
 
         /// <summary>
@@ -180,7 +176,7 @@ namespace Vertigo.WheelOfFortune.Core
             Zone = zone;
             Phase = SessionPhase.Idle;
             BuildWheel();
-            StateChanged?.Invoke();
+            Events.Publish(new SessionChanged());
         }
 
     }
