@@ -27,6 +27,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private UIButton restartButton;
         [SerializeField] private RewardFlyAnimator rewardFly;
         [SerializeField] private RectTransform _canvasRect;
+        [SerializeField] private WheelTransitionController _wheelTransitionController;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Header("Debug (Editor / Development builds only)")]
@@ -34,19 +35,10 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField, Min(0)] private int debugStartZone = 0;
 #endif
 
-        [Header("Zone wheel transition")]
-        [Tooltip("How long the finished wheel stays on screen before the next zone slides in.")]
-        [SerializeField, Min(0f)] private float wheelHoldDuration = 0.5f;
-        [Tooltip("Duration of the slide animation.")]
-        [SerializeField, Min(0.05f)] private float wheelSlideDuration = 0.35f;
-        [SerializeField] private Ease wheelSlideEase = Ease.InOutCubic;
-
         private readonly Dictionary<string, RewardDefinition> _rewardLookup = new Dictionary<string, RewardDefinition>();
         private readonly List<RewardRowData> _rewardRows = new List<RewardRowData>();
         private GameSession _session;
         private ICurrencyWallet _currencyWallet;
-        private Sequence _wheelTransition;
-        private RectTransform _incomingWheel;
         private Vector2 _wheelHomePosition;
         private Action _rewardPresentationComplete;
         private Action _zoneTransitionComplete;
@@ -117,7 +109,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnDestroy()
         {
-            if (_wheelTransition != null && _wheelTransition.IsActive()) _wheelTransition.Kill(false);
+            Cancel();
             UnsubscribeSessionEvents();
         }
 
@@ -462,50 +454,15 @@ namespace Vertigo.WheelOfFortune.Game
             layout.ApplyLayout();
         }
 
-        /// <summary>
-        /// Holds the just-finished wheel on screen for <see cref="wheelHoldDuration"/>, then slides
-        /// it out to the left while the next zone's wheel slides in from the right.
-        /// </summary>
         private void PlayZoneTransition()
         {
-            RectTransform outgoing = wheelView != null ? wheelView.WheelRotation : null;
-            var parent = outgoing != null ? outgoing.parent as RectTransform : null;
+            IWheelTransition transition = _wheelTransitionController;
+            transition.Play(PopulateIncomingWheel, StartZoneBarTransition(), FinishZoneTransition);
+        }
 
-            if (outgoing == null || parent == null || wheelLayout == null)
-            {
-                ApplyZoneWheel();
-                CompleteZonePresentation();
-                return;
-            }
-
-            KillWheelTransition();
-
-
-            Vector2 home = outgoing.anchoredPosition;
-            float distance = ComputeSlideDistance(parent, home);
-
-            // Build the incoming wheel off-screen to the right, filled with the new zone's data.
-            var incoming = Instantiate(outgoing.gameObject, parent).GetComponent<RectTransform>();
-            incoming.SetSiblingIndex(outgoing.GetSiblingIndex());
-            incoming.anchoredPosition = new Vector2(home.x + distance, home.y);
-            incoming.localRotation = Quaternion.identity;
-            _incomingWheel = incoming;
-
-            PopulateWheelVisual(
-                incoming,
-                FindChildImage(incoming, "ui_image_wheel_base"),
-                incoming.GetComponentInChildren<WheelLayout>(true));
-
-            _wheelTransition = DOTween.Sequence();
-            _wheelTransition.SetUpdate(true);
-            _wheelTransition.AppendInterval(wheelHoldDuration);
-            _wheelTransition.Append(outgoing.DOAnchorPosX(home.x - distance, wheelSlideDuration).SetEase(wheelSlideEase));
-            _wheelTransition.Join(incoming.DOAnchorPosX(home.x, wheelSlideDuration).SetEase(wheelSlideEase));
-
-            var barTween = StartZoneBarTransition();
-            if (barTween != null) _wheelTransition.Join(barTween);
-
-            _wheelTransition.SetLink(gameObject).OnComplete(FinishZoneTransition);
+        private void PopulateIncomingWheel(WheelDiscView incoming)
+        {
+            PopulateWheelVisual(incoming.Rect, incoming.Base, incoming.Layout);
         }
 
         /// <summary>Slides the numbered zone strip to the new zone in step with the wheel.</summary>
@@ -517,40 +474,15 @@ namespace Vertigo.WheelOfFortune.Game
                 _session.Zone,
                 configuration.Zones.SafeZoneInterval,
                 configuration.Zones.SuperZoneInterval,
-                wheelSlideDuration,
-                wheelSlideEase,
+                _wheelTransitionController.Animation.SlideDuration,
+                _wheelTransitionController.Animation.SlideEase,
                 configuration.Zones.FinalZone);
 
             return tween;
         }
 
-        /// <summary>
-        /// Distance that carries the wheel fully past the canvas edge: half the canvas width plus
-        /// the wheel's own radius, measured in the wheel's parent space.
-        /// </summary>
-        private float ComputeSlideDistance(RectTransform parent, Vector2 home)
-        {
-            if (!_canvasRect)
-            {
-                throw new InvalidOperationException("A serialized canvas rect is required for wheel transitions.");
-            }
-            Vector3 canvasCorner = _canvasRect.TransformPoint(new Vector3(_canvasRect.rect.width * 0.5f, 0f, 0f));
-            Vector3 cornerInParent = parent.InverseTransformPoint(canvasCorner);
-            float halfCanvas = Mathf.Abs(cornerInParent.x - home.x);
-
-            return halfCanvas + parent.rect.width * 0.5f;
-        }
-
         private void FinishZoneTransition()
         {
-            _wheelTransition = null;
-
-            if (_incomingWheel != null)
-            {
-                Destroy(_incomingWheel.gameObject);
-                _incomingWheel = null;
-            }
-
             ApplyZoneWheel();
 
             CompleteZonePresentation();
@@ -565,31 +497,12 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void KillWheelTransition()
         {
-            if (_wheelTransition != null && _wheelTransition.IsActive()) _wheelTransition.Kill(false);
-            _wheelTransition = null;
-
-            if (_incomingWheel != null)
-            {
-                Destroy(_incomingWheel.gameObject);
-                _incomingWheel = null;
-            }
-
+            if (_wheelTransitionController) _wheelTransitionController.Cancel();
         }
 
         private void SetSpinInput(bool enabled)
         {
             if (spinButton != null) spinButton.Interactable = enabled;
-        }
-
-        private static Image FindChildImage(Transform root, string name)
-        {
-            if (root == null) return null;
-
-            var images = root.GetComponentsInChildren<Image>(true);
-            for (int i = 0; i < images.Length; i++)
-                if (images[i].name == name) return images[i];
-
-            return null;
         }
 
         private void RefreshState()
@@ -679,7 +592,7 @@ namespace Vertigo.WheelOfFortune.Game
         /// <summary>Dev helper: teleports the live run to a zone and refreshes the whole view.</summary>
         private void DebugJumpTo(int zone)
         {
-            if (_session == null) return;
+            if (_session == null || !_session.CanSpin) return;
 
             ClearJackpotState();
             KillWheelTransition();
@@ -712,6 +625,7 @@ namespace Vertigo.WheelOfFortune.Game
             if (!screen) screen = GetComponentInChildren<GameScreenView>(true);
             if (!spinButton) spinButton = GetComponentInChildren<SpinButton>(true);
             if (!rewardFly) rewardFly = GetComponentInChildren<RewardFlyAnimator>(true);
+            if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
             if (!_canvasRect)
             {
                 Canvas canvas = GetComponentInParent<Canvas>();
