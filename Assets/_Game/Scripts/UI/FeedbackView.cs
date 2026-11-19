@@ -55,22 +55,26 @@ namespace Vertigo.WheelOfFortune.UI
                 group.interactable = false;
             }
 
-            if (actionButton != null)
-                actionButton.Clicked += OnActionClicked;
+        }
 
+        private void OnEnable()
+        {
+            if (actionButton) actionButton.Clicked += OnActionClicked;
+        }
+
+        private void OnDisable()
+        {
+            if (actionButton) actionButton.Clicked -= OnActionClicked;
+            HideImmediate();
         }
 
         private void OnDestroy()
         {
-            KillToast();
-            _fade?.Kill(false);
+            HideImmediate();
             if (_dimMaterial)
             {
                 Destroy(_dimMaterial);
             }
-            if (actionButton != null)
-                actionButton.Clicked -= OnActionClicked;
-
         }
 
         private void OnActionClicked()
@@ -153,6 +157,15 @@ namespace Vertigo.WheelOfFortune.UI
             FadeTo(_animation.HiddenAlpha);
         }
 
+        public void HideImmediate()
+        {
+            KillToast();
+            _fade?.Kill(false);
+            _fade = null;
+            SetBlocking(false);
+            if (group) group.alpha = _animation ? _animation.HiddenAlpha : 0f;
+        }
+
         private void KillToast()
         {
             if (_toastSequence != null && _toastSequence.IsActive()) _toastSequence.Kill(false);
@@ -218,32 +231,21 @@ namespace Vertigo.WheelOfFortune.UI
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (group == null) group = GetComponent<CanvasGroup>();
-            if (deathScreen == null) deathScreen = FindDeep<RectTransform>("ui_image_feedback_death_screen");
-            if (deathTitle == null) deathTitle = FindDeep<TMP_Text>("ui_text_feedback_title_value");
-            if (deathIcon == null) deathIcon = FindDeep<Image>("ui_image_feedback_death_value");
-            if (actionButton == null) actionButton = FindDeep<UIButton>("ui_button_feedback_action");
+            if (!group) group = GetComponent<CanvasGroup>();
+            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+            {
+                if (!deathScreen && child.name == "ui_image_feedback_death_screen") deathScreen = (RectTransform)child;
+                if (!deathTitle && child.name == "ui_text_feedback_title_value") deathTitle = child.GetComponent<TMP_Text>();
+                if (!deathIcon && child.name == "ui_image_feedback_death_value") deathIcon = child.GetComponent<Image>();
+                if (!actionButton && child.name == "ui_button_feedback_action") actionButton = child.GetComponent<UIButton>();
+                if (!toastBackground && child.name == "ui_image_feedback_toast") toastBackground = child.GetComponent<Image>();
+                if (!toastIcon && child.name == "ui_image_feedback_toast_icon_value") toastIcon = child.GetComponent<Image>();
+                if (!toastMessage && child.name == "ui_text_feedback_toast_message_value") toastMessage = child.GetComponent<TMP_Text>();
+                if (!dimOverlay && child.name == "ui_image_feedback_dim") dimOverlay = child.GetComponent<Image>();
+                if (!damageGlow && child.name == "ui_image_feedback_damage_glow") damageGlow = child.gameObject;
+            }
             if (!_actionLabel && actionButton) _actionLabel = actionButton.GetComponentInChildren<TMP_Text>(true);
-            if (toastBackground == null) toastBackground = FindDeep<Image>("ui_image_feedback_toast");
-            if (toastIcon == null) toastIcon = FindDeep<Image>("ui_image_feedback_toast_icon_value");
-            if (toastMessage == null) toastMessage = FindDeep<TMP_Text>("ui_text_feedback_toast_message_value");
-            if (dimOverlay == null) dimOverlay = FindDeep<Image>("ui_image_feedback_dim");
-            if (damageGlow == null)
-            {
-                var glow = FindDeep<Transform>("ui_image_feedback_damage_glow");
-                if (glow != null) damageGlow = glow.gameObject;
-            }
             if (spotlightB == null && deathScreen != null) spotlightB = deathScreen;
-        }
-
-        private T FindDeep<T>(string name) where T : Component
-        {
-            var all = GetComponentsInChildren<Transform>(true);
-            for (int i = 0; i < all.Length; i++)
-            {
-                if (all[i].name == name) return all[i].GetComponent<T>();
-            }
-            return null;
         }
 #endif
     }

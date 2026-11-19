@@ -178,7 +178,7 @@ Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
 79 EditMode test cases total
-4 PlayMode test cases total (natural showcase/results dismissal timing and cancellation lifecycle)
+5 PlayMode test cases total (natural showcase/results dismissal timing and feedback cancellation lifecycle)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.
