@@ -30,7 +30,8 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private UIButton restartButton;
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
         [Tooltip("Optional tile prefab. When set, tiles are cloned from it instead of built in code.")]
-        [SerializeField] private GameObject tilePrefab;
+        [SerializeField] private ResultTileView _tilePrefab;
+        [SerializeField, Min(1)] private int _poolCapacity = 32;
 
         [Header("Layout")]
         [SerializeField] private ResultsLayout layout = ResultsLayout.Horizontal;
@@ -66,6 +67,12 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void Awake()
         {
+            for (int i = 0; i < _poolCapacity; i++)
+            {
+                TileWidgets tile = CreateTile(content, i);
+                tile.Root.SetActive(false);
+                _tiles.Add(tile);
+            }
             ApplyHiddenState();
             if (restartButton != null) restartButton.Clicked += OnRestartClicked;
         }
@@ -207,14 +214,15 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void EnsureTileCount(int count)
         {
-            var parent = content != null ? content : (RectTransform)transform;
-            while (_tiles.Count < count)
-                _tiles.Add(CreateTile(parent, _tiles.Count));
+            if (count > _tiles.Count)
+            {
+                throw new InvalidOperationException("Results tile pool exhausted; configure capacity for the reward catalogue.");
+            }
         }
 
         private TileWidgets CreateTile(RectTransform parent, int index)
         {
-            if (tilePrefab != null)
+            if (_tilePrefab)
                 return CreateTileFromPrefab(parent, index);
 
             bool horizontal = IsHorizontal;
@@ -245,11 +253,11 @@ namespace Vertigo.WheelOfFortune.UI
                 ? -(iconSize + countGap) * 0.5f
                 : -(iconTopPadding + iconSize + countGap);
 
-            var iconGo = new GameObject("ui_image_result_reward_icon", typeof(RectTransform), typeof(Image));
+            var iconGo = new GameObject("ui_image_result_reward_icon_value", typeof(RectTransform));
             iconGo.layer = gameObject.layer;
             iconGo.transform.SetParent(rootGo.transform, false);
 
-            var icon = iconGo.GetComponent<Image>();
+            var icon = iconGo.AddComponent<Image>();
             icon.raycastTarget = false;
             icon.maskable = true;
             icon.preserveAspect = true;
@@ -293,39 +301,33 @@ namespace Vertigo.WheelOfFortune.UI
 
         private TileWidgets CreateTileFromPrefab(RectTransform parent, int index)
         {
-            var instance = Instantiate(tilePrefab, parent, false);
+            var instance = Instantiate(_tilePrefab, parent, false);
             instance.name = "ui_result_reward_" + (index + 1) + "_value";
-            instance.layer = gameObject.layer;
+            instance.gameObject.layer = gameObject.layer;
 
             return new TileWidgets
             {
-                Root = instance,
-                Icon = instance.GetComponentInChildren<Image>(true),
-                Count = instance.GetComponentInChildren<TMP_Text>(true)
+                Root = instance.gameObject,
+                Icon = instance.Icon,
+                Count = instance.Count
             };
         }
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (group == null) group = GetComponent<CanvasGroup>();
-            if (content == null) content = FindDeep<RectTransform>("ui_results_content");
-            if (scroll == null) scroll = FindDeep<ScrollRect>("ui_results_scroll");
-            if (titleLabel == null) titleLabel = FindDeep<TMP_Text>("ui_text_results_title_value");
-            if (restartButton == null) restartButton = FindDeep<UIButton>("ui_button_results_restart");
+            if (!group) group = GetComponent<CanvasGroup>();
+            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+            {
+                if (!content && child.name == "ui_results_content") content = (RectTransform)child;
+                if (!scroll && child.name == "ui_results_scroll") scroll = child.GetComponent<ScrollRect>();
+                if (!titleLabel && child.name == "ui_text_results_title_value") titleLabel = child.GetComponent<TMP_Text>();
+                if (!restartButton && child.name == "ui_button_results_restart") restartButton = child.GetComponent<UIButton>();
+            }
 
             if (!Application.isPlaying) ApplyScrollConfiguration();
         }
 
-        private T FindDeep<T>(string name) where T : Component
-        {
-            var all = GetComponentsInChildren<Transform>(true);
-            for (int i = 0; i < all.Length; i++)
-            {
-                if (all[i].name == name) return all[i].GetComponent<T>();
-            }
-            return null;
-        }
 #endif
     }
 }

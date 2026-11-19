@@ -3749,7 +3749,8 @@ MonoBehaviour:
   restartButton: {fileID: 116664012}
   _underlyingHud:
   - {fileID: 1012175708}
-  tilePrefab: {fileID: 0}
+  _tilePrefab: {fileID: 0}
+  _poolCapacity: 32
   layout: 1
   tileHeight: 250
   tileWidth: 220
