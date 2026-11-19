@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -23,8 +23,6 @@ namespace Vertigo.WheelOfFortune.UI
 
         [SerializeField] private RectTransform nodesRoot;
         [SerializeField] private RectTransform marker;
-        [Tooltip("Optional node prefab. When set, nodes are cloned from it instead of built in code.")]
-        [SerializeField] private GameObject nodePrefab;
 
         [Header("Window")]
         [SerializeField, Min(3)] private int visibleNodes = 13;
@@ -35,12 +33,13 @@ namespace Vertigo.WheelOfFortune.UI
         [Tooltip("Border frame drawn around the current zone card.")]
         [SerializeField] private Sprite currentZoneFrame;
 
-        private readonly List<Node> _nodes = new List<Node>();
+        [SerializeField] private Node[] _nodes = new Node[0];
         private int _displayedZone = int.MinValue;
         [SerializeField] private ZoneConfiguration _configuration;
         private int _transitionZone;
         private Sequence _transition;
 
+        [Serializable]
         private sealed class Node
         {
             public RectTransform Rect;
@@ -62,7 +61,7 @@ namespace Vertigo.WheelOfFortune.UI
             // Window slides so the current zone stays at currentSlot. Out-of-range slots stay
             // empty: zones below 1 don't exist, and the run ends at finalZone (0 = endless).
             int startZone = currentZone - currentSlot;
-            EnsureCount(visibleNodes);
+            ValidateNodes();
 
             for (int i = 0; i < visibleNodes; i++)
             {
@@ -136,7 +135,7 @@ namespace Vertigo.WheelOfFortune.UI
             float slot = self.rect.width / visibleNodes;
             int step = newZone - _displayedZone;
 
-            EnsureCount(visibleNodes);
+            ValidateNodes();
 
             int outgoingIndex = Mathf.Clamp(currentSlot, 0, visibleNodes - 1);
             int incomingIndex = Mathf.Clamp(currentSlot + step, 0, visibleNodes - 1);
@@ -289,147 +288,19 @@ namespace Vertigo.WheelOfFortune.UI
             }
         }
 
-        /// <summary>Finds the node's border frame image, creating it if the node lacks one.</summary>
-        private Image EnsureFrame(Transform nodeRoot)
+        private void ValidateNodes()
         {
-            var existing = nodeRoot.Find("ui_image_zone_frame");
-            if (existing != null)
+            if (_nodes.Length != visibleNodes)
             {
-                var found = existing.GetComponent<Image>();
-                if (found != null) return found;
+                throw new InvalidOperationException("Zone strip requires one serialized node per visible slot.");
             }
-
-            var go = new GameObject("ui_image_zone_frame", typeof(RectTransform), typeof(Image));
-            go.layer = gameObject.layer;
-            go.transform.SetParent(nodeRoot, false);
-            go.transform.SetSiblingIndex(0);
-
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            var image = go.GetComponent<Image>();
-            image.raycastTarget = false;
-            image.maskable = false;
-            image.type = Image.Type.Sliced;
-            image.enabled = false;
-            return image;
-        }
-
-        private void EnsureCount(int count)
-        {
-            var parent = nodesRoot != null ? nodesRoot : (RectTransform)transform;
-
-            // Adopt any nodes already present under the root (e.g. authored previews).
-            if (_nodes.Count == 0)
+            foreach (Node node in _nodes)
             {
-                for (int i = 0; i < parent.childCount; i++)
+                if (node == null || !node.Rect || !node.Bg || !node.Frame || !node.Label)
                 {
-                    var image = parent.GetChild(i).GetComponent<Image>();
-                    if (image == null) continue;
-
-                    image.raycastTarget = false;
-                    image.maskable = false;
-                    image.preserveAspect = true;
-
-                    var adoptedLabel = image.GetComponentInChildren<TMP_Text>(true);
-                    if (adoptedLabel != null)
-                    {
-                        adoptedLabel.raycastTarget = false;
-                        adoptedLabel.maskable = false;
-                    }
-
-                    _nodes.Add(new Node
-                    {
-                        Rect = (RectTransform)image.transform,
-                        Bg = image,
-                        Frame = EnsureFrame(image.transform),
-                        Label = adoptedLabel
-                    });
+                    throw new InvalidOperationException("Zone strip node references must be wired in the scene.");
                 }
             }
-
-            while (_nodes.Count < count)
-                _nodes.Add(CreateNode(parent, _nodes.Count));
-
-            for (int i = count; i < _nodes.Count; i++)
-            {
-                if (_nodes[i] != null && _nodes[i].Rect != null)
-                    _nodes[i].Rect.gameObject.SetActive(false);
-            }
-        }
-
-        private Node CreateNode(RectTransform parent, int index)
-        {
-            if (nodePrefab != null)
-                return CreateNodeFromPrefab(parent, index);
-
-            var go = new GameObject("ui_zone_node_" + index + "_value", typeof(RectTransform), typeof(Image));
-            go.layer = gameObject.layer;
-            go.transform.SetParent(parent, false);
-
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-
-            var image = go.GetComponent<Image>();
-            image.type = Image.Type.Sliced;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-            image.maskable = false;
-
-            var textGo = new GameObject("ui_text_zone_number_value", typeof(RectTransform));
-            textGo.layer = gameObject.layer;
-            textGo.transform.SetParent(go.transform, false);
-
-            var textRect = (RectTransform)textGo.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-
-            var label = textGo.AddComponent<TextMeshProUGUI>();
-            label.text = index.ToString();
-            label.fontStyle = FontStyles.Bold;
-            label.alignment = TextAlignmentOptions.Center;
-            label.raycastTarget = false;
-            label.maskable = false;
-
-            return new Node { Rect = rect, Bg = image, Frame = EnsureFrame(go.transform), Label = label };
-        }
-
-        private Node CreateNodeFromPrefab(RectTransform parent, int index)
-        {
-            var instance = Instantiate(nodePrefab, parent, false);
-            instance.name = "ui_zone_node_" + index + "_value";
-            instance.layer = gameObject.layer;
-
-            var bg = instance.GetComponent<Image>();
-            if (bg != null)
-            {
-                bg.raycastTarget = false;
-                bg.maskable = false;
-                bg.preserveAspect = true;
-            }
-
-            var label = instance.GetComponentInChildren<TMP_Text>(true);
-            if (label != null)
-            {
-                label.text = index.ToString();
-                label.raycastTarget = false;
-                label.maskable = false;
-            }
-
-            return new Node
-            {
-                Rect = (RectTransform)instance.transform,
-                Bg = bg,
-                Frame = EnsureFrame(instance.transform),
-                Label = label
-            };
         }
 
 #if UNITY_EDITOR
@@ -447,6 +318,20 @@ namespace Vertigo.WheelOfFortune.UI
                 if (t != null) marker = (RectTransform)t;
             }
 
+            if (_nodes.Length != visibleNodes)
+            {
+                if (gameObject.activeInHierarchy)
+                    Debug.LogError("Zone strip requires one serialized node per visible slot.", this);
+                return;
+            }
+            foreach (Node node in _nodes)
+            {
+                if (node == null || !node.Rect || !node.Bg || !node.Frame || !node.Label)
+                {
+                    Debug.LogError("Zone strip has missing serialized node references.", this);
+                    return;
+                }
+            }
             if (!Application.isPlaying)
                 ApplyEditorPreview();
         }

@@ -138,6 +138,9 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   `IRewardPresentation` and owns showcase dismissal, flight targeting, and completion.
   It pairs showcase subscriptions in `OnEnable`/`OnDisable`, cancels owned flights on
   disable/destruction, and drops cancelled callbacks without advancing the session.
+- **Authored zone nodes:** the progress strip uses serialized node/background/frame/text
+  references. It neither discovers components nor creates or repairs hierarchy at runtime;
+  changing the visible window size requires updating its authored node array.
 - **Persistent currency** is separate from run loot. Authored currency references on reward assets
   determine which balances are credited on successful cash-out/completion. `CurrencyWallet`
   supports multiple currencies and checked credit/spend operations; insufficient funds cause no
@@ -165,8 +168,9 @@ Assets/_Game/Tests/EditMode/CurrencyWalletTests.cs
 Assets/_Game/Tests/EditMode/SessionFlowTests.cs
 Assets/_Game/Tests/EditMode/ZoneRuleTests.cs
 Assets/_Game/Tests/EditMode/RewardPresentationTests.cs
+Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
 
-69 EditMode test cases total
+71 EditMode test cases total
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.
