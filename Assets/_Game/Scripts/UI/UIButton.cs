@@ -6,7 +6,7 @@ namespace Vertigo.WheelOfFortune.UI
 {
     /// <summary>
     /// Reusable button wrapper. Registers its click listener in code (never via Inspector OnClick)
-    /// and resolves its <see cref="Button"/> automatically.
+    /// and uses an editor-wired <see cref="Button"/> reference.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Button))]
@@ -16,12 +16,12 @@ namespace Vertigo.WheelOfFortune.UI
 
         public event UnityAction Clicked;
 
-        public Button Button => button;
+        public Button Button { get { return button; } }
 
         public bool Interactable
         {
-            get => button == null || button.interactable;
-            set { if (button != null) button.interactable = value; }
+            get { return button && button.interactable; }
+            set { if (button) button.interactable = value; }
         }
 
         protected virtual void OnValidate()
@@ -29,17 +29,19 @@ namespace Vertigo.WheelOfFortune.UI
             if (button == null) button = GetComponent<Button>();
         }
 
-        protected virtual void Awake()
+        protected virtual void OnEnable()
         {
-            if (button == null) button = GetComponent<Button>();
-            if (button != null) button.onClick.AddListener(HandleClick);
+            if (button) button.onClick.AddListener(HandleClick);
         }
 
-        protected virtual void OnDestroy()
+        protected virtual void OnDisable()
         {
             if (button != null) button.onClick.RemoveListener(HandleClick);
         }
 
-        private void HandleClick() => Clicked?.Invoke();
+        private void HandleClick()
+        {
+            Clicked?.Invoke();
+        }
     }
 }
