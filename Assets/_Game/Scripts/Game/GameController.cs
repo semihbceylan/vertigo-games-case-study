@@ -70,7 +70,7 @@ namespace Vertigo.WheelOfFortune.Game
             if (screen != null && screen.Results != null) screen.Results.RestartRequested += OnResultsRestartRequested;
             if (screen != null)
             {
-                var showcase = screen.EnsureShowcase();
+                var showcase = screen.Showcase;
                 if (showcase != null) showcase.Dismissed += OnShowcaseDismissed;
             }
         }
