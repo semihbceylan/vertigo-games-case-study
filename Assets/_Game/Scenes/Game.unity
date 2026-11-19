@@ -9465,13 +9465,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.UI.RewardsListView
   content: {fileID: 1699978178}
   emptyLabel: {fileID: 0}
-  rowPrefab: {fileID: 3255338387184593843, guid: 82ce337c5da3942cdb0799bd605ac336, type: 3}
+  _rowPrefab: {fileID: 0}
+  _poolCapacity: 32
   rowHeight: 72
   iconSize: 56
-  shiftDuration: 0.3
-  shiftEase: 9
-  appearDuration: 0.25
-  appearScaleFrom: 0.94
+  _animation: {fileID: 11400000, guid: ad47bc5893d2c4cfea600fdebfd6943f, type: 2}
 --- !u!114 &1643441868
 MonoBehaviour:
   m_ObjectHideFlags: 0

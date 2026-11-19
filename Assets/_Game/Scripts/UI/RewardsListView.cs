@@ -3,6 +3,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
@@ -36,22 +37,39 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private RectTransform content;
         [SerializeField] private TMP_Text emptyLabel;
         [Tooltip("Optional row prefab. When set, rows are cloned from it instead of built in code.")]
-        [SerializeField] private GameObject rowPrefab;
+        [SerializeField] private RewardRowView _rowPrefab;
+        [SerializeField, Min(1)] private int _poolCapacity = 32;
         [SerializeField] private float rowHeight = 72f;
         [SerializeField] private float iconSize = 56f;
 
-        [Header("Insert animation")]
-        [Tooltip("How long rows below a newly added reward take to slide into their new slots.")]
-        [SerializeField, Min(0f)] private float shiftDuration = 0.3f;
-        [SerializeField] private Ease shiftEase = Ease.OutCubic;
-        [Tooltip("How long a newly added row takes to fade/scale in.")]
-        [SerializeField, Min(0f)] private float appearDuration = 0.25f;
-        [Tooltip("Scale a new row starts from as it pops in.")]
-        [SerializeField, Range(0.5f, 1f)] private float appearScaleFrom = 0.94f;
+        [SerializeField] private RewardListAnimation _animation;
 
         private readonly Dictionary<string, RowWidgets> _active = new Dictionary<string, RowWidgets>();
         private readonly List<RowWidgets> _pool = new List<RowWidgets>();
         private readonly List<string> _retire = new List<string>();
+
+        private void Awake()
+        {
+            for (int i = 0; i < _poolCapacity; i++)
+            {
+                RowWidgets row = CreateRow(content);
+                row.Root.SetActive(false);
+                _pool.Add(row);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (RowWidgets row in _pool) KillRowTweens(row);
+            foreach (var pair in _active) KillRowTweens(pair.Value);
+        }
+
+        private static void KillRowTweens(RowWidgets row)
+        {
+            if (row.Rect) row.Rect.DOKill();
+            if (row.Group) row.Group.DOKill();
+            if (row.Icon) row.Icon.rectTransform.DOKill();
+        }
 
         /// <summary>The visible list rect, used as a fallback target for reward fly animations.</summary>
         public RectTransform ListRect => (RectTransform)transform;
@@ -74,7 +92,8 @@ namespace Vertigo.WheelOfFortune.UI
             if (!TryGetRowIcon(id, out var icon)) return;
             icon.DOKill();
             icon.localScale = Vector3.one;
-            icon.DOPunchScale(Vector3.one * 0.2f, 0.3f, 8, 0.6f).SetUpdate(true);
+            icon.DOPunchScale(Vector3.one * _animation.PunchScale, _animation.PunchDuration,
+                _animation.PunchVibrato, _animation.PunchElasticity).SetUpdate(true).SetLink(gameObject);
         }
 
         /// <summary>
@@ -143,7 +162,7 @@ namespace Vertigo.WheelOfFortune.UI
                 {
                     // Existing reward: ease into the new slot so the list opens up gracefully.
                     widgets.Rect.DOKill();
-                    widgets.Rect.DOAnchorPosY(targetY, shiftDuration).SetEase(shiftEase).SetUpdate(true);
+                    widgets.Rect.DOAnchorPosY(targetY, _animation.ShiftDuration).SetEase(_animation.ShiftEase).SetUpdate(true).SetLink(gameObject);
                 }
             }
 
@@ -181,7 +200,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void PlayAppear(RowWidgets row)
         {
-            if (appearDuration <= 0f)
+            if (_animation.AppearDuration <= 0f)
             {
                 if (row.Group != null) row.Group.alpha = 1f;
                 row.Rect.localScale = Vector3.one;
@@ -191,12 +210,12 @@ namespace Vertigo.WheelOfFortune.UI
             if (row.Group != null)
             {
                 row.Group.DOKill();
-                row.Group.alpha = 0f;
-                row.Group.DOFade(1f, appearDuration).SetUpdate(true);
+                row.Group.alpha = _animation.HiddenAlpha;
+                row.Group.DOFade(_animation.VisibleAlpha, _animation.AppearDuration).SetUpdate(true).SetLink(gameObject);
             }
 
-            row.Rect.localScale = Vector3.one * appearScaleFrom;
-            row.Rect.DOScale(Vector3.one, appearDuration).SetEase(Ease.OutCubic).SetUpdate(true);
+            row.Rect.localScale = Vector3.one * _animation.AppearScale;
+            row.Rect.DOScale(Vector3.one, _animation.AppearDuration).SetEase(_animation.AppearEase).SetUpdate(true).SetLink(gameObject);
         }
 
         private RowWidgets Acquire(string id)
@@ -210,8 +229,7 @@ namespace Vertigo.WheelOfFortune.UI
             }
             else
             {
-                var parent = content != null ? content : (RectTransform)transform;
-                widgets = CreateRow(parent);
+                throw new System.InvalidOperationException("Reward row pool exhausted; configure capacity for the reward catalogue.");
             }
 
             widgets.Root.name = "ui_reward_row_" + id + "_value";
@@ -243,7 +261,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private RowWidgets CreateRow(RectTransform parent)
         {
-            if (rowPrefab != null)
+            if (_rowPrefab)
                 return CreateRowFromPrefab(parent);
 
             var rowGo = new GameObject("ui_reward_row_value", typeof(RectTransform));
@@ -256,10 +274,10 @@ namespace Vertigo.WheelOfFortune.UI
             rowRect.pivot = new Vector2(0.5f, 1f);
             rowRect.sizeDelta = new Vector2(0f, rowHeight);
 
-            var iconGo = new GameObject("ui_image_reward_icon", typeof(RectTransform), typeof(Image));
+            var iconGo = new GameObject("ui_image_reward_icon_value", typeof(RectTransform));
             iconGo.layer = gameObject.layer;
             iconGo.transform.SetParent(rowGo.transform, false);
-            var icon = iconGo.GetComponent<Image>();
+            var icon = iconGo.AddComponent<Image>();
             icon.raycastTarget = false;
             icon.preserveAspect = true;
             var iconRect = (RectTransform)iconGo.transform;
@@ -299,22 +317,22 @@ namespace Vertigo.WheelOfFortune.UI
 
         private RowWidgets CreateRowFromPrefab(RectTransform parent)
         {
-            var instance = Instantiate(rowPrefab, parent, false);
+            var instance = Instantiate(_rowPrefab, parent, false);
             instance.name = "ui_reward_row_value";
-            instance.layer = gameObject.layer;
+            instance.gameObject.layer = gameObject.layer;
 
-            var icon = instance.GetComponentInChildren<Image>(true);
-            var amount = instance.GetComponentInChildren<TMP_Text>(true);
+            var icon = instance.Icon;
+            var amount = instance.Amount;
 
             PrepareWidgets(icon, amount);
 
             return new RowWidgets
             {
-                Root = instance,
-                Rect = (RectTransform)instance.transform,
+                Root = instance.gameObject,
+                Rect = instance.Rect,
                 Icon = icon,
                 Amount = amount,
-                Group = instance.GetComponent<CanvasGroup>() ?? instance.AddComponent<CanvasGroup>()
+                Group = instance.Group
             };
         }
 
