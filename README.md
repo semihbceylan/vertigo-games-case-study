@@ -121,6 +121,13 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   and references auto-resolve in `OnValidate`, so prefabs/scenes stay self-healing.
 - **DOTween** powers the wheel spin (spin + magnetic spring snap), reward fly-to-slot, zone-bar
   slide, and panel fades; the outcome is decided *before* the animation so the result can never change.
+- **Session notifications** use an instance-scoped, generic `IEventBus`, with paired subscriptions
+  in the controller lifecycle. Button signals and individual animation completions retain local
+  delegates; commands use direct method calls rather than broadcast events.
+- **Persistent currency** is separate from run loot. Authored currency references on reward assets
+  determine which balances are credited on successful cash-out/completion. `CurrencyWallet`
+  supports multiple currencies and checked credit/spend operations; insufficient funds cause no
+  balance change. The local demo adapter uses PlayerPrefs, not a tamper-resistant backend.
 
 ### UI notes
 
@@ -138,7 +145,11 @@ Edit-mode unit tests cover zone classification, the wallet, wheel building and t
 session state machine:
 
 ```
-Assets/_Game/Tests/EditMode/GameplayTests.cs   (42 test cases)
+Assets/_Game/Tests/EditMode/GameplayTests.cs
+Assets/_Game/Tests/EditMode/EventBusTests.cs
+Assets/_Game/Tests/EditMode/CurrencyWalletTests.cs
+
+56 EditMode test cases total
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

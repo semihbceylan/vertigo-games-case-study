@@ -18,3 +18,8 @@ MonoBehaviour:
   amount: 1000
   category: 4
   showcaseBig: 0
+  minimumZone: 1
+  maximumZone: 0
+  isAmountScaled: 1
+  iconScaleMultiplier: 1
+  _currency: {fileID: 11400000, guid: 9fc12b49ab35343b29a64d58674f5077, type: 2}

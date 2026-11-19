@@ -42,6 +42,13 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField, Min(0)] private int maximumZone;
         [SerializeField] private bool isAmountScaled = true;
         [SerializeField, Min(0.01f)] private float iconScaleMultiplier = 1f;
+        [Tooltip("Optional persistent currency credited when this reward is successfully banked.")]
+        [SerializeField] private CurrencyDefinition _currency;
+
+        public CurrencyDefinition Currency
+        {
+            get { return _currency; }
+        }
 
         public string RewardId => rewardId;
         public string DisplayName => displayName;

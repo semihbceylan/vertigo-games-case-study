@@ -43,6 +43,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private readonly Dictionary<string, RewardDefinition> _rewardLookup = new Dictionary<string, RewardDefinition>();
         private GameSession _session;
+        private ICurrencyWallet _currencyWallet;
         private Sequence _wheelTransition;
         private RectTransform _incomingWheel;
         private Vector2 _wheelHomePosition;
@@ -103,6 +104,8 @@ namespace Vertigo.WheelOfFortune.Game
                 CreateRandomSource(),
                 configuration.Zones.StartingZone,
                 configuration.Zones.FinalZone);
+
+            _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), _session.Events);
 
             SubscribeSessionEvents();
 
@@ -396,6 +399,15 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnRunCompleted(RunCompleted message)
         {
+            foreach (var pair in _session.Wallet.Totals)
+            {
+                RewardDefinition reward = ResolveReward(pair.Key);
+                if (reward && reward.Currency)
+                {
+                    _currencyWallet.Credit(reward.Currency.CurrencyId, pair.Value);
+                }
+            }
+
             if (_jackpotShowing)
             {
                 // Defer the results screen until the showcase is dismissed.
