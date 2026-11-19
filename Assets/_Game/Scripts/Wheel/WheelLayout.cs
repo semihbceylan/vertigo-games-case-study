@@ -174,7 +174,7 @@ namespace Vertigo.WheelOfFortune.Wheel
             amount.alignment = TextAlignmentOptions.Center;
             amount.color = Color.white;
             amount.raycastTarget = false;
-            amount.enableWordWrapping = false;
+            amount.textWrappingMode = TextWrappingModes.NoWrap;
 
             var amountRect = (RectTransform)amountGo.transform;
             amountRect.anchorMin = new Vector2(0f, 0f);

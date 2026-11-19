@@ -39,15 +39,18 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private RectTransform spotlightB;
 
         [SerializeField] private PanelAnimation _animation;
+        [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
 
         public event Action ActionRequested;
 
         private Tween _fade;
         private Sequence _toastSequence;
         private Material _dimMaterial;
+        private ModalHudVisibility _hudVisibility;
 
         private void Awake()
         {
+            _hudVisibility = new ModalHudVisibility(_underlyingHud);
             if (group != null)
             {
                 group.alpha = 0f;
@@ -87,6 +90,7 @@ namespace Vertigo.WheelOfFortune.UI
         public void ShowBanner(string text, Color color, Sprite iconSprite, string actionLabel)
         {
             KillToast();
+            _hudVisibility.Hide();
             SetRoots(banner: true);
 
             if (deathTitle != null)
@@ -119,6 +123,7 @@ namespace Vertigo.WheelOfFortune.UI
         public void ShowToast(string text, Color color, Sprite iconSprite)
         {
             KillToast();
+            _hudVisibility.Restore();
             SetRoots(banner: false);
 
             if (toastMessage != null)
@@ -152,9 +157,17 @@ namespace Vertigo.WheelOfFortune.UI
         {
             KillToast();
 
-            // Unblock input immediately even if the fade itself stalls.
+            _fade?.Kill(false);
+            _fade = group.DOFade(_animation.HiddenAlpha, _animation.FadeDuration)
+                .SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject)
+                .OnComplete(FinishHide);
+        }
+
+        private void FinishHide()
+        {
+            _fade = null;
             SetBlocking(false);
-            FadeTo(_animation.HiddenAlpha);
+            _hudVisibility.Restore();
         }
 
         public void HideImmediate()
@@ -163,6 +176,7 @@ namespace Vertigo.WheelOfFortune.UI
             _fade?.Kill(false);
             _fade = null;
             SetBlocking(false);
+            _hudVisibility?.Restore();
             if (group) group.alpha = _animation ? _animation.HiddenAlpha : 0f;
         }
 

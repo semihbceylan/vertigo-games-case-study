@@ -68,7 +68,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         public void ShowResults()
         {
-            _screen.HideFeedback();
+            _screen.Feedback.HideImmediate();
             _screen.Results.Show(_catalog.BuildRows(_session.Wallet));
         }
 
@@ -110,7 +110,7 @@ namespace Vertigo.WheelOfFortune.Game
         {
             Cancel();
             ApplyZoneWheel();
-            _screen.HideFeedback();
+            _screen.Feedback.HideImmediate();
             _screen.Results.Hide();
         }
 

@@ -185,8 +185,8 @@ Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
 Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
-87 EditMode test cases total
-11 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, session presentation cancellation, zone transitions and live wheel slot reuse)
+90 EditMode test cases total
+13 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, modal handoff, session presentation cancellation, zone transitions and live wheel slot reuse)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

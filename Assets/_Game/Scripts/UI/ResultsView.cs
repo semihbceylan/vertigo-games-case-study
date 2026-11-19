@@ -43,6 +43,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private float iconTopPadding = 16f;
         [SerializeField] private float countGap = 8f;
         [SerializeField] private float countWidth = 360f;
+        [SerializeField, Min(0f)] private float _countHorizontalPadding = 16f;
         [SerializeField] private float countHeight = 66f;
         [SerializeField] private float countFontSize = 46f;
         [SerializeField] private PanelAnimation _animation;
@@ -309,7 +310,9 @@ namespace Vertigo.WheelOfFortune.UI
             countRect.anchorMin = new Vector2(0.5f, horizontal ? 0.5f : 1f);
             countRect.anchorMax = new Vector2(0.5f, horizontal ? 0.5f : 1f);
             countRect.pivot = new Vector2(0.5f, horizontal ? 0.5f : 1f);
-            countRect.sizeDelta = new Vector2(horizontal ? Mathf.Min(countWidth, tileWidth) : countWidth, countHeight);
+            countRect.sizeDelta = new Vector2(horizontal
+                ? Mathf.Min(countWidth, Mathf.Max(0f, tileWidth - _countHorizontalPadding * 2f))
+                : countWidth, countHeight);
             countRect.anchoredPosition = new Vector2(0f, countY);
 
             return new TileWidgets
