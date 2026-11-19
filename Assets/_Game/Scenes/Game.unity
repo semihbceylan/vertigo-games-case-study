@@ -4020,7 +4020,7 @@ MonoBehaviour:
   countWidth: 360
   countHeight: 66
   countFontSize: 46
-  fadeDuration: 0.3
+  _animation: {fileID: 11400000, guid: 7987327d424304ff796eb361e69c7810, type: 2}
   title: 'YOU GOT:'
 --- !u!225 &688772762
 CanvasGroup:
@@ -5832,6 +5832,7 @@ MonoBehaviour:
   deathTitle: {fileID: 1523279991}
   deathIcon: {fileID: 1220151845}
   actionButton: {fileID: 1749069350}
+  _actionLabel: {fileID: 230758144}
   toastBackground: {fileID: 1342382053}
   toastIcon: {fileID: 1441830215}
   toastMessage: {fileID: 2145887767}
@@ -5839,7 +5840,7 @@ MonoBehaviour:
   damageGlow: {fileID: 85013084}
   spotlightA: {fileID: 2092670026}
   spotlightB: {fileID: 625989}
-  fadeDuration: 0.25
+  _animation: {fileID: 11400000, guid: ed375e93879e442908e5e6a164cd67f5, type: 2}
 --- !u!225 &1029679692
 CanvasGroup:
   m_ObjectHideFlags: 0

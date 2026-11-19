@@ -3,6 +3,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
@@ -21,6 +22,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private TMP_Text deathTitle;
         [SerializeField] private Image deathIcon;
         [SerializeField] private UIButton actionButton;
+        [SerializeField] private TMP_Text _actionLabel;
 
         [Header("Reward toast")]
         [SerializeField] private Image toastBackground;
@@ -36,7 +38,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private RectTransform spotlightA;
         [SerializeField] private RectTransform spotlightB;
 
-        [SerializeField] private float fadeDuration = 0.25f;
+        [SerializeField] private PanelAnimation _animation;
 
         public event Action ActionRequested;
 
@@ -101,13 +103,12 @@ namespace Vertigo.WheelOfFortune.UI
                 actionButton.gameObject.SetActive(hasAction);
                 if (hasAction)
                 {
-                    var label = actionButton.GetComponentInChildren<TMP_Text>();
-                    if (label != null) label.text = actionLabel;
+                    if (_actionLabel) _actionLabel.text = actionLabel;
                 }
             }
 
             SetBlocking(true);
-            FadeTo(1f);
+            FadeTo(_animation.VisibleAlpha);
         }
 
         /// <summary>Non-blocking toast that fades away by itself.</summary>
@@ -129,10 +130,10 @@ namespace Vertigo.WheelOfFortune.UI
             }
 
             SetBlocking(false);
-            FadeTo(1f);
+            FadeTo(_animation.VisibleAlpha);
 
             _toastSequence = DOTween.Sequence();
-            _toastSequence.AppendInterval(1.1f);
+            _toastSequence.AppendInterval(_animation.HoldDuration);
             _toastSequence.AppendCallback(HideToast);
             _toastSequence.SetUpdate(true);
             _toastSequence.SetLink(gameObject);
@@ -140,7 +141,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void HideToast()
         {
-            FadeTo(0f);
+            FadeTo(_animation.HiddenAlpha);
         }
 
         public void Hide()
@@ -149,7 +150,7 @@ namespace Vertigo.WheelOfFortune.UI
 
             // Unblock input immediately even if the fade itself stalls.
             SetBlocking(false);
-            FadeTo(0f);
+            FadeTo(_animation.HiddenAlpha);
         }
 
         private void KillToast()
@@ -211,7 +212,7 @@ namespace Vertigo.WheelOfFortune.UI
             }
 
             _fade?.Kill();
-            _fade = group.DOFade(target, fadeDuration).SetUpdate(true).SetLink(gameObject);
+            _fade = group.DOFade(target, _animation.FadeDuration).SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject);
         }
 
 #if UNITY_EDITOR
@@ -222,6 +223,7 @@ namespace Vertigo.WheelOfFortune.UI
             if (deathTitle == null) deathTitle = FindDeep<TMP_Text>("ui_text_feedback_title_value");
             if (deathIcon == null) deathIcon = FindDeep<Image>("ui_image_feedback_death_value");
             if (actionButton == null) actionButton = FindDeep<UIButton>("ui_button_feedback_action");
+            if (!_actionLabel && actionButton) _actionLabel = actionButton.GetComponentInChildren<TMP_Text>(true);
             if (toastBackground == null) toastBackground = FindDeep<Image>("ui_image_feedback_toast");
             if (toastIcon == null) toastIcon = FindDeep<Image>("ui_image_feedback_toast_icon_value");
             if (toastMessage == null) toastMessage = FindDeep<TMP_Text>("ui_text_feedback_toast_message_value");

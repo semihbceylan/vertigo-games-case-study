@@ -4,6 +4,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
@@ -43,7 +44,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private float countWidth = 360f;
         [SerializeField] private float countHeight = 66f;
         [SerializeField] private float countFontSize = 46f;
-        [SerializeField] private float fadeDuration = 0.3f;
+        [SerializeField] private PanelAnimation _animation;
 
         [Header("Text")]
         [SerializeField] private string title = "YOU GOT:";
@@ -131,7 +132,8 @@ namespace Vertigo.WheelOfFortune.UI
             group.interactable = visible;
 
             _fade?.Kill();
-            _fade = group.DOFade(visible ? 1f : 0f, fadeDuration).SetUpdate(true).SetLink(gameObject);
+            _fade = group.DOFade(visible ? _animation.VisibleAlpha : _animation.HiddenAlpha,
+                _animation.FadeDuration).SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject);
         }
 
         /// <summary>Points the ScrollRect and content rect at the configured axis.</summary>
