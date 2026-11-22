@@ -17,8 +17,8 @@
 - Safe and super wheels contain no bombs.
 - Default data: every fifth zone is safe, every thirtieth is super. Super takes priority when rules overlap. These intervals belong in configuration, not hardcoded gameplay/UI checks.
 - Progression changes reward pools/content as well as quantities.
-- The user confirmed removal of revive/continue. Remove its gameplay API, subscriptions, tests, price display, and scene UI. Do not replace it with a paid continue.
-- Keep run rewards separate from persistent currency balances. Support multiple currencies and a real spending operation, even if continue is removed.
+- Revive (continue) is paid and limited (user decision, 2026-11-22; supersedes the earlier removal). It spends a configured persistent currency, scales cost by zone, is rejected when the balance is insufficient, is capped per run, and restores the rewards the bomb cleared. Restart without reviving remains free.
+- Keep run rewards separate from persistent currency balances. Support multiple currencies and a real spending operation (revive spends it).
 - Preserve the configured final-zone completion behavior unless explicitly changed.
 
 ## Architecture
