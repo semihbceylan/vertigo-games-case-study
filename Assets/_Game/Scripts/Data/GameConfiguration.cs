@@ -43,6 +43,11 @@ namespace Vertigo.WheelOfFortune.Data
             get { return _randomSeed; }
         }
 
+        public CurrencyDefinition ReviveCurrency
+        {
+            get { return _reviveCurrency; }
+        }
+
         public RevivePolicy CreateRevivePolicy()
         {
             if (!_reviveCurrency)

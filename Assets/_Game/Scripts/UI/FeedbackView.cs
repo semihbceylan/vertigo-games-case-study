@@ -54,8 +54,8 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private string _singleReviveRemainingText = "1 revive remaining";
         [Tooltip("{0} is the number of revives left.")]
         [SerializeField] private string _revivesRemainingFormat = "{0} revives remaining";
-        [Tooltip("{0} is the remaining-revives text.")]
-        [SerializeField] private string _insufficientFundsFormat = "Not enough gold — {0}";
+        [Tooltip("{0} is the revive currency's display name, {1} is the remaining-revives text.")]
+        [SerializeField] private string _insufficientFundsFormat = "Not enough {0} — {1}";
 
         [SerializeField] private PanelAnimation _animation;
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
@@ -64,6 +64,7 @@ namespace Vertigo.WheelOfFortune.UI
         private Material _dimMaterial;
         private ModalHudVisibility _hudVisibility;
         private int _revivesRemaining;
+        private string _reviveCurrencyName;
 
         #endregion
 
@@ -161,9 +162,19 @@ namespace Vertigo.WheelOfFortune.UI
             _reviveStatus.text = remaining > 0 ? GetRemainingRevivesText() : _reviveLimitReachedText;
         }
 
+        /// <summary>Names the configured revive currency in player-facing copy instead of hardcoding it.</summary>
+        public void SetReviveCurrency(CurrencyDefinition currency)
+        {
+            if (!currency)
+            {
+                throw new ArgumentNullException(nameof(currency));
+            }
+            _reviveCurrencyName = currency.DisplayName;
+        }
+
         public void ShowInsufficientFunds()
         {
-            _reviveStatus.text = string.Format(_insufficientFundsFormat, GetRemainingRevivesText());
+            _reviveStatus.text = string.Format(_insufficientFundsFormat, _reviveCurrencyName, GetRemainingRevivesText());
         }
 
         private string GetRemainingRevivesText()
