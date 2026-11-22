@@ -320,7 +320,7 @@ namespace Vertigo.WheelOfFortune.UI
         {
             if (nodesRoot == null)
             {
-                var t = transform.Find("ui_zone_nodes");
+                var t = transform.Find("ui_layout_zone_nodes");
                 if (t != null) nodesRoot = (RectTransform)t;
             }
 

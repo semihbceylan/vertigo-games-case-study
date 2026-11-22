@@ -249,7 +249,7 @@ namespace Vertigo.WheelOfFortune.UI
 
             bool horizontal = IsHorizontal;
 
-            var rootGo = new GameObject("ui_result_reward_" + (index + 1) + "_value", typeof(RectTransform));
+            var rootGo = new GameObject("ui_panel_result_reward_" + (index + 1), typeof(RectTransform));
             rootGo.layer = gameObject.layer;
             rootGo.transform.SetParent(parent, false);
 
@@ -326,7 +326,7 @@ namespace Vertigo.WheelOfFortune.UI
         private TileWidgets CreateTileFromPrefab(RectTransform parent, int index)
         {
             var instance = Instantiate(_tilePrefab, parent, false);
-            instance.name = "ui_result_reward_" + (index + 1) + "_value";
+            instance.name = "ui_panel_result_reward_" + (index + 1);
             instance.gameObject.layer = gameObject.layer;
 
             return new TileWidgets
@@ -343,8 +343,8 @@ namespace Vertigo.WheelOfFortune.UI
             if (!group) group = GetComponent<CanvasGroup>();
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
             {
-                if (!content && child.name == "ui_results_content") content = (RectTransform)child;
-                if (!scroll && child.name == "ui_results_scroll") scroll = child.GetComponent<ScrollRect>();
+                if (!content && child.name == "ui_layout_results_content") content = (RectTransform)child;
+                if (!scroll && child.name == "ui_scroll_results") scroll = child.GetComponent<ScrollRect>();
                 if (!titleLabel && child.name == "ui_text_results_title_value") titleLabel = child.GetComponent<TMP_Text>();
                 if (!restartButton && child.name == "ui_button_results_restart") restartButton = child.GetComponent<UIButton>();
             }

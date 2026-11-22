@@ -10,7 +10,7 @@ namespace Vertigo.WheelOfFortune.UI
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Button))]
-    public class UIButton : MonoBehaviour
+    public class UIButton : MonoBehaviour, IButtonInteractability
     {
         [SerializeField] protected Button button;
 

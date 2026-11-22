@@ -87,7 +87,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         {
             if (rotationTarget == null)
             {
-                var t = transform.Find("ui_wheel_rotation");
+                var t = transform.Find("ui_panel_wheel_rotation");
                 if (t != null) rotationTarget = (RectTransform)t;
             }
 

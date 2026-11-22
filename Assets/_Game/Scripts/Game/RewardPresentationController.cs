@@ -53,8 +53,6 @@ namespace Vertigo.WheelOfFortune.Game
                 _screen.ShowJackpot(definition.Icon, definition.DisplayName, grant.Amount);
                 return;
             }
-            _screen.ShowReward(definition ? definition.Icon : null,
-                definition ? definition.DisplayName : grant.RewardId, grant.Amount);
             PlayFlight();
         }
 

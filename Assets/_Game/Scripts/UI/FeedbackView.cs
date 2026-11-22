@@ -23,6 +23,15 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private Image deathIcon;
         [SerializeField] private UIButton actionButton;
         [SerializeField] private TMP_Text _actionLabel;
+        [SerializeField] private UIButton _reviveButton;
+        [SerializeField] private TMP_Text _reviveLabel;
+        [SerializeField] private TMP_Text _reviveStatus;
+        [SerializeField] private RewardsListView _recoverableRewardsList;
+
+        public void SetRecoverableRewards(System.Collections.Generic.IReadOnlyList<RewardRowData> rows)
+        {
+            _recoverableRewardsList.SetRows(rows);
+        }
 
         [Header("Reward toast")]
         [SerializeField] private Image toastBackground;
@@ -42,11 +51,13 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
 
         public event Action ActionRequested;
+        public event Action ReviveRequested;
 
         private Tween _fade;
         private Sequence _toastSequence;
         private Material _dimMaterial;
         private ModalHudVisibility _hudVisibility;
+        private int _revivesRemaining;
 
         private void Awake()
         {
@@ -63,11 +74,13 @@ namespace Vertigo.WheelOfFortune.UI
         private void OnEnable()
         {
             if (actionButton) actionButton.Clicked += OnActionClicked;
+            if (_reviveButton) _reviveButton.Clicked += OnReviveClicked;
         }
 
         private void OnDisable()
         {
             if (actionButton) actionButton.Clicked -= OnActionClicked;
+            if (_reviveButton) _reviveButton.Clicked -= OnReviveClicked;
             HideImmediate();
         }
 
@@ -86,11 +99,36 @@ namespace Vertigo.WheelOfFortune.UI
             ActionRequested?.Invoke();
         }
 
+        private void OnReviveClicked()
+        {
+            ReviveRequested?.Invoke();
+        }
+
+        public void SetReviveOffer(bool visible, long cost, int remaining)
+        {
+            _revivesRemaining = remaining;
+            _reviveButton.gameObject.SetActive(visible);
+            _reviveButton.Interactable = remaining > 0;
+            _reviveLabel.text = RewardAmountFormatter.Format(cost);
+            _reviveStatus.text = remaining > 0 ? GetRemainingRevivesText() : "Revive limit reached — restart for free";
+        }
+
+        private string GetRemainingRevivesText()
+        {
+            return _revivesRemaining == 1 ? "1 revive remaining" : _revivesRemaining + " revives remaining";
+        }
+
+        public void ShowInsufficientGold()
+        {
+            _reviveStatus.text = "Not enough gold — " + GetRemainingRevivesText();
+        }
+
         /// <summary>Blocking message that requires the player to press the action button.</summary>
         public void ShowBanner(string text, Color color, Sprite iconSprite, string actionLabel)
         {
             KillToast();
             _hudVisibility.Hide();
+            if (_reviveButton) _reviveButton.gameObject.SetActive(false);
             SetRoots(banner: true);
 
             if (deathTitle != null)
@@ -188,6 +226,7 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void SetRoots(bool banner)
         {
+            if (_recoverableRewardsList) _recoverableRewardsList.transform.parent.gameObject.SetActive(banner);
             if (deathScreen != null) deathScreen.gameObject.SetActive(banner);
             if (toastBackground != null) toastBackground.gameObject.SetActive(!banner);
             if (dimOverlay != null) dimOverlay.gameObject.SetActive(banner);

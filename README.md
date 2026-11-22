@@ -10,6 +10,23 @@ it before the bomb wipes it all out. Rewards get better the deeper you go.
 
 ## 🎥 Gameplay video
 
+### Persistent economy and revive
+
+**C. Economy: provide a player-facing way to spend persistent currency.** Restoring
+paid revives replace the earlier no-continue decision. `GameConfig_Default` configures
+Gold pricing as **100 + 25 × (failed zone − 1)**; prices can be adjusted in the asset.
+The session owns the recovery snapshot and lost-state command; the persistent wallet
+validates spending. Restoring run loot does not settle it into persistent balances.
+
+Persistent Cash and Gold balances appear as icons and numbers at the top right only
+on the death screen. Both **+** buttons open a
+Gold top-up panel. **Buy Gold** and **Watch Ad** are disabled demo placeholders: no
+payment, ad, or currency credit occurs. Close restores the previous HUD state. Balance
+notifications and button listeners are subscribed/unsubscribed with view ownership.
+
+The death screen includes a scrollable preview of pre-bomb rewards, without an Exit
+button. This preview does not restore or bank loot; only a successful revive restores it.
+
 > _Gameplay video: **https://youtu.be/mDGNfFYK1HE**_
 
 ---
@@ -38,7 +55,11 @@ Optional extras: super-zone spin, bomb screen, results screen.
 2. **LEAVE** — cash out and bank everything collected so far, available only in safe or super
    zones once the wheel and presentation transitions have stopped.
 3. **RESTART** — a bomb immediately clears the run's rewards. Dismiss the loss screen to restart
-   at the configured starting zone. There is no revive or continue.
+   at the configured starting zone for free, or spend persistent Gold to revive at the failed
+    zone and restore all pre-bomb run loot. Up to four successful revives are allowed per run;
+    failed payments do not consume a revive. Free Restart resets the limit. Recovered loot remains at
+   risk until cash-out. The button remains available when Gold is insufficient, but a failed
+   payment changes neither balance nor loot.
 
 ### Zones
 
@@ -147,7 +168,9 @@ The codebase is split so gameplay logic is **testable without Unity** and the vi
   reusable, stable category-sorted reward rows, separate from controller composition and flow.
 - **Session presentation:** `SessionPresenter` implements the core presentation boundary and owns
   spin/reward/zone completion callbacks, loss/results display and cancellation. `GameController`
-  composes these collaborators and wires input rather than implementing presentation itself.
+   composes these collaborators and wires input rather than implementing presentation itself.
+   HUD/screen commands, button interactability and spin playback use interfaces; the screen
+   facade retains ownership of serialized child widgets instead of exposing them to presenters.
 - **HUD and wheel projection:** `SessionHudPresenter` maps session capabilities to HUD controls;
   `WheelVisualPresenter` supplies the shared live/incoming/editor wheel-rendering path. Wheel
   layouts retain typed slice slots and reuse them across zone changes.
@@ -185,8 +208,9 @@ Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
 Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
 Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
 
-90 EditMode test cases total
-13 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, modal handoff, session presentation cancellation, zone transitions and live wheel slot reuse)
+103 EditMode test cases total (including presenter interface boundaries, scene/prefab naming, sprite, broken-reference,
+Canvas Scaler, TextMeshPro and persistent-button-call contracts)
+17 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, modal handoff, session presentation cancellation, zone transitions, live wheel slot reuse, revive offers, placeholder top-up behavior, ordinary rewards without toasts and scrollable recovery preview)
 ```
 
 Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.

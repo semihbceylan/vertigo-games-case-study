@@ -13,7 +13,7 @@ namespace Vertigo.WheelOfFortune.UI
     /// place. References resolve themselves by name in the editor.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class GameScreenView : MonoBehaviour
+    public sealed class GameScreenView : MonoBehaviour, ISessionScreenView
     {
         [SerializeField] private ZoneProgressBar zoneBar;
         [FormerlySerializedAs("zoneBadges")]
@@ -91,6 +91,30 @@ namespace Vertigo.WheelOfFortune.UI
             if (feedback != null) feedback.ShowBanner("OH NO, A BOMB EXPLODED RIGHT IN YOUR HANDS!", Color.white, bombIcon, "RESTART");
         }
 
+        public void SetReviveOffer(long cost, int remaining, IReadOnlyList<RewardRowData> rows)
+        {
+            feedback.SetReviveOffer(true, cost, remaining);
+            feedback.SetRecoverableRewards(rows);
+        }
+
+        public void ShowResults(IReadOnlyList<RewardRowData> rows)
+        {
+            feedback.HideImmediate();
+            results.Show(rows);
+        }
+
+        public DG.Tweening.Sequence PlayZoneTransition(int zone, ZoneConfiguration configuration,
+            float duration, DG.Tweening.Ease ease)
+        {
+            return zoneBar.PlayTransition(zone, configuration, duration, ease);
+        }
+
+        public void ResetPanels()
+        {
+            feedback.HideImmediate();
+            results.Hide();
+        }
+
         public void ShowComplete()
         {
             if (feedback != null) feedback.ShowBanner("COMPLETE!  Rewards banked", Color.white, null, "PLAY AGAIN");
@@ -106,12 +130,12 @@ namespace Vertigo.WheelOfFortune.UI
         {
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
             {
-                if (!zoneBar && child.name == "ui_zone_progress_bar") zoneBar = child.GetComponent<ZoneProgressBar>();
-                if (!zoneMaps && child.name == "ui_game_zone_maps") zoneMaps = child.GetComponent<ZoneMapsView>();
-                if (!rewardsList && child.name == "ui_rewards_list") rewardsList = child.GetComponent<RewardsListView>();
-                if (!feedback && child.name == "ui_feedback_overlay") feedback = child.GetComponent<FeedbackView>();
-                if (!results && child.name == "ui_results_screen") results = child.GetComponent<ResultsView>();
-                if (!showcase && child.name == "ui_jackpot_showcase") showcase = child.GetComponent<JackpotShowcaseView>();
+                if (!zoneBar && child.name == "ui_panel_zone_progress_bar") zoneBar = child.GetComponent<ZoneProgressBar>();
+                if (!zoneMaps && child.name == "ui_panel_game_zone_maps") zoneMaps = child.GetComponent<ZoneMapsView>();
+                if (!rewardsList && child.name == "ui_list_rewards") rewardsList = child.GetComponent<RewardsListView>();
+                if (!feedback && child.name == "ui_panel_feedback_overlay") feedback = child.GetComponent<FeedbackView>();
+                if (!results && child.name == "ui_panel_results_screen") results = child.GetComponent<ResultsView>();
+                if (!showcase && child.name == "ui_panel_jackpot_showcase") showcase = child.GetComponent<JackpotShowcaseView>();
                 if (!leaveButton && child.name == "ui_button_leave") leaveButton = child.GetComponent<UIButton>();
                 if (!restartButton && child.name == "ui_button_restart") restartButton = child.GetComponent<UIButton>();
             }

@@ -13,8 +13,8 @@ namespace Vertigo.WheelOfFortune.Game
         private readonly ZoneConfiguration _zones;
         private readonly WheelView _wheel;
         private readonly WheelLayout _layout;
-        private readonly WheelSpinner _spinner;
-        private readonly GameScreenView _screen;
+        private readonly IWheelSpinPresentation _spinner;
+        private readonly ISessionScreenView _screen;
         private readonly IRewardPresentation _rewards;
         private readonly IWheelTransition _transition;
         private readonly WheelTransitionAnimation _transitionAnimation;
@@ -26,7 +26,7 @@ namespace Vertigo.WheelOfFortune.Game
         private Action _zoneComplete;
 
         public SessionPresenter(ZoneConfiguration zones, WheelView wheel, WheelLayout layout,
-            WheelSpinner spinner, GameScreenView screen, IRewardPresentation rewards,
+            IWheelSpinPresentation spinner, ISessionScreenView screen, IRewardPresentation rewards,
             IWheelTransition transition, WheelTransitionAnimation transitionAnimation,
             IWheelVisualPresenter visuals, RewardCatalogPresenter catalog)
         {
@@ -64,19 +64,20 @@ namespace Vertigo.WheelOfFortune.Game
         public void ShowLoss(int zone)
         {
             _screen.ShowBomb(_zones.GetWheelForZone(zone).BombSprite);
+            _screen.SetReviveOffer(_session.ReviveCost, _session.RevivesRemaining,
+                _catalog.BuildRowsFromTotals(_session.RecoverableRewards));
         }
 
         public void ShowResults()
         {
-            _screen.Feedback.HideImmediate();
-            _screen.Results.Show(_catalog.BuildRows(_session.Wallet));
+            _screen.ShowResults(_catalog.BuildRows(_session.Wallet));
         }
 
         public void PlayZoneTransition(Action onComplete)
         {
             _zoneComplete = onComplete;
             _screen.HideFeedback();
-            var strip = _screen.ZoneBar.PlayTransition(_session.Zone, _zones,
+            var strip = _screen.PlayZoneTransition(_session.Zone, _zones,
                 _transitionAnimation.SlideDuration, _transitionAnimation.SlideEase);
             _transition.Play(PopulateIncoming, strip, FinishZoneTransition);
         }
@@ -110,8 +111,7 @@ namespace Vertigo.WheelOfFortune.Game
         {
             Cancel();
             ApplyZoneWheel();
-            _screen.Feedback.HideImmediate();
-            _screen.Results.Hide();
+            _screen.ResetPanels();
         }
 
         public void Cancel()

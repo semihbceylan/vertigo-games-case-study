@@ -12,6 +12,16 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField] private ZoneConfiguration zones;
         [SerializeField] private bool deterministicRandom;
         [SerializeField] private int randomSeed = 12345;
+        [SerializeField] private CurrencyDefinition _reviveCurrency;
+        [SerializeField, Min(1)] private int _reviveBaseCost = 100;
+        [SerializeField, Min(1)] private int _reviveCostPerZone = 25;
+        [SerializeField, Min(1)] private int _maxRevivesPerRun = Vertigo.WheelOfFortune.Core.RevivePolicy.DEFAULT_MAX_REVIVES;
+
+        public Vertigo.WheelOfFortune.Core.RevivePolicy CreateRevivePolicy()
+        {
+            if (!_reviveCurrency) throw new System.InvalidOperationException("Revive currency is required.");
+            return new Vertigo.WheelOfFortune.Core.RevivePolicy(_reviveCurrency.CurrencyId, _reviveBaseCost, _reviveCostPerZone, _maxRevivesPerRun);
+        }
 
         public ZoneConfiguration Zones { get { return zones; } }
         public bool DeterministicRandom { get { return deterministicRandom; } }

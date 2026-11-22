@@ -6,9 +6,15 @@ using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.Wheel
 {
+    public interface IWheelSpinPresentation
+    {
+        void SpinToSlice(int sliceIndex, int sliceCount, float startAngle, Action onComplete = null);
+        void CancelSpin();
+    }
+
     /// <summary>Animates a predetermined result using an authored spin/spring profile.</summary>
     [DisallowMultipleComponent]
-    public sealed class WheelSpinner : MonoBehaviour
+    public sealed class WheelSpinner : MonoBehaviour, IWheelSpinPresentation
     {
         #region Configuration and Runtime
 
@@ -168,7 +174,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         {
             if (!_rotationTarget)
             {
-                Transform target = transform.Find("ui_wheel_rotation");
+                Transform target = transform.Find("ui_panel_wheel_rotation");
                 if (target)
                 {
                     _rotationTarget = (RectTransform)target;

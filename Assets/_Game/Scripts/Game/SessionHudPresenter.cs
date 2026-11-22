@@ -15,12 +15,12 @@ namespace Vertigo.WheelOfFortune.Game
     {
         private readonly GameSession _session;
         private readonly ZoneConfiguration _zones;
-        private readonly GameScreenView _screen;
-        private readonly SpinButton _spinButton;
+        private readonly ISessionHudView _screen;
+        private readonly IButtonInteractability _spinButton;
         private readonly RewardCatalogPresenter _catalog;
 
-        public SessionHudPresenter(GameSession session, ZoneConfiguration zones, GameScreenView screen,
-            SpinButton spinButton, RewardCatalogPresenter catalog)
+        public SessionHudPresenter(GameSession session, ZoneConfiguration zones, ISessionHudView screen,
+            IButtonInteractability spinButton, RewardCatalogPresenter catalog)
         {
             _session = session;
             _zones = zones;

@@ -144,7 +144,7 @@ namespace Vertigo.WheelOfFortune.Wheel
             if (slotPrefab != null)
                 return CreateSlotFromPrefab(parent, index);
 
-            var rootGo = new GameObject("ui_wheel_slice_" + (index + 1) + "_value", typeof(RectTransform));
+            var rootGo = new GameObject("ui_panel_wheel_slice_" + (index + 1), typeof(RectTransform));
             rootGo.layer = gameObject.layer;
             rootGo.transform.SetParent(parent, false);
 
@@ -189,7 +189,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         private SliceSlot CreateSlotFromPrefab(RectTransform parent, int index)
         {
             var instance = Instantiate(slotPrefab, parent, false);
-            instance.name = "ui_wheel_slice_" + (index + 1) + "_value";
+            instance.name = "ui_panel_wheel_slice_" + (index + 1);
             instance.gameObject.layer = gameObject.layer;
 
             return new SliceSlot
@@ -204,7 +204,8 @@ namespace Vertigo.WheelOfFortune.Wheel
         private void OnValidate()
         {
             if (slicesRoot == null) slicesRoot = (RectTransform)transform;
-            ApplyLayout();
+            // Domain reload restores the authored count before the runtime slot cache exists.
+            if (_slots.Count >= _sliceCount) ApplyLayout();
         }
 #endif
     }

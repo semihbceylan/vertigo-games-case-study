@@ -245,7 +245,7 @@ namespace Vertigo.WheelOfFortune.UI
                 throw new System.InvalidOperationException("Reward row pool exhausted; configure capacity for the reward catalogue.");
             }
 
-            widgets.Root.name = "ui_reward_row_" + id + "_value";
+            widgets.Root.name = "ui_panel_reward_row_" + id;
             widgets.Root.transform.SetAsLastSibling();
 
             // Reset any leftover animation state from a previous life in the pool.
@@ -277,7 +277,7 @@ namespace Vertigo.WheelOfFortune.UI
             if (_rowPrefab)
                 return CreateRowFromPrefab(parent);
 
-            var rowGo = new GameObject("ui_reward_row_value", typeof(RectTransform));
+            var rowGo = new GameObject("ui_panel_reward_row", typeof(RectTransform));
             rowGo.layer = gameObject.layer;
             rowGo.transform.SetParent(parent, false);
 
@@ -331,7 +331,7 @@ namespace Vertigo.WheelOfFortune.UI
         private RowWidgets CreateRowFromPrefab(RectTransform parent)
         {
             var instance = Instantiate(_rowPrefab, parent, false);
-            instance.name = "ui_reward_row_value";
+            instance.name = "ui_panel_reward_row";
             instance.gameObject.layer = gameObject.layer;
 
             var icon = instance.Icon;
@@ -373,7 +373,7 @@ namespace Vertigo.WheelOfFortune.UI
         {
             if (content == null)
             {
-                var t = transform.Find("ui_rewards_list_content");
+                var t = transform.Find("ui_layout_rewards_content");
                 if (t != null) content = (RectTransform)t;
             }
 

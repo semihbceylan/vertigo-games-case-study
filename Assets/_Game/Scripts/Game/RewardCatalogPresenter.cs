@@ -45,8 +45,13 @@ namespace Vertigo.WheelOfFortune.Game
 
         public List<RewardRowData> BuildRows(RewardWallet wallet)
         {
+            return BuildRowsFromTotals(wallet.Totals);
+        }
+
+        public List<RewardRowData> BuildRowsFromTotals(IReadOnlyDictionary<string, long> totals)
+        {
             _rows.Clear();
-            foreach (var pair in wallet.Totals)
+            foreach (var pair in totals)
             {
                 RewardDefinition definition = Resolve(pair.Key);
                 int rank = CategoryRank(definition);

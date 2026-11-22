@@ -9,6 +9,28 @@ namespace Vertigo.WheelOfFortune.Tests
     public sealed class RewardCatalogPresenterTests
     {
         [Test]
+        public void SessionPresentersUseImplementedViewAndSpinContracts()
+        {
+            Type hud = Type.GetType("Vertigo.WheelOfFortune.Game.SessionHudPresenter, Assembly-CSharp", true);
+            Type presentation = Type.GetType("Vertigo.WheelOfFortune.Game.SessionPresenter, Assembly-CSharp", true);
+            Type screen = Type.GetType("Vertigo.WheelOfFortune.UI.GameScreenView, Assembly-CSharp", true);
+            Type button = Type.GetType("Vertigo.WheelOfFortune.UI.SpinButton, Assembly-CSharp", true);
+            Type spinner = Type.GetType("Vertigo.WheelOfFortune.Wheel.WheelSpinner, Assembly-CSharp", true);
+            Type hudContract = hud.GetConstructors()[0].GetParameters()[2].ParameterType;
+            Type buttonContract = hud.GetConstructors()[0].GetParameters()[3].ParameterType;
+            Type spinContract = presentation.GetConstructors()[0].GetParameters()[3].ParameterType;
+            Type screenContract = presentation.GetConstructors()[0].GetParameters()[4].ParameterType;
+            Assert.IsTrue(hudContract.IsInterface);
+            Assert.IsTrue(buttonContract.IsInterface);
+            Assert.IsTrue(spinContract.IsInterface);
+            Assert.IsTrue(screenContract.IsInterface);
+            Assert.IsTrue(hudContract.IsAssignableFrom(screen));
+            Assert.IsTrue(screenContract.IsAssignableFrom(screen));
+            Assert.IsTrue(buttonContract.IsAssignableFrom(button));
+            Assert.IsTrue(spinContract.IsAssignableFrom(spinner));
+        }
+
+        [Test]
         public void RowsAggregateUnknownContentAndReuseTheirBuffer()
         {
             Type type = Type.GetType("Vertigo.WheelOfFortune.Game.RewardCatalogPresenter, Assembly-CSharp", true);

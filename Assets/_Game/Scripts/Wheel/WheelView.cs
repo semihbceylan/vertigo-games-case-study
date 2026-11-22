@@ -26,7 +26,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         {
             if (wheelRotation == null)
             {
-                var t = transform.Find("ui_wheel_rotation");
+                var t = transform.Find("ui_panel_wheel_rotation");
                 if (t != null) wheelRotation = (RectTransform)t;
             }
 
@@ -34,20 +34,20 @@ namespace Vertigo.WheelOfFortune.Wheel
             {
                 if (wheelBase == null)
                 {
-                    var t = wheelRotation.Find("ui_image_wheel_base");
+                    var t = wheelRotation.Find("ui_image_wheel_base_value");
                     if (t != null) wheelBase = t.GetComponent<Image>();
                 }
 
                 if (slicesRoot == null)
                 {
-                    var t = wheelRotation.Find("ui_wheel_slices");
+                    var t = wheelRotation.Find("ui_layout_wheel_slices");
                     if (t != null) slicesRoot = (RectTransform)t;
                 }
             }
 
             if (wheelIndicator == null)
             {
-                var t = transform.Find("ui_image_wheel_indicator");
+                var t = transform.Find("ui_image_wheel_indicator_value");
                 if (t != null) wheelIndicator = t.GetComponent<Image>();
             }
 

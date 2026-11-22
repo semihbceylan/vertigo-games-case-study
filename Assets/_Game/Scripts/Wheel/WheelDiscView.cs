@@ -23,7 +23,7 @@ namespace Vertigo.WheelOfFortune.Wheel
             {
                 foreach (Image image in GetComponentsInChildren<Image>(true))
                 {
-                    if (image.name == "ui_image_wheel_base") _base = image;
+                    if (image.name == "ui_image_wheel_base_value") _base = image;
                 }
             }
         }

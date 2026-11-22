@@ -25,6 +25,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private RewardPresentationController _rewardPresentation;
         [SerializeField] private RectTransform _canvasRect;
         [SerializeField] private WheelTransitionController _wheelTransitionController;
+        [SerializeField] private CurrencyHudView _currencyHud;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Header("Debug (Editor / Development builds only)")]
@@ -43,20 +44,24 @@ namespace Vertigo.WheelOfFortune.Game
         private void OnEnable()
         {
             SubscribeSessionEvents();
+            if (_currencyHud) _currencyHud.TopUpRequested += OnTopUpRequested;
             if (spinButton != null) spinButton.Clicked += OnSpinClicked;
             if (leaveButton != null) leaveButton.Clicked += OnLeaveClicked;
             if (restartButton != null) restartButton.Clicked += OnRestartClicked;
             if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested += OnFeedbackAction;
+            if (screen && screen.Feedback) screen.Feedback.ReviveRequested += OnReviveRequested;
             if (screen != null && screen.Results != null) screen.Results.RestartRequested += OnResultsRestartRequested;
         }
 
         private void OnDisable()
         {
             UnsubscribeSessionEvents();
+            if (_currencyHud) _currencyHud.TopUpRequested -= OnTopUpRequested;
             if (spinButton != null) spinButton.Clicked -= OnSpinClicked;
             if (leaveButton != null) leaveButton.Clicked -= OnLeaveClicked;
             if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
             if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested -= OnFeedbackAction;
+            if (screen && screen.Feedback) screen.Feedback.ReviveRequested -= OnReviveRequested;
             if (screen != null && screen.Results != null) screen.Results.RestartRequested -= OnResultsRestartRequested;
         }
 
@@ -75,15 +80,18 @@ namespace Vertigo.WheelOfFortune.Game
                 wheelSpinner, screen, _rewardPresentation, _wheelTransitionController,
                 _wheelTransitionController.Animation, _wheelVisualPresenter, _rewardCatalog);
 
+            var events = new EventBus();
+            _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events);
+            _currencyHud.Bind(_currencyWallet, events);
             _session = new GameSession(
                 configuration.Zones.ToRules(),
                 new WheelTierFactory(configuration.Zones),
                 CreateRandomSource(),
                 configuration.Zones.StartingZone,
                 configuration.Zones.FinalZone,
-                presentation: _presentation);
+                events: events, presentation: _presentation,
+                currencies: _currencyWallet, revivePolicy: configuration.CreateRevivePolicy());
 
-            _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), _session.Events);
             _currencySettlement = new RunCurrencySettlement(_session.Events, _session.Wallet, _currencyWallet, _rewardCatalog);
             _hudPresenter = new SessionHudPresenter(_session, configuration.Zones, screen, spinButton, _rewardCatalog);
             _presentation.Bind(_session, _hudPresenter);
@@ -140,12 +148,14 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnSpinClicked()
         {
+            if (_currencyHud.IsTopUpOpen) return;
             if (_session == null || !_session.CanSpin) return;
             _session.BeginSpin();
         }
 
         private void OnLeaveClicked()
         {
+            if (_currencyHud.IsTopUpOpen) return;
             if (_session != null && _session.CanLeave) _session.Leave();
         }
 
@@ -161,6 +171,17 @@ namespace Vertigo.WheelOfFortune.Game
             if (_session == null) return;
             if (_session.CanRestart) _session.Restart();
             else if (_session.IsCompleted) _session.StartNewRun();
+        }
+
+        private void OnReviveRequested()
+        {
+            if (_session == null || !_session.CanRevive) return;
+            if (!_session.TryRevive()) screen.Feedback.ShowInsufficientGold();
+        }
+
+        private void OnTopUpRequested()
+        {
+            if (_session != null && _session.CanRestart) _currencyHud.OpenTopUp();
         }
 
         private void OnResultsRestartRequested()
@@ -189,6 +210,7 @@ namespace Vertigo.WheelOfFortune.Game
         private void RefreshState()
         {
             _hudPresenter?.Refresh();
+            if (_currencyHud && _session != null) _currencyHud.SetDeathScreenVisible(_session.CanRestart);
         }
 
         // ---- development teleport (editor / development builds only) ----
@@ -214,6 +236,7 @@ namespace Vertigo.WheelOfFortune.Game
         /// <summary>Dev helper: teleports the live run to a zone and refreshes the whole view.</summary>
         private void DebugJumpTo(int zone)
         {
+            if (_currencyHud.IsTopUpOpen) return;
             if (_session == null || !_session.CanSpin) return;
 
             _presentation.Cancel();

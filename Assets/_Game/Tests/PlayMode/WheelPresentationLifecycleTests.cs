@@ -13,6 +13,45 @@ namespace Vertigo.WheelOfFortune.Tests
         private int _completions;
 
         [UnityTest]
+        public IEnumerator OrdinaryRewardFliesWithoutShowingToast()
+        {
+            yield return SceneManager.LoadSceneAsync("Game");
+            yield return null;
+            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
+            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameController, Assembly-CSharp", true);
+            Component controller = null;
+            foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(controllerType))
+            {
+                var component = (Component)candidate;
+                if (component.gameObject.scene == SceneManager.GetActiveScene()) controller = component;
+            }
+            Assert.IsTrue(controller);
+            object session = controllerType.GetField("_session", FLAGS).GetValue(controller);
+            Type sessionType = session.GetType();
+            object wheel = sessionType.GetProperty("CurrentWheel").GetValue(session);
+            int count = (int)wheel.GetType().GetProperty("SliceCount").GetValue(wheel);
+            int rewardIndex = -1;
+            for (int i = 0; i < count; i++)
+            {
+                object slice = wheel.GetType().GetProperty("Item").GetValue(wheel, new object[] { i });
+                if ((bool)slice.GetType().GetField("IsBomb").GetValue(slice)) continue;
+                rewardIndex = i;
+                break;
+            }
+            Assert.GreaterOrEqual(rewardIndex, 0);
+            sessionType.GetMethod("BeginSpin").Invoke(session, null);
+            sessionType.GetMethod("ResolveSpin").Invoke(session, new object[] { rewardIndex });
+            object screen = controllerType.GetField("screen", FLAGS).GetValue(controller);
+            object feedback = screen.GetType().GetProperty("Feedback").GetValue(screen);
+            var group = (CanvasGroup)feedback.GetType().GetField("group", FLAGS).GetValue(feedback);
+            yield return new WaitForSecondsRealtime(0.1f);
+            Assert.AreEqual(0f, group.alpha, "Ordinary reward must not display a toast.");
+            Assert.IsFalse(group.blocksRaycasts);
+            object wallet = sessionType.GetProperty("Wallet").GetValue(session);
+            Assert.AreEqual(1, wallet.GetType().GetProperty("Count").GetValue(wallet));
+        }
+
+        [UnityTest]
         public IEnumerator SessionPresenterCancelsTransitionSilentlyAndCanPlayAgain()
         {
             yield return SceneManager.LoadSceneAsync("Game");

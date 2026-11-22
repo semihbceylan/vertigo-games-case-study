@@ -29,6 +29,10 @@ namespace Vertigo.WheelOfFortune.Core
         private readonly CompletedState _completed;
         private SessionState _state;
         private int _operationVersion;
+        private readonly RewardWallet _recoverableRewards = new RewardWallet();
+        private readonly ICurrencyWallet _currencies;
+        private readonly RevivePolicy _revivePolicy;
+        private int _revivesUsed;
 
         private sealed class Completion
         {
@@ -56,7 +60,8 @@ namespace Vertigo.WheelOfFortune.Core
 
         public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random,
             int startingZone = FIRST_ZONE, int finalZone = ENDLESS_FINAL_ZONE,
-            IEventBus events = null, ISessionPresentation presentation = null)
+            IEventBus events = null, ISessionPresentation presentation = null,
+            ICurrencyWallet currencies = null, RevivePolicy revivePolicy = null)
         {
             _rules = rules;
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
@@ -64,6 +69,8 @@ namespace Vertigo.WheelOfFortune.Core
             _startingZone = Math.Max(FIRST_ZONE, startingZone);
             _finalZone = Math.Max(ENDLESS_FINAL_ZONE, finalZone);
             _presentation = presentation;
+            _currencies = currencies;
+            _revivePolicy = revivePolicy;
             Events = events ?? new EventBus();
             Wallet = new RewardWallet();
             _ready = new ReadyState(this);
@@ -79,6 +86,7 @@ namespace Vertigo.WheelOfFortune.Core
         }
 
         public RewardWallet Wallet { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, long> RecoverableRewards { get { return _recoverableRewards.Totals; } }
         public IEventBus Events { get; }
         public int Zone { get; private set; }
         public ZoneWheel CurrentWheel { get; private set; }
@@ -89,6 +97,9 @@ namespace Vertigo.WheelOfFortune.Core
         public bool CanSpin { get { return _state.CanSpin; } }
         public bool CanLeave { get { return _state.CanLeave; } }
         public bool CanRestart { get { return _state.CanRestart; } }
+        public bool CanRevive { get { return _state.CanRevive; } }
+        public int RevivesRemaining { get { return _revivePolicy == null ? 0 : _revivePolicy.MaxRevives - _revivesUsed; } }
+        public long ReviveCost { get { return _revivePolicy == null ? 0 : _revivePolicy.GetCost(Zone); } }
         public bool IsCompleted { get { return _state.IsCompleted; } }
         public bool IsZoneTransitioning { get { return _state.IsZoneTransitioning; } }
 
@@ -102,8 +113,10 @@ namespace Vertigo.WheelOfFortune.Core
             _presentation?.Cancel();
             Zone = _startingZone;
             BankedTotal = 0;
+            _revivesUsed = 0;
             PendingSliceIndex = NO_PENDING_SLICE;
             Wallet.Clear();
+            _recoverableRewards.Clear();
             BuildWheel();
             _presentation?.Reset();
             ChangeState(_ready);
@@ -132,6 +145,11 @@ namespace Vertigo.WheelOfFortune.Core
         public void Restart()
         {
             _state.Restart();
+        }
+
+        public bool TryRevive()
+        {
+            return _state.TryRevive();
         }
 
         /// <summary>Development command accepted only while ready, not during asynchronous work.</summary>
@@ -191,6 +209,8 @@ namespace Vertigo.WheelOfFortune.Core
             public virtual bool CanSpin { get { return false; } }
             public virtual bool CanLeave { get { return false; } }
             public virtual bool CanRestart { get { return false; } }
+            public virtual bool CanRevive { get { return false; } }
+            public virtual bool TryRevive() { return false; }
             public virtual bool IsCompleted { get { return false; } }
             public virtual bool IsZoneTransitioning { get { return false; } }
             public virtual void Enter() { }
@@ -273,6 +293,8 @@ namespace Vertigo.WheelOfFortune.Core
                 Session.PendingSliceIndex = sliceIndex;
                 if (Session.CurrentWheel[sliceIndex].IsBomb)
                 {
+                    Session._recoverableRewards.Clear();
+                    foreach (RewardGrant grant in Session.Wallet.Grants) Session._recoverableRewards.Add(grant);
                     Session.Wallet.Clear();
                     Session.PendingSliceIndex = NO_PENDING_SLICE;
                     Session.ChangeState(Session._lost);
@@ -322,6 +344,23 @@ namespace Vertigo.WheelOfFortune.Core
         {
             public LostState(GameSession session) : base(session) { }
             public override bool CanRestart { get { return true; } }
+            public override bool CanRevive { get { return Session._currencies != null && Session._revivePolicy != null && Session.RevivesRemaining > 0; } }
+
+            public override bool TryRevive()
+            {
+                if (!CanRevive) return false;
+                // Prepare content before charging so invalid configuration cannot consume gold.
+                ZoneWheel wheel = Session._factory.CreateWheel(Session.Zone, Session.CurrentZoneKind, Session._random);
+                if (!Session._currencies.TrySpend(Session._revivePolicy.CurrencyId, Session.ReviveCost)) return false;
+                Session._revivesUsed++;
+                Session.CurrentWheel = wheel;
+                foreach (RewardGrant grant in Session._recoverableRewards.Grants) Session.Wallet.Add(grant);
+                Session._recoverableRewards.Clear();
+                Session.PendingSliceIndex = NO_PENDING_SLICE;
+                Session._presentation?.Reset();
+                Session.ChangeState(Session._ready);
+                return true;
+            }
 
             public override void Enter()
             {

@@ -33,7 +33,7 @@ namespace Vertigo.WheelOfFortune.Wheel
             }
             _home = _live.Rect.anchoredPosition;
             _incoming = Instantiate(_live, _live.transform.parent);
-            _incoming.name = "ui_wheel_incoming";
+            _incoming.name = "ui_panel_wheel_incoming";
             _incoming.gameObject.SetActive(false);
         }
 

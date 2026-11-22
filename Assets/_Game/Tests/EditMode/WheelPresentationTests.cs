@@ -10,7 +10,7 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void WheelSlicePrefabHasTypedIconAndAmountReferences()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/Wheel/ui_wheel_slice.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/Wheel/ui_panel_wheel_slice.prefab");
             Type type = Type.GetType("Vertigo.WheelOfFortune.Wheel.WheelSliceView, Assembly-CSharp", true);
             Component view = prefab.GetComponent(type);
             Assert.IsTrue(view);

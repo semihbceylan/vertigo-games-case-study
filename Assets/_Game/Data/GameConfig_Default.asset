@@ -15,3 +15,7 @@ MonoBehaviour:
   zones: {fileID: 11400000, guid: 3f5a981da05de4cc999dc7acc216f4d5, type: 2}
   deterministicRandom: 0
   randomSeed: 12345
+  _reviveCurrency: {fileID: 11400000, guid: 9bcaf9b749a2a4d4794cc60bebcd892e, type: 2}
+  _reviveBaseCost: 100
+  _reviveCostPerZone: 25
+  _maxRevivesPerRun: 4
