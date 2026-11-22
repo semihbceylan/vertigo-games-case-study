@@ -1,4 +1,5 @@
 using UnityEngine;
+using Vertigo.WheelOfFortune.Core;
 
 namespace Vertigo.WheelOfFortune.Data
 {
@@ -10,8 +11,6 @@ namespace Vertigo.WheelOfFortune.Data
     public sealed class RewardDefinition : ScriptableObject
     {
         #region Serialized Values
-
-        private const int NO_MAXIMUM_ZONE = 0;
 
         [SerializeField] private string _rewardId = "reward";
         [SerializeField] private string _displayName = "Reward";
@@ -84,7 +83,7 @@ namespace Vertigo.WheelOfFortune.Data
 
         public bool IsAvailableAt(int zone)
         {
-            return zone >= _minimumZone && (_maximumZone == NO_MAXIMUM_ZONE || zone <= _maximumZone);
+            return zone >= _minimumZone && (_maximumZone == ZoneRule.UNBOUNDED_MAXIMUM_ZONE || zone <= _maximumZone);
         }
 
         #endregion
@@ -98,7 +97,7 @@ namespace Vertigo.WheelOfFortune.Data
             {
                 Debug.LogError("Reward requires an ID, display name, icon and category: " + name, this);
             }
-            if (_maximumZone != NO_MAXIMUM_ZONE && _maximumZone < _minimumZone)
+            if (_maximumZone != ZoneRule.UNBOUNDED_MAXIMUM_ZONE && _maximumZone < _minimumZone)
             {
                 Debug.LogError("Reward maximum zone must not be below its minimum zone: " + name, this);
             }

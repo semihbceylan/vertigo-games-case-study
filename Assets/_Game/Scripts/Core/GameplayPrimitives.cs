@@ -35,6 +35,8 @@ namespace Vertigo.WheelOfFortune.Core
     /// <summary>One configured zone policy: which zones it matches and how strongly.</summary>
     public sealed class ZoneRule
     {
+        #region Definition
+
         /// <summary>A maximum zone of zero means the rule never stops matching.</summary>
         public const int UNBOUNDED_MAXIMUM_ZONE = 0;
 
@@ -57,6 +59,10 @@ namespace Vertigo.WheelOfFortune.Core
             Priority = priority;
         }
 
+        #endregion
+
+        #region Matching
+
         public bool IsUnbounded
         {
             get { return MaximumZone == UNBOUNDED_MAXIMUM_ZONE; }
@@ -74,16 +80,25 @@ namespace Vertigo.WheelOfFortune.Core
                 other.MinimumZone <= MinimumZone &&
                 (other.IsUnbounded || (!IsUnbounded && other.MaximumZone >= MaximumZone));
         }
+
+        #endregion
     }
 
     /// <summary>Immutable rule snapshot shared by gameplay and presentation resolution.</summary>
     public sealed class ZoneRules
     {
+        #region Zone Numbering
+
+        /// <summary>Zones are numbered from one; the single shared definition of the first zone.</summary>
+        public const int FIRST_ZONE = 1;
         /// <summary>Returned by <see cref="FindNextZone"/> when the rule never matches again.</summary>
         public const int NO_ZONE = 0;
         /// <summary>A final zone of zero means the run is endless.</summary>
         public const int ENDLESS_FINAL_ZONE = 0;
-        private const int FIRST_ZONE = 1;
+
+        #endregion
+
+        #region Construction
 
         private readonly ZoneRule[] _rules;
 
@@ -103,6 +118,10 @@ namespace Vertigo.WheelOfFortune.Core
                 }
             }
         }
+
+        #endregion
+
+        #region Resolution
 
         public ZoneKind Resolve(int zone)
         {
@@ -180,6 +199,8 @@ namespace Vertigo.WheelOfFortune.Core
             }
             return selected;
         }
+
+        #endregion
     }
 
     /// <summary>Injected randomness so gameplay logic stays deterministic and testable.</summary>

@@ -3,6 +3,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Vertigo.WheelOfFortune.Core;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -18,8 +19,6 @@ namespace Vertigo.WheelOfFortune.UI
         #region Configuration and Runtime
 
         private const int NO_DISPLAYED_ZONE = int.MinValue;
-        private const int FIRST_ZONE = 1;
-        private const int ENDLESS_FINAL_ZONE = 0;
         /// <summary>Window slots are laid out symmetrically around the bar centre.</summary>
         private const float CENTRE_OFFSET = 0.5f;
 
@@ -91,7 +90,7 @@ namespace Vertigo.WheelOfFortune.UI
             {
                 int zone = startZone + i;
                 Node node = _nodes[i];
-                bool isInRange = zone >= FIRST_ZONE && (finalZone == ENDLESS_FINAL_ZONE || zone <= finalZone);
+                bool isInRange = zone >= ZoneRules.FIRST_ZONE && (finalZone == ZoneRules.ENDLESS_FINAL_ZONE || zone <= finalZone);
                 node.Rect.gameObject.SetActive(isInRange);
                 if (!isInRange)
                 {

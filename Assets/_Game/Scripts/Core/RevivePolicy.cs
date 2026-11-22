@@ -7,7 +7,6 @@ namespace Vertigo.WheelOfFortune.Core
     {
         #region Configuration
 
-        private const int FIRST_ZONE = 1;
 
         private readonly long _baseCost;
         private readonly long _costPerZone;
@@ -46,11 +45,11 @@ namespace Vertigo.WheelOfFortune.Core
         /// <summary>Zone one costs the base price; each later zone adds the per-zone price.</summary>
         public long GetCost(int zone)
         {
-            if (zone < FIRST_ZONE)
+            if (zone < ZoneRules.FIRST_ZONE)
             {
                 throw new ArgumentOutOfRangeException(nameof(zone));
             }
-            return checked(_baseCost + (zone - (long)FIRST_ZONE) * _costPerZone);
+            return checked(_baseCost + (zone - (long)ZoneRules.FIRST_ZONE) * _costPerZone);
         }
 
         #endregion

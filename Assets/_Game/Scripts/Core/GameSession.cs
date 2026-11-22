@@ -12,9 +12,7 @@ namespace Vertigo.WheelOfFortune.Core
     {
         #region Configuration and State
 
-        private const int FIRST_ZONE = 1;
         private const int NO_PENDING_SLICE = -1;
-        private const int ENDLESS_FINAL_ZONE = 0;
 
         private readonly ZoneRules _rules;
         private readonly IZoneWheelFactory _factory;
@@ -60,15 +58,15 @@ namespace Vertigo.WheelOfFortune.Core
         }
 
         public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random,
-            int startingZone = FIRST_ZONE, int finalZone = ENDLESS_FINAL_ZONE,
+            int startingZone = ZoneRules.FIRST_ZONE, int finalZone = ZoneRules.ENDLESS_FINAL_ZONE,
             IEventBus events = null, ISessionPresentation presentation = null,
             ICurrencyWallet currencies = null, RevivePolicy revivePolicy = null)
         {
             _rules = rules;
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _random = random ?? throw new ArgumentNullException(nameof(random));
-            _startingZone = Math.Max(FIRST_ZONE, startingZone);
-            _finalZone = Math.Max(ENDLESS_FINAL_ZONE, finalZone);
+            _startingZone = Math.Max(ZoneRules.FIRST_ZONE, startingZone);
+            _finalZone = Math.Max(ZoneRules.ENDLESS_FINAL_ZONE, finalZone);
             _presentation = presentation;
             _currencies = currencies;
             _revivePolicy = revivePolicy;
@@ -179,7 +177,7 @@ namespace Vertigo.WheelOfFortune.Core
         private void AdvanceAfterReward()
         {
             PendingSliceIndex = NO_PENDING_SLICE;
-            if (_finalZone > ENDLESS_FINAL_ZONE && Zone >= _finalZone)
+            if (_finalZone > ZoneRules.ENDLESS_FINAL_ZONE && Zone >= _finalZone)
             {
                 ChangeState(_completed);
                 return;
@@ -273,8 +271,8 @@ namespace Vertigo.WheelOfFortune.Core
 
             public override void JumpToZone(int zone)
             {
-                zone = Math.Max(FIRST_ZONE, zone);
-                if (Session._finalZone > ENDLESS_FINAL_ZONE)
+                zone = Math.Max(ZoneRules.FIRST_ZONE, zone);
+                if (Session._finalZone > ZoneRules.ENDLESS_FINAL_ZONE)
                 {
                     zone = Math.Min(zone, Session._finalZone);
                 }
@@ -365,7 +363,7 @@ namespace Vertigo.WheelOfFortune.Core
                 {
                     return false;
                 }
-                // Prepare content before charging so invalid configuration cannot consume gold.
+                // Prepare content before charging so invalid configuration cannot consume currency.
                 ZoneWheel wheel = Session._factory.CreateWheel(Session.Zone, Session.CurrentZoneKind, Session._random);
                 if (!Session._currencies.TrySpend(Session._revivePolicy.CurrencyId, Session.ReviveCost))
                 {

@@ -157,8 +157,10 @@ namespace Vertigo.WheelOfFortune.Wheel
 
         private static float Sample(float[] samples, float progress)
         {
-            float index = Mathf.Clamp01(progress) * (samples.Length - 1);
-            int lower = Mathf.Min(Mathf.FloorToInt(index), samples.Length - 2);
+            int lastIndex = samples.Length - 1;
+            float index = Mathf.Clamp01(progress) * lastIndex;
+            // Interpolate between a sample and its successor, so the lower sample can never be the last one.
+            int lower = Mathf.Min(Mathf.FloorToInt(index), lastIndex - 1);
             return Mathf.Lerp(samples[lower], samples[lower + 1], index - lower);
         }
 
