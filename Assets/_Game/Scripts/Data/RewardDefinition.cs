@@ -62,7 +62,7 @@ namespace Vertigo.WheelOfFortune.Data
             get { return _category; }
         }
 
-        public bool ShowcaseBig
+        public bool IsShowcased
         {
             get { return _isShowcased; }
         }

@@ -64,9 +64,9 @@ unless a reward opts out (cosmetics).
   `RevivePolicy`, `EventBus` and the `IRandomSource` seam. ScriptableObject data is adapted into it
   (`ZoneConfiguration.ToRules()`, `WheelTierFactory`), so every rule is tested without a scene.
 - **One state machine.** `GameSession` owns the flow through state objects (Ready, Spinning,
-  RewardPresentation, ZoneTransition, Lost, Completed). Each state answers `CanSpin`, `CanLeave`,
-  `CanRestart`, `CanRevive` and implements only the commands it accepts. There is no phase enum, no
-  `switch` over states and no controller-side flow flags, so adding a state does not touch callers.
+  RewardPresentation, ZoneTransition, Lost, Completed). Each state answers `IsSpinAllowed`,
+  `IsLeaveAllowed`, `IsRestartAllowed`, `IsReviveAllowed` and implements only the commands it
+  accepts. There is no phase enum, no `switch` over states and no controller-side flow flags, so adding a state does not touch callers.
   Presentation operations complete through versioned, single-use callbacks: a cancelled or stale
   animation can never advance the flow.
 - **Single responsibilities.** `GameCompositionRoot` only builds the session-scoped objects and pairs

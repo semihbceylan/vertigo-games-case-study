@@ -67,7 +67,7 @@ namespace Vertigo.WheelOfFortune.Game
             _rewardId = grant.RewardId;
             _sliceIndex = sliceIndex;
             _onComplete = onComplete;
-            if (definition.ShowcaseBig)
+            if (definition.IsShowcased)
             {
                 _showcase.Show(definition.Icon, definition.DisplayName, grant.Amount);
                 return;

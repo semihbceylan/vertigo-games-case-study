@@ -68,7 +68,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnSpinClicked()
         {
-            if (_session.CanSpin)
+            if (_session.IsSpinAllowed)
             {
                 _session.BeginSpin();
             }
@@ -76,7 +76,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnLeaveClicked()
         {
-            if (_session.CanLeave)
+            if (_session.IsLeaveAllowed)
             {
                 _session.Leave();
             }
@@ -84,7 +84,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnRestartRequested()
         {
-            if (_session.CanRestart)
+            if (_session.IsRestartAllowed)
             {
                 _session.Restart();
             }
@@ -92,7 +92,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         private void OnReviveRequested()
         {
-            if (_session.CanRevive && !_session.TryRevive())
+            if (_session.IsReviveAllowed && !_session.TryRevive())
             {
                 _lossPanel.ShowInsufficientFunds();
             }

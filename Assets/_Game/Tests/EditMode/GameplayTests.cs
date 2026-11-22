@@ -248,9 +248,9 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold", "cash"), new ScriptedRandom());
 
-            Assert.IsTrue(session.CanSpin);
-            Assert.IsTrue(session.CanSpin);
-            Assert.IsFalse(session.CanLeave); // zone 1 is Normal
+            Assert.IsTrue(session.IsSpinAllowed);
+            Assert.IsTrue(session.IsSpinAllowed);
+            Assert.IsFalse(session.IsLeaveAllowed); // zone 1 is Normal
         }
 
         [Test]
@@ -261,9 +261,9 @@ namespace Vertigo.WheelOfFortune.Tests
 
             session.BeginSpin();
 
-            Assert.IsFalse(session.CanSpin);
+            Assert.IsFalse(session.IsSpinAllowed);
             Assert.AreEqual(1, session.PendingSliceIndex);
-            Assert.IsFalse(session.CanSpin);
+            Assert.IsFalse(session.IsSpinAllowed);
         }
 
         [Test]
@@ -275,7 +275,7 @@ namespace Vertigo.WheelOfFortune.Tests
             session.BeginSpin();
             session.ResolvePendingSpin();
 
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
             Assert.AreEqual(2, session.Zone);
         }
@@ -297,12 +297,12 @@ namespace Vertigo.WheelOfFortune.Tests
             session.BeginSpin();
             session.ResolvePendingSpin();
 
-            Assert.IsTrue(session.CanRestart);
+            Assert.IsTrue(session.IsRestartAllowed);
             Assert.AreEqual(0, session.Wallet.AccumulatedAmount);
             Assert.IsTrue(session.Wallet.IsEmpty);
             Assert.IsEmpty(session.Wallet.Totals);
-            Assert.IsFalse(session.CanSpin);
-            Assert.IsTrue(session.CanRestart);
+            Assert.IsFalse(session.IsSpinAllowed);
+            Assert.IsTrue(session.IsRestartAllowed);
         }
 
         [Test]
@@ -318,11 +318,11 @@ namespace Vertigo.WheelOfFortune.Tests
             session.ResolvePendingSpin();
             session.BeginSpin();
             session.ResolvePendingSpin();
-            Assert.IsTrue(session.CanRestart);
+            Assert.IsTrue(session.IsRestartAllowed);
 
             session.Restart();
 
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.AreEqual(1, session.Zone);
             Assert.AreEqual(0, session.Wallet.AccumulatedAmount);
         }
@@ -331,7 +331,7 @@ namespace Vertigo.WheelOfFortune.Tests
         public void LeaveIsBlockedInNormalZone()
         {
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom());
-            Assert.IsFalse(session.CanLeave);
+            Assert.IsFalse(session.IsLeaveAllowed);
             Assert.Throws<InvalidOperationException>(() => session.Leave());
         }
 
@@ -351,13 +351,13 @@ namespace Vertigo.WheelOfFortune.Tests
 
             Assert.AreEqual(5, session.Zone);
             Assert.AreEqual(TestZones.Safe, session.CurrentZoneKind);
-            Assert.IsTrue(session.CanLeave);
+            Assert.IsTrue(session.IsLeaveAllowed);
 
             session.Leave();
 
             Assert.IsTrue(session.IsCompleted);
             Assert.AreEqual(40, session.BankedTotal);
-            Assert.IsFalse(session.CanSpin);
+            Assert.IsFalse(session.IsSpinAllowed);
         }
 
         [Test]
@@ -371,7 +371,7 @@ namespace Vertigo.WheelOfFortune.Tests
 
             Assert.AreEqual(2, session.Zone);
             Assert.IsFalse(session.CurrentZoneKind.IsBombFree);
-            Assert.IsFalse(session.CanLeave);
+            Assert.IsFalse(session.IsLeaveAllowed);
             Assert.Throws<InvalidOperationException>(() => session.Leave());
             Assert.AreEqual(0, session.BankedTotal);
             Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
@@ -388,14 +388,14 @@ namespace Vertigo.WheelOfFortune.Tests
 
             session.BeginSpin();
             session.ResolvePendingSpin();
-            Assert.IsTrue(session.CanRestart);
+            Assert.IsTrue(session.IsRestartAllowed);
 
             session.Restart();
 
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.AreEqual(1, session.Zone);
             Assert.IsTrue(session.Wallet.IsEmpty);
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
         }
 
         [Test]
@@ -410,9 +410,9 @@ namespace Vertigo.WheelOfFortune.Tests
         public void LeaveIsBlockedDuringSpinInBombFreeZone(int zone)
         {
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom(), zone);
-            Assert.IsTrue(session.CanLeave);
+            Assert.IsTrue(session.IsLeaveAllowed);
             session.BeginSpin();
-            Assert.IsFalse(session.CanLeave);
+            Assert.IsFalse(session.IsLeaveAllowed);
             Assert.Throws<InvalidOperationException>(() => session.Leave());
         }
 
@@ -421,8 +421,8 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold"), new ScriptedRandom(), 30);
             session.Leave();
-            Assert.IsFalse(session.CanSpin);
-            Assert.IsFalse(session.CanLeave);
+            Assert.IsFalse(session.IsSpinAllowed);
+            Assert.IsFalse(session.IsLeaveAllowed);
         }
 
         [Test]
@@ -437,9 +437,9 @@ namespace Vertigo.WheelOfFortune.Tests
             session.JumpToZone(54);
 
             Assert.AreEqual(54, session.Zone);
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.AreEqual(TestZones.Normal, session.CurrentZoneKind);
         }
 
@@ -471,7 +471,7 @@ namespace Vertigo.WheelOfFortune.Tests
             session.JumpToZone(42);
 
             Assert.AreEqual(1, session.Zone);
-            Assert.IsFalse(session.CanSpin);
+            Assert.IsFalse(session.IsSpinAllowed);
         }
 
         [Test]
@@ -502,7 +502,7 @@ namespace Vertigo.WheelOfFortune.Tests
             }
 
             Assert.AreEqual(3, session.Zone);
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
 
             // Collecting the zone-3 reward banks everything and finishes the run.
             session.BeginSpin();
@@ -512,8 +512,8 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.AreEqual(30, session.Wallet.AccumulatedAmount);
             Assert.AreEqual(30, session.BankedTotal);
             Assert.AreEqual(30, banked);
-            Assert.IsFalse(session.CanSpin);
-            Assert.IsFalse(session.CanLeave);
+            Assert.IsFalse(session.IsSpinAllowed);
+            Assert.IsFalse(session.IsLeaveAllowed);
         }
 
         [Test]
@@ -530,7 +530,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 session.ResolvePendingSpin();
             }
 
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.AreEqual(6, session.Zone);
         }
     }

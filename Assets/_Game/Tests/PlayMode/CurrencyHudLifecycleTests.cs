@@ -70,7 +70,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 }
                 var spinButton = (Component)controller.GetType().GetField("_spinButton", FIELDS).GetValue(controller);
                 spinButton.GetComponent<Button>().onClick.Invoke();
-                Assert.IsTrue((bool)session.GetType().GetProperty("CanRestart").GetValue(session));
+                Assert.IsTrue((bool)session.GetType().GetProperty("IsRestartAllowed").GetValue(session));
                 foreach (Button button in panel.GetComponentsInChildren<Button>(true))
                 {
                     if (button.name.Contains("close")) continue;

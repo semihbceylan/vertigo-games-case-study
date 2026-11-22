@@ -50,7 +50,7 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void SpinRewardAndTransitionEachBlockInputUntilCompleted()
         {
-            Assert.IsTrue(_session.CanLeave);
+            Assert.IsTrue(_session.IsLeaveAllowed);
             _session.BeginSpin();
             AssertBlocked();
             _presentation.SpinComplete();
@@ -62,7 +62,7 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.AreEqual(6, _session.Zone);
             Assert.IsTrue(_session.IsZoneTransitioning);
             _presentation.TransitionComplete();
-            Assert.IsTrue(_session.CanSpin);
+            Assert.IsTrue(_session.IsSpinAllowed);
         }
 
         [Test]
@@ -115,16 +115,16 @@ namespace Vertigo.WheelOfFortune.Tests
             _presentation.SpinComplete();
             Assert.IsTrue(_session.Wallet.IsEmpty);
             Assert.AreEqual(1, _presentation.LossCount);
-            Assert.IsTrue(_session.CanRestart);
+            Assert.IsTrue(_session.IsRestartAllowed);
             _session.Restart();
             Assert.AreEqual(2, _session.Zone);
-            Assert.IsTrue(_session.CanSpin);
+            Assert.IsTrue(_session.IsSpinAllowed);
         }
 
         private void AssertBlocked()
         {
-            Assert.IsFalse(_session.CanSpin);
-            Assert.IsFalse(_session.CanLeave);
+            Assert.IsFalse(_session.IsSpinAllowed);
+            Assert.IsFalse(_session.IsLeaveAllowed);
             Assert.Throws<InvalidOperationException>(_session.BeginSpin);
             Assert.Throws<InvalidOperationException>(_session.Leave);
         }

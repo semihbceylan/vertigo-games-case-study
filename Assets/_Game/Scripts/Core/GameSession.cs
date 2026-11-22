@@ -94,11 +94,11 @@ namespace Vertigo.WheelOfFortune.Core
         public int PendingSliceIndex { get; private set; }
         public long BankedTotal { get; private set; }
         public ZoneKind CurrentZoneKind { get { return _rules.Resolve(Zone); } }
-        public bool CanSpin { get { return _state.CanSpin; } }
-        public bool CanLeave { get { return _state.CanLeave; } }
-        public bool CanRestart { get { return _state.CanRestart; } }
+        public bool IsSpinAllowed { get { return _state.IsSpinAllowed; } }
+        public bool IsLeaveAllowed { get { return _state.IsLeaveAllowed; } }
+        public bool IsRestartAllowed { get { return _state.IsRestartAllowed; } }
         public bool IsLost { get { return _state.IsLost; } }
-        public bool CanRevive { get { return _state.CanRevive; } }
+        public bool IsReviveAllowed { get { return _state.IsReviveAllowed; } }
         public int RevivesRemaining { get { return _revivePolicy == null ? 0 : _revivePolicy.MaxRevives - _revivesUsed; } }
         public long ReviveCost { get { return _revivePolicy == null ? 0 : _revivePolicy.GetCost(Zone); } }
         public bool IsCompleted { get { return _state.IsCompleted; } }
@@ -207,10 +207,10 @@ namespace Vertigo.WheelOfFortune.Core
                 Session = session;
             }
 
-            public virtual bool CanSpin { get { return false; } }
-            public virtual bool CanLeave { get { return false; } }
-            public virtual bool CanRestart { get { return false; } }
-            public virtual bool CanRevive { get { return false; } }
+            public virtual bool IsSpinAllowed { get { return false; } }
+            public virtual bool IsLeaveAllowed { get { return false; } }
+            public virtual bool IsRestartAllowed { get { return false; } }
+            public virtual bool IsReviveAllowed { get { return false; } }
             public virtual bool IsLost { get { return false; } }
 
             public virtual bool TryRevive()
@@ -252,8 +252,8 @@ namespace Vertigo.WheelOfFortune.Core
         private sealed class ReadyState : SessionState
         {
             public ReadyState(GameSession session) : base(session) { }
-            public override bool CanSpin { get { return true; } }
-            public override bool CanLeave { get { return Session.CurrentZoneKind.IsLeaveAllowed; } }
+            public override bool IsSpinAllowed { get { return true; } }
+            public override bool IsLeaveAllowed { get { return Session.CurrentZoneKind.IsLeaveAllowed; } }
 
             public override void BeginSpin()
             {
@@ -263,7 +263,7 @@ namespace Vertigo.WheelOfFortune.Core
 
             public override void Leave()
             {
-                if (!CanLeave)
+                if (!IsLeaveAllowed)
                 {
                     base.Leave();
                     return;
@@ -355,13 +355,13 @@ namespace Vertigo.WheelOfFortune.Core
         private sealed class LostState : SessionState
         {
             public LostState(GameSession session) : base(session) { }
-            public override bool CanRestart { get { return true; } }
+            public override bool IsRestartAllowed { get { return true; } }
             public override bool IsLost { get { return true; } }
-            public override bool CanRevive { get { return Session._currencies != null && Session._revivePolicy != null && Session.RevivesRemaining > 0; } }
+            public override bool IsReviveAllowed { get { return Session._currencies != null && Session._revivePolicy != null && Session.RevivesRemaining > 0; } }
 
             public override bool TryRevive()
             {
-                if (!CanRevive)
+                if (!IsReviveAllowed)
                 {
                     return false;
                 }
@@ -399,7 +399,7 @@ namespace Vertigo.WheelOfFortune.Core
         {
             public CompletedState(GameSession session) : base(session) { }
             public override bool IsCompleted { get { return true; } }
-            public override bool CanRestart { get { return true; } }
+            public override bool IsRestartAllowed { get { return true; } }
 
             public override void Restart()
             {

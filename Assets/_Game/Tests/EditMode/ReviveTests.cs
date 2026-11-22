@@ -74,7 +74,7 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.AreEqual(825, wallet.GetBalance("gold"));
             Assert.AreEqual(0, wallet.GetBalance("cash"));
             Assert.AreEqual(0, session.BankedTotal);
-            Assert.IsTrue(session.CanSpin);
+            Assert.IsTrue(session.IsSpinAllowed);
             Assert.IsFalse(session.TryRevive());
         }
 
@@ -86,11 +86,11 @@ namespace Vertigo.WheelOfFortune.Tests
             session.Wallet.Add(new RewardGrant("loot", 42));
             Bomb(session);
             ZoneWheel wheel = session.CurrentWheel;
-            Assert.IsTrue(session.CanRevive);
+            Assert.IsTrue(session.IsReviveAllowed);
             Assert.IsFalse(session.TryRevive());
             Assert.AreSame(wheel, session.CurrentWheel);
             Assert.AreEqual(4, session.RevivesRemaining);
-            Assert.IsTrue(session.CanRestart);
+            Assert.IsTrue(session.IsRestartAllowed);
             Assert.IsTrue(session.Wallet.IsEmpty);
             Assert.AreEqual(0, wallet.GetBalance("gold"));
             wallet.Credit("gold", 100);
@@ -114,9 +114,9 @@ namespace Vertigo.WheelOfFortune.Tests
                 Assert.AreEqual(3 - i, session.RevivesRemaining);
             }
             Bomb(session);
-            Assert.IsFalse(session.CanRevive);
+            Assert.IsFalse(session.IsReviveAllowed);
             Assert.IsFalse(session.TryRevive());
-            Assert.IsTrue(session.CanRestart);
+            Assert.IsTrue(session.IsRestartAllowed);
             Assert.IsTrue(session.Wallet.IsEmpty);
             Assert.AreEqual(600, wallet.GetBalance("gold"));
             session.Restart();
@@ -146,7 +146,7 @@ namespace Vertigo.WheelOfFortune.Tests
             var wallet = new CurrencyWallet(new Store(), new EventBus());
             wallet.Credit("gold", 100);
             var session = CreateSession(wallet);
-            Assert.IsFalse(session.CanRevive);
+            Assert.IsFalse(session.IsReviveAllowed);
             Assert.IsFalse(session.TryRevive());
             session.BeginSpin();
             Assert.IsFalse(session.TryRevive());
