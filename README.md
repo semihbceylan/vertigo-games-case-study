@@ -1,224 +1,174 @@
-# Wheel of Fortune 
+# Wheel of Fortune
 
-A mobile **wheel-spin gambling game** built in Unity for the **Vertigo Games game-developer case study**.
+A mobile wheel-spin risk game built in Unity for the Vertigo Games game developer case study.
 
-Instead of picking cards, the player **spins a wheel** at every zone. Each wheel holds several
-rewards and — on normal zones — a single **bomb**. Spin to grow your loot, or walk away and bank
-it before the bomb wipes it all out. Rewards get better the deeper you go.
+At every zone the player **spins a wheel**. Each normal wheel holds several rewards and exactly one
+**bomb**. Spin to grow your loot, or leave from a safe or super zone and bank it before a bomb wipes it out.
+Deeper zones offer better rewards, not just bigger numbers.
 
----
+Gameplay video: https://youtu.be/mDGNfFYK1HE
 
-## 🎥 Gameplay video
+## Screenshots
 
-### Persistent economy and revive
+| | 20:9 | 16:9 | 4:3 |
+|:---|:---:|:---:|:---:|
+| Gameplay | ![](Screenshots/gameplay_20_9.png) | ![](Screenshots/gameplay_16_9.png) | ![](Screenshots/gameplay_4_3.png) |
+| Loss | ![](Screenshots/loss_20_9.png) | ![](Screenshots/loss_16_9.png) | ![](Screenshots/loss_4_3.png) |
+| Results | ![](Screenshots/results_20_9.png) | ![](Screenshots/results_16_9.png) | ![](Screenshots/results_4_3.png) |
 
-**C. Economy: provide a player-facing way to spend persistent currency.** Restoring
-paid revives replace the earlier no-continue decision. `GameConfig_Default` configures
-Gold pricing as **100 + 25 × (failed zone − 1)**; prices can be adjusted in the asset.
-The session owns the recovery snapshot and lost-state command; the persistent wallet
-validates spending. Restoring run loot does not settle it into persistent balances.
+## Rules
 
-Persistent Cash and Gold balances appear as icons and numbers at the top right only
-on the death screen. Both **+** buttons open a
-Gold top-up panel. **Buy Gold** and **Watch Ad** are disabled demo placeholders: no
-payment, ad, or currency credit occurs. Close restores the previous HUD state. Balance
-notifications and button listeners are subscribed/unsubscribed with view ownership.
+1. **SPIN** — the result is chosen before the animation starts, so the animation can never change it.
+   A reward is added to the run's loot and the run advances to the next zone.
+2. **BOMB** — every reward collected in the run is cleared immediately and the loss panel opens.
+   - **RESTART** starts a new run from the configured starting zone. It is free.
+   - **REVIVE** spends persistent **Gold**: `100 + 25 × (zone − 1)` by default. It restores the
+     rewards the bomb cleared, gives a fresh wheel for the same zone, and is limited to **4 per run**.
+     With too little Gold the purchase is rejected and nothing changes; a rejected purchase does not
+     use up a revive. Restarting resets the limit. Restored loot is still at risk until you leave.
+   - The panel previews the cleared rewards (scrollable) and shows the Cash and Gold balances.
+     Their **+** buttons open a demo top-up panel whose Buy/Ad buttons are disabled placeholders:
+     no payment happens and no currency is credited.
+3. **EXIT** — banks the run. It is only possible in a **safe or super zone**, while the wheel is
+   stopped and every presentation (reward flight, showcase, zone transition) has finished.
+4. Reaching the configured **final zone** (60 by default) completes the run and banks everything.
 
-The death screen includes a scrollable preview of pre-bomb rewards, without an Exit
-button. This preview does not restore or bank loot; only a successful revive restores it.
-
-> _Gameplay video: **https://youtu.be/mDGNfFYK1HE**_
-
----
-
-## 📸 Screenshots
-
-
-
-| 20:9 | 20:9 | 16:9 | 4:3 |
-|:---:|:---:|:---:|:---:|
-| ![20:9](Screenshots/gh_gameplay_20_9.png) | ![20:9](Screenshots/gh_gameplay_20_9_2.png) | ![16:9](Screenshots/gh_gameplay_16_9.png) | ![4:3](Screenshots/gh_gameplay_4_3.png)
-
-<!--
-Recommended set:
-  Screenshots/gameplay_20_9.png   (e.g. 2400x1080)
-  Screenshots/gameplay_16_9.png   (e.g. 1920x1080)
-  Screenshots/gameplay_4_3.png    (e.g. 1024x768)
-Optional extras: super-zone spin, bomb screen, results screen.
--->
-
----
-
-## ▶️ How to play
-
-1. **SPIN** — the wheel stops on a slice. Rewards are added to your loot; a bomb ends the run.
-2. **LEAVE** — cash out and bank everything collected so far, available only in safe or super
-   zones once the wheel and presentation transitions have stopped.
-3. **RESTART** — a bomb immediately clears the run's rewards. Dismiss the loss screen to restart
-   at the configured starting zone for free, or spend persistent Gold to revive at the failed
-    zone and restore all pre-bomb run loot. Up to four successful revives are allowed per run;
-    failed payments do not consume a revive. Free Restart resets the limit. Recovered loot remains at
-   risk until cash-out. The button remains available when Gold is insufficient, but a failed
-   payment changes neither balance nor loot.
+Banked rewards that are linked to a currency asset (Cash, Gold) are credited to the persistent
+balances only when a run completes successfully. Run loot and persistent balances are kept apart.
 
 ### Zones
 
-| Zone | Wheel | Contains a bomb? |
+| Zone (default data) | Wheel | Bomb |
 |---|---|---|
-| Normal (every zone) | Bronze | ✅ one bomb |
-| **Safe** (every 5th zone) | Silver | ❌ risk-free |
-| **Super** (every 30th zone) | Golden | ❌ risk-free, special rewards |
+| Normal (every zone) | Bronze | exactly one, placed by code |
+| **Safe** (every 5th zone) | Silver | none |
+| **Super** (every 30th zone, wins over safe) | Golden | none, special rewards |
 
-Normal and safe wheels use different reward pools for zones 1–9, 10–19, and 20 onward,
-introducing better chests, consumables, and weapon points. Reward amounts also scale with each zone;
-cosmetic item quantities do not scale. The run finishes at the final zone, banking everything collected.
+Every normal wheel gets exactly one bomb from the wheel builder, in a slot chosen again for each zone
+by the injected random source (the same slot can come up twice by chance). Authored data cannot add
+or remove bombs. Bronze and Silver use different reward pools for zones 1–9, 10–19 and 20 onwards,
+so better chests, consumables and weapon points appear as you go deeper; amounts also scale per zone
+unless a reward opts out (cosmetics).
 
----
+## Architecture
 
-## 🛠️ Tech / requirements
+| Layer | Responsibility | Main types |
+|---|---|---|
+| Core (no Unity references) | Rules and flow | `GameSession` and its state objects, `ZoneRules`, `ZoneWheelBuilder`, `RewardWallet`, `CurrencyWallet`, `RevivePolicy`, `EventBus` |
+| Data | Authored content adapted into the core | `GameConfiguration`, `ZoneConfiguration`, `ZoneRuleDefinition`, `WheelDefinition`, `RewardDefinition`, `RewardCategoryDefinition`, `CurrencyDefinition`, animation profiles, `ZoneCatalog`, `WheelTierFactory` |
+| Game | Composition, input and presentation | `GameCompositionRoot`, `SessionInputController`, `SessionPresenter`, `SessionHudPresenter`, `WheelVisualPresenter`, `RewardPresentationController` |
+| UI / Wheel | Views behind interfaces | `GameScreenView`, `FeedbackView`, `ResultsView`, `CurrencyHudView`, `JackpotShowcaseView`, `RewardsListView`, `WheelView`, `WheelSpinner`, `WheelTransitionController` |
 
-- **Unity 6000.3.23f1**
-- **Universal Render Pipeline (2D)**
+- **Unity-independent core.** `Vertigo.WheelOfFortune.Core` is a separate assembly with no Unity
+  references: `GameSession`, `ZoneRules`, `ZoneWheelBuilder`, `RewardWallet`, `CurrencyWallet`,
+  `RevivePolicy`, `EventBus` and the `IRandomSource` seam. ScriptableObject data is adapted into it
+  (`ZoneConfiguration.ToRules()`, `WheelTierFactory`), so every rule is tested without a scene.
+- **One state machine.** `GameSession` owns the flow through state objects (Ready, Spinning,
+  RewardPresentation, ZoneTransition, Lost, Completed). Each state answers `CanSpin`, `CanLeave`,
+  `CanRestart`, `CanRevive` and implements only the commands it accepts. There is no phase enum, no
+  `switch` over states and no controller-side flow flags, so adding a state does not touch callers.
+  Presentation operations complete through versioned, single-use callbacks: a cancelled or stale
+  animation can never advance the flow.
+- **Single responsibilities.** `GameCompositionRoot` only builds the session-scoped objects and pairs
+  their subscriptions with its enable/disable lifecycle. Input routing (`SessionInputController`),
+  session presentation (`SessionPresenter`), HUD projection (`SessionHudPresenter`), wheel rendering
+  (`WheelVisualPresenter`), wheel transitions (`WheelTransitionController`), reward flights and the
+  showcase (`RewardPresentationController`), the dev teleport (`DevZoneTeleport`) and the edit-mode
+  preview (`WheelEditorPreview`) are separate classes.
+- **Interfaces at boundaries.** Presenters talk to views through `ISessionScreenView`,
+  `ISessionHudView`, `IWheelView`/`IWheelDisc`, `IWheelSpinPresentation`, `IWheelTransition`,
+  `IRewardShowcase`, `IRewardRowTargets`, `IRewardFlight` and `ICurrencyHudView`. Unity references
+  are serialized fields; nothing is discovered at runtime.
+- **Event bus vs. Actions.** `EventBus` is a session-scoped, generic, type-safe bus for cross-system
+  notifications with several possible listeners: `SessionChanged` (HUD projection),
+  `RunCompleted` (currency settlement) and `CurrencyBalanceChanged` (balance HUD). Commands with one
+  known owner are direct interface calls (`session.BeginSpin()`, `TryRevive()`, …). Local button
+  clicks (`UIButton.Clicked`, `FeedbackView.RestartRequested`, …) and animation-completion
+  callbacks stay as `Action`/`UnityAction` delegates, because they have a single, nearby listener.
+- **Data-driven content.** Zone rule assets define matching (interval, range), priority, wheel, bomb
+  policy, leave permission and strip visuals. Gameplay and UI resolve zones through the same core
+  `ZoneRules` (`ZoneCatalog` adds the asset visuals), including the "next safe/super zone" maps.
+  Rewards carry explicit fields: category asset (display order), showcase flag, zone availability,
+  amount scaling, icon scale and optional currency. IDs only identify content. New rewards, wheel
+  tiers, zone types, categories and currencies are new assets; no code changes are needed.
+  Invalid data (unknown reward IDs, empty pool entries, uncovered or ambiguous zones) is rejected.
+- **Animation profiles.** Every tween reads its durations, delays, easing, scales, alphas and tints
+  from ScriptableObject profiles validated with `[Min]`/`[Range]`: `WheelSpinAnimation`,
+  `WheelTransitionAnimation`, `ZoneStripAnimation`, `RewardFlyAnimation`, `RewardListAnimation`,
+  `ShowcaseAnimation` and `PanelAnimation`.
+- **Economy.** `CurrencyWallet` supports any number of currencies with checked credit and spend;
+  insufficient funds leave the balance untouched. `PlayerPrefsCurrencyStore` is a local demo
+  adapter, not a tamper-resistant backend.
+
+### Listener lifecycle
+
+- `GameCompositionRoot` composes the session in `Start` and then binds listeners. Every later
+  `OnEnable`/`OnDisable` binds or unbinds them. The first `OnEnable` runs before composition, so it
+  skips binding. Every binding is idempotent, and the event bus also ignores duplicate handlers.
+- Views pair their own button and event subscriptions in `OnEnable`/`OnDisable` (`UIButton`,
+  `FeedbackView`, `ResultsView`, `CurrencyHudView`, `JackpotShowcaseView`,
+  `RewardPresentationController`). PlayMode tests cover repeated enable/disable cycles.
+- Every tween is linked to its owner with `SetLink(gameObject)` and killed on disable/destroy.
+  Callbacks are named methods. Runtime resources (the loss-dim material, generated vignette
+  textures) are destroyed when no longer needed.
+
+### UI
+
+- Canvas Scaler **Scale With Screen Size / Expand** (1920×1080 reference), TextMeshPro everywhere,
+  and no persistent inspector `OnClick` calls; buttons register listeners in code.
+- Sliced images use sprites with nonzero 9-slice borders; simple images preserve aspect.
+- Modal panels (loss, results, showcase, top-up) hide and disable the HUD and the wheel, then restore
+  their previous state.
+- Names go from general to specific with a type token (`ui_image_rewards_background`); `_value`
+  marks exactly the elements that change at runtime.
+- Reward rows, result tiles, wheel slots and flying icons are pooled instances of authored prefabs.
+
+## Tests
+
+**122 test cases: 102 EditMode + 20 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
+
+- **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super zones
+  while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb slot
+  selection; reward-pool progression; state input gating and stale-completion rejection; revive
+  pricing, limits and insufficient funds; currency spending and persistence; event bus subscription
+  semantics; zone rule resolution and next-zone lookup; scene and prefab contracts (naming, sliced
+  borders, aspect, broken references, Canvas Scaler, TextMeshPro, persistent calls, modal HUD
+  coverage).
+- **PlayMode** (`Assets/_Game/Tests/PlayMode`): repeated enable/disable of buttons, modals and
+  rows; cancelled transitions and presentations that never advance the flow; pooled slot reuse
+  across zones; vignette resource release; loss and top-up panels; single-use reward completion.
+
+Run them from Window > General > Test Runner.
+
+## Tech
+
+- **Unity 6000.3.23f1**, URP 2D, Input System, TextMeshPro, Sprite Atlas
 - **DOTween** (vendored under `Assets/Plugins/Demigiant`)
-- **TextMeshPro**
-- **Sprite Atlas** for UI/icon batching
-- **Input System** (UI module wired for the new input handler)
+- `com.coplaydev.unity-mcp` is an editor-only development tool pinned to a fixed commit; the game
+  does not depend on it.
 
-The project opens directly — dependencies are vendored, no extra package installs required.
-
----
-
-## 📦 Build & release
-
-- Platform: **Android** (Min SDK 25, ARM64)
-- The latest `.apk` is attached to the **GitHub Releases** section of this repository.
-
-> Build from Unity: `File ▸ Build Settings ▸ Android ▸ Build`, or via the CLI with `-executeMethod`.
-
----
-
-## 🧱 Project structure
+### Project structure
 
 ```
-Assets/
-├─ _Game/
-│  ├─ Scripts/
-│  │  ├─ Core/     → framework-free gameplay (state machine, zone rules, wallet, wheel model) + asmdef
-│  │  ├─ Data/     → ScriptableObjects + factory bridging data → core
-│  │  ├─ Game/     → GameController (composition root)
-│  │  ├─ UI/       → HUD, feedback, results, rewards list, showcase
-│  │  ├─ Wheel/    → wheel layout + spin animation
-│  │  └─ Editor/   → editor tooling (atlas builder, reward categorizer)
-│  ├─ Data/        → GameConfig, Zones, Wheels, RewardPools, Rewards (ScriptableObjects)
-│  ├─ Prefabs/     → wheel slice, reward row, zone node
-│  ├─ Art/         → UI sprite atlases
-│  ├─ Audio/       → SFX
-│  ├─ Scenes/      → Game.unity
-│  └─ Tests/       → EditMode unit tests
-├─ Art/            → source sprites (UI + icon atlases)
-├─ Plugins/        → DOTween
-└─ TextMesh Pro/
+Assets/_Game/
+├─ Scripts/
+│  ├─ Core/    → Unity-independent gameplay assembly (session states, rules, wallets, event bus)
+│  ├─ Data/    → ScriptableObject definitions, animation profiles, ZoneCatalog, WheelTierFactory
+│  ├─ Game/    → composition root, presenters, input controller, dev/editor helpers
+│  ├─ UI/      → HUD, loss panel, results, rewards list, showcase, currency HUD
+│  ├─ Wheel/   → wheel layout, spinner, transition, tick sound
+│  └─ Editor/  → atlas builder, reward metadata validator
+├─ Data/       → game config, zone rules, wheels, pools, rewards, categories, currencies, animations
+├─ Prefabs/    → wheel slice, reward row, result tile, fly icon, zone node
+├─ Scenes/     → Game.unity
+└─ Tests/      → EditMode and PlayMode suites
 ```
 
----
+## Build
 
-## 🏗️ Architecture
+- Platform: **Android** (Min SDK 25, ARM64, IL2CPP)
+- Build from File > Build Profiles > Android > Build; `Game.unity` is the only scene in the build.
 
-The codebase is split so gameplay logic is **testable without Unity** and the views stay thin.
-
-- **`Vertigo.WheelOfFortune.Core`** — a pure-C# assembly with no `UnityEngine` dependency:
-  `GameSession` (state objects for ready, spinning, reward presentation, zone transition,
-  loss, and completion), `ZoneClassifier`,
-  `RewardWallet`, `ZoneWheel`/`ZoneWheelBuilder`, and an `IRandomSource` abstraction so
-  randomness is deterministic and injectable.
-- **ScriptableObjects** drive all content: `GameConfiguration`, `ZoneConfiguration`,
-  `ZoneRuleDefinition`, `WheelDefinition` (weighted reward pools with code-controlled bomb placement), `RewardPool`, `RewardDefinition`.
-  Designers tune everything from the inspector; runtime state never lives in assets.
-- **Data-defined zones:** rule assets configure interval/range matching, priority, wheel,
-  bomb policy, leave permission, and progress-strip visuals. Gameplay receives immutable core
-  rule snapshots; the strip and authored map entries resolve the same asset rules. There is no
-  fixed zone-type enum or UI-specific safe/super modulo logic. Default intervals remain 5/30,
-  with super priority; conflicting highest priorities and uncovered zones are rejected.
-- **`WheelTierFactory`** adapts the ScriptableObject data to the core (`IZoneWheelFactory`) —
-  a clean seam between configuration and simulation.
-- **SOLID**: single-responsibility components, dependency injection into `GameSession`
-  (`IRandomSource`, `IZoneWheelFactory`), interface-driven randomness, and views that depend on a
-  facade (`GameScreenView`) rather than on each other.
-- **UI wiring in code**: button listeners are registered in `OnEnable` (no inspector `OnClick`),
-  and references auto-resolve in `OnValidate`, so prefabs/scenes stay self-healing.
-- **DOTween** powers the wheel spin (spin + magnetic spring snap), reward fly-to-slot, zone-bar
-  slide, and panel fades; the outcome is decided *before* the animation so the result can never change.
-- **Session notifications** use an instance-scoped, generic `IEventBus`, with paired subscriptions
-  in the controller lifecycle. Button signals and individual animation completions retain local
-  delegates; commands use direct method calls rather than broadcast events.
-- **One flow owner:** `GameSession` gates input through state behavior and invokes
-  `ISessionPresentation` operations. Completion callbacks advance the flow; versioned, single-use
-  callbacks ignore obsolete/duplicate completions after reset. There is no `SessionPhase` enum
-  or separate set of controller transition/showcase flow flags.
-- **Reward presentation ownership:** `RewardPresentationController` implements
-  `IRewardPresentation` and owns showcase dismissal, flight targeting, and completion.
-  It pairs showcase subscriptions in `OnEnable`/`OnDisable`, cancels owned flights on
-  disable/destruction, and drops cancelled callbacks without advancing the session.
-- **Authored showcase:** serialized widgets replace runtime hierarchy repair. Its animation
-  asset configures fade, pop and flash rotation. Dismissal completes after fade-out; cancellation
-  is silent, and the modal hides/disables the HUD then restores its previous state.
-- **Results modal lifecycle:** results share the HUD snapshot helper, preserve previously disabled
-  controls, keep the input barrier through fade-out, and cancel tweens/restore the HUD on disable.
-- **Reward catalogue projection:** `RewardCatalogPresenter` owns session-local content lookup and
-  reusable, stable category-sorted reward rows, separate from controller composition and flow.
-- **Session presentation:** `SessionPresenter` implements the core presentation boundary and owns
-  spin/reward/zone completion callbacks, loss/results display and cancellation. `GameController`
-   composes these collaborators and wires input rather than implementing presentation itself.
-   HUD/screen commands, button interactability and spin playback use interfaces; the screen
-   facade retains ownership of serialized child widgets instead of exposing them to presenters.
-- **HUD and wheel projection:** `SessionHudPresenter` maps session capabilities to HUD controls;
-  `WheelVisualPresenter` supplies the shared live/incoming/editor wheel-rendering path. Wheel
-  layouts retain typed slice slots and reuse them across zone changes.
-- **Authored zone nodes:** the progress strip uses serialized node/background/frame/text
-  references. It neither discovers components nor creates or repairs hierarchy at runtime;
-  changing the visible window size requires updating its authored node array.
-- **Persistent currency** is separate from run loot. Authored currency references on reward assets
-  determine which balances are credited on successful cash-out/completion. `CurrencyWallet`
-  supports multiple currencies and checked credit/spend operations; insufficient funds cause no
-  balance change. The local demo adapter uses PlayerPrefs, not a tamper-resistant backend.
-
-### UI notes
-
-- **Canvas: Scale With Screen Size / Expand** (reference 1920×1080) with anchored layouts, so the
-  UI is safe across **20:9, 16:9 and 4:3**.
-- TextMeshPro throughout; changeable elements are suffixed `_value`; naming goes root → specific
-  (`ui_image_spin_silver`).
-- Decorative images have **Raycast Target** disabled; frames use **sliced** sprites.
-
----
-
-## ✅ Tests
-
-Edit-mode unit tests cover zone classification, the wallet, wheel building and the full game
-session state machine:
-
-```
-Assets/_Game/Tests/EditMode/GameplayTests.cs
-Assets/_Game/Tests/EditMode/EventBusTests.cs
-Assets/_Game/Tests/EditMode/CurrencyWalletTests.cs
-Assets/_Game/Tests/EditMode/SessionFlowTests.cs
-Assets/_Game/Tests/EditMode/ZoneRuleTests.cs
-Assets/_Game/Tests/EditMode/RewardPresentationTests.cs
-Assets/_Game/Tests/EditMode/ZoneProgressBarTests.cs
-Assets/_Game/Tests/EditMode/RewardAmountFormatterTests.cs
-Assets/_Game/Tests/EditMode/ResultsPoolTests.cs
-
-103 EditMode test cases total (including presenter interface boundaries, scene/prefab naming, sprite, broken-reference,
-Canvas Scaler, TextMeshPro and persistent-button-call contracts)
-17 PlayMode test cases total (button/modal/feedback/vignette/reward-row lifecycle, modal handoff, session presentation cancellation, zone transitions, live wheel slot reuse, revive offers, placeholder top-up behavior, ordinary rewards without toasts and scrollable recovery preview)
-```
-
-Run them from **Window ▸ General ▸ Test Runner ▸ EditMode**, or via the CLI with `-runTests`.
-
----
-
-## 👤 Author
+## Author
 
 **Semih B. Ceylan**
-
-<!-- Built for the Vertigo Games — Game Developer case study. -->
