@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
 
 namespace Vertigo.WheelOfFortune.Data
@@ -12,9 +11,9 @@ namespace Vertigo.WheelOfFortune.Data
     {
         #region Serialized Values
 
-        [SerializeField, Min(1), FormerlySerializedAs("startingZone")] private int _startingZone = 1;
+        [SerializeField, Min(1)] private int _startingZone = 1;
         [Tooltip("The run completes after this zone. Zero means endless.")]
-        [SerializeField, Min(0), FormerlySerializedAs("finalZone")] private int _finalZone = 60;
+        [SerializeField, Min(0)] private int _finalZone = 60;
         [SerializeField] private ZoneRuleDefinition[] _zoneRules = new ZoneRuleDefinition[0];
 
         #endregion

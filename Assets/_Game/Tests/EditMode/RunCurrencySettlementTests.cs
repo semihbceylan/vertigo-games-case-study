@@ -68,7 +68,7 @@ namespace Vertigo.WheelOfFortune.Tests
         }
 
         [Test]
-        public void BombAndRewardNotificationsNeverDepositAtRiskRewards()
+        public void StateChangesBeforeCompletionNeverDepositAtRiskRewards()
         {
             var events = new EventBus();
             var rewards = new RewardWallet();
@@ -76,9 +76,9 @@ namespace Vertigo.WheelOfFortune.Tests
             var settlement = new RunCurrencySettlement(events, rewards, wallet, new Resolver());
             settlement.Subscribe();
             rewards.Add(new RewardGrant("coins", 100));
-            events.Publish(new RewardCollected(new RewardGrant("coins", 100)));
+            events.Publish(new SessionChanged());
             rewards.Clear();
-            events.Publish(new BombHit(1));
+            events.Publish(new SessionChanged());
             Assert.AreEqual(0, wallet.GetBalance("gold"));
         }
     }

@@ -21,6 +21,8 @@ namespace Vertigo.WheelOfFortune.Core
     /// <summary>Immutable slice layout for one zone.</summary>
     public sealed class ZoneWheel
     {
+        #region Slices
+
         private readonly WheelSlice[] _slices;
 
         public ZoneWheel(WheelSlice[] slices)
@@ -39,11 +41,16 @@ namespace Vertigo.WheelOfFortune.Core
                 int count = 0;
                 for (int i = 0; i < _slices.Length; i++)
                 {
-                    if (_slices[i].IsBomb) count++;
+                    if (_slices[i].IsBomb)
+                    {
+                        count++;
+                    }
                 }
                 return count;
             }
         }
+
+        #endregion
     }
 
     /// <summary>A weighted reward pool entry used to fill non-bomb slices.</summary>
@@ -73,10 +80,18 @@ namespace Vertigo.WheelOfFortune.Core
     /// </summary>
     public sealed class ZoneWheelBuilder
     {
+        #region Building
+
+        private const int NO_BOMB = -1;
+        private const int MINIMUM_SLICES = 1;
+        private const int FIRST_SLICE = 0;
+
         public ZoneWheel Build(int sliceCount, ZoneKind kind, IReadOnlyList<RewardPoolEntry> rewardPool, IRandomSource random)
         {
-            if (sliceCount < 1)
+            if (sliceCount < MINIMUM_SLICES)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sliceCount), "A wheel needs at least one slice.");
+            }
 
             if (random == null)
             {
@@ -104,7 +119,8 @@ namespace Vertigo.WheelOfFortune.Core
 
             var slices = new WheelSlice[sliceCount];
 
-            int bombIndex = ZoneClassifier.IsBombFree(kind) ? -1 : random.NextInt(0, sliceCount);
+            // The bomb slot is chosen in code for every normal wheel; authored data never places it.
+            int bombIndex = kind.IsBombFree ? NO_BOMB : random.NextInt(FIRST_SLICE, sliceCount);
 
             for (int i = 0; i < sliceCount; i++)
             {
@@ -121,7 +137,10 @@ namespace Vertigo.WheelOfFortune.Core
             double total = 0d;
             for (int i = 0; i < pool.Count; i++)
             {
-                if (pool[i].Weight > 0d) total += pool[i].Weight;
+                if (pool[i].Weight > 0d)
+                {
+                    total += pool[i].Weight;
+                }
             }
 
             double roll = random.NextDouble() * total;
@@ -130,11 +149,15 @@ namespace Vertigo.WheelOfFortune.Core
             {
                 accumulated += pool[i].Weight;
                 if (pool[i].Weight > 0d && roll < accumulated)
+                {
                     return new RewardGrant(pool[i].RewardId, pool[i].Amount);
+                }
             }
 
-            var last = pool[pool.Count - 1];
+            RewardPoolEntry last = pool[pool.Count - 1];
             return new RewardGrant(last.RewardId, last.Amount);
         }
+
+        #endregion
     }
 }

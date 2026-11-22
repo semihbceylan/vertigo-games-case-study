@@ -1,7 +1,6 @@
 using System;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.Wheel
@@ -25,7 +24,6 @@ namespace Vertigo.WheelOfFortune.Wheel
         private const float SPRING_DAMPING_FACTOR = 2f;
         private const float SIGN_PROBABILITY = 0.5f;
 
-        [FormerlySerializedAs("rotationTarget")]
         [SerializeField] private RectTransform _rotationTarget;
         [SerializeField] private WheelSpinAnimation _animation;
 
@@ -35,14 +33,6 @@ namespace Vertigo.WheelOfFortune.Wheel
         private float[] _samples;
 
         public bool IsSpinning { get; private set; }
-        public float SpinDuration { get { return _animation.Duration; } }
-        public RectTransform RotationTarget { get { return _rotationTarget; } }
-        public event Action SpinCompleted;
-
-        public void SetRotationTarget(RectTransform target)
-        {
-            _rotationTarget = target;
-        }
 
         #endregion
 
@@ -113,13 +103,18 @@ namespace Vertigo.WheelOfFortune.Wheel
             _tween = null;
             Action completion = _onComplete;
             _onComplete = null;
-            completion?.Invoke();
-            SpinCompleted?.Invoke();
+            if (completion != null)
+            {
+                completion();
+            }
         }
 
         public void CancelSpin()
         {
-            _tween?.Kill(false);
+            if (_tween != null)
+            {
+                _tween.Kill(false);
+            }
             _tween = null;
             _onComplete = null;
             IsSpinning = false;

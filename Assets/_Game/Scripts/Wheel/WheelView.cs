@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.Wheel
@@ -18,7 +17,7 @@ namespace Vertigo.WheelOfFortune.Wheel
         #region Serialized References
 
         [SerializeField] private WheelDiscView _disc;
-        [SerializeField, FormerlySerializedAs("wheelIndicator")] private Image _indicator;
+        [SerializeField] private Image _indicator;
 
         #endregion
 

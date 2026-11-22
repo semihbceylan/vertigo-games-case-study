@@ -5,6 +5,8 @@ namespace Vertigo.WheelOfFortune.UI
     /// <summary>Captures once per modal opening; repeated Show calls cannot overwrite the snapshot.</summary>
     public sealed class ModalHudVisibility
     {
+        #region Snapshot
+
         private readonly CanvasGroup[] _groups;
         private readonly State[] _states;
         private bool _isHidden;
@@ -55,5 +57,7 @@ namespace Vertigo.WheelOfFortune.UI
                 group.blocksRaycasts = _states[i].IsBlockingRaycasts;
             }
         }
+
+        #endregion
     }
 }

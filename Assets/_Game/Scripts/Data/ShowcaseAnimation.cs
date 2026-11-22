@@ -6,6 +6,8 @@ namespace Vertigo.WheelOfFortune.Data
     [CreateAssetMenu(menuName = "Wheel of Fortune/Animation/Showcase", fileName = "Animation_Showcase")]
     public sealed class ShowcaseAnimation : ScriptableObject
     {
+        #region Serialized Values
+
         [SerializeField, Min(0.01f)] private float _fadeDuration = 0.25f;
         [SerializeField, Min(0.01f)] private float _popDuration = 0.35f;
         [SerializeField, Min(0.01f)] private float _spinDuration = 14f;
@@ -18,6 +20,10 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField] private Ease _popEase = Ease.OutBack;
         [SerializeField] private Ease _spinEase = Ease.Linear;
 
+        #endregion
+
+        #region Accessors
+
         public float FadeDuration { get { return _fadeDuration; } }
         public float PopDuration { get { return _popDuration; } }
         public float SpinDuration { get { return _spinDuration; } }
@@ -29,5 +35,7 @@ namespace Vertigo.WheelOfFortune.Data
         public Ease FadeEase { get { return _fadeEase; } }
         public Ease PopEase { get { return _popEase; } }
         public Ease SpinEase { get { return _spinEase; } }
+
+        #endregion
     }
 }

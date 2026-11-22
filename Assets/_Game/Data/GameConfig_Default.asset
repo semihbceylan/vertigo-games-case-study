@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd7210f57ced24b1c823a5cae0ca3a91, type: 3}
   m_Name: GameConfig_Default
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.GameConfiguration
-  zones: {fileID: 11400000, guid: 3f5a981da05de4cc999dc7acc216f4d5, type: 2}
-  deterministicRandom: 0
-  randomSeed: 12345
+  _zones: {fileID: 11400000, guid: 3f5a981da05de4cc999dc7acc216f4d5, type: 2}
+  _isDeterministicRandom: 0
+  _randomSeed: 12345
   _reviveCurrency: {fileID: 11400000, guid: 9bcaf9b749a2a4d4794cc60bebcd892e, type: 2}
   _reviveBaseCost: 100
   _reviveCostPerZone: 25

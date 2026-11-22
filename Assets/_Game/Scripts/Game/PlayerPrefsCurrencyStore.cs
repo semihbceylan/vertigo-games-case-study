@@ -8,6 +8,8 @@ namespace Vertigo.WheelOfFortune.Game
     /// <summary>Local demo persistence, not an authoritative or tamper-resistant economy backend.</summary>
     public sealed class PlayerPrefsCurrencyStore : ICurrencyStore
     {
+        #region Persistence
+
         private const string KEY_PREFIX = "wheel.currency.v1.";
 
         public long Load(string currencyId)
@@ -34,5 +36,7 @@ namespace Vertigo.WheelOfFortune.Game
             PlayerPrefs.SetString(KEY_PREFIX + currencyId, balance.ToString(CultureInfo.InvariantCulture));
             PlayerPrefs.Save();
         }
+
+        #endregion
     }
 }

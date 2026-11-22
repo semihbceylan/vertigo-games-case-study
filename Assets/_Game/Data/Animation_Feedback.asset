@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: Animation_Feedback
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.PanelAnimation
   _fadeDuration: 0.25
-  _holdDuration: 1.1
   _visibleAlpha: 1
   _hiddenAlpha: 0
   _fadeEase: 6

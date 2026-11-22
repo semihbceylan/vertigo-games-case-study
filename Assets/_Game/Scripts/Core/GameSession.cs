@@ -93,7 +93,7 @@ namespace Vertigo.WheelOfFortune.Core
         public ZoneWheel CurrentWheel { get; private set; }
         public int PendingSliceIndex { get; private set; }
         public long BankedTotal { get; private set; }
-        public ZoneKind CurrentZoneKind { get { return ZoneClassifier.Classify(Zone, _rules); } }
+        public ZoneKind CurrentZoneKind { get { return _rules.Resolve(Zone); } }
         public bool CanSpin { get { return _state.CanSpin; } }
         public bool CanLeave { get { return _state.CanLeave; } }
         public bool CanRestart { get { return _state.CanRestart; } }
@@ -326,7 +326,6 @@ namespace Vertigo.WheelOfFortune.Core
             {
                 RewardGrant grant = Session.CurrentWheel[Session.PendingSliceIndex].Reward;
                 Session.Wallet.Add(grant);
-                Session.Events.Publish(new RewardCollected(grant));
                 if (Session._presentation == null)
                 {
                     Session.AdvanceAfterReward();
@@ -344,7 +343,6 @@ namespace Vertigo.WheelOfFortune.Core
 
             public override void Enter()
             {
-                Session.Events.Publish(new ZoneAdvanced(Session.Zone));
                 if (Session._presentation == null)
                 {
                     Session.FinishZoneTransition();
@@ -388,14 +386,12 @@ namespace Vertigo.WheelOfFortune.Core
 
             public override void Enter()
             {
-                Session.Events.Publish(new BombHit(Session.Zone));
                 Session._presentation?.ShowLoss(Session.Zone);
             }
 
             public override void Restart()
             {
                 Session.StartNewRun();
-                Session.Events.Publish(new RunRestarted());
             }
         }
 
@@ -408,7 +404,6 @@ namespace Vertigo.WheelOfFortune.Core
             public override void Restart()
             {
                 Session.StartNewRun();
-                Session.Events.Publish(new RunRestarted());
             }
 
             public override void Enter()

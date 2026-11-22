@@ -14,15 +14,23 @@ namespace Vertigo.WheelOfFortune.EditorTools
     /// </summary>
     public static class SpriteAtlasBuilder
     {
-        private const string ArtFolder = "Assets/_Game/Art";
-        private const string UiSourceFolder = "Assets/Art";
-        private const string IconSourceFolder = "Assets/Art/Icons";
+        #region Atlas Building
+
+        private const string ART_FOLDER = "Assets/_Game/Art";
+        private const string UI_SOURCE_FOLDER = "Assets/Art";
+        private const string ICON_SOURCE_FOLDER = "Assets/Art/Icons";
+        private const string GAME_FOLDER = "Assets/_Game";
+        private const string ART_FOLDER_NAME = "Art";
+        private const string UI_ATLAS_PATH = ART_FOLDER + "/UI_Atlas.spriteatlas";
+        private const string ICON_ATLAS_PATH = ART_FOLDER + "/Icons_Atlas.spriteatlas";
+        /// <summary>Texels between packed sprites so bilinear sampling never bleeds neighbours.</summary>
+        private const int ATLAS_PADDING = 2;
 
         [MenuItem("Tools/Wheel of Fortune/Rebuild Sprite Atlases")]
         public static void Rebuild()
         {
-            if (!AssetDatabase.IsValidFolder(ArtFolder))
-                AssetDatabase.CreateFolder("Assets/_Game", "Art");
+            if (!AssetDatabase.IsValidFolder(ART_FOLDER))
+                AssetDatabase.CreateFolder(GAME_FOLDER, ART_FOLDER_NAME);
 
             BuildUiAtlas();
             BuildIconAtlas();
@@ -36,15 +44,15 @@ namespace Vertigo.WheelOfFortune.EditorTools
         {
             // Top-level UI sprites only; the Icons subfolder has its own atlas.
             var sources = new List<Object>();
-            AddSpritesFromTopLevel(UiSourceFolder, sources);
-            CreateAtlas(ArtFolder + "/UI_Atlas.spriteatlas", sources);
+            AddSpritesFromTopLevel(UI_SOURCE_FOLDER, sources);
+            CreateAtlas(UI_ATLAS_PATH, sources);
         }
 
         private static void BuildIconAtlas()
         {
             var sources = new List<Object>();
-            AddFolder(IconSourceFolder, sources);
-            CreateAtlas(ArtFolder + "/Icons_Atlas.spriteatlas", sources);
+            AddFolder(ICON_SOURCE_FOLDER, sources);
+            CreateAtlas(ICON_ATLAS_PATH, sources);
         }
 
         private static void AddSpritesFromTopLevel(string folder, List<Object> into)
@@ -56,14 +64,20 @@ namespace Vertigo.WheelOfFortune.EditorTools
             {
                 string assetPath = files[i].Replace('\\', '/');
                 var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-                if (sprite != null) into.Add(sprite);
+                if (sprite)
+                {
+                    into.Add(sprite);
+                }
             }
         }
 
         private static void AddFolder(string folder, List<Object> into)
         {
             var obj = AssetDatabase.LoadAssetAtPath<Object>(folder);
-            if (obj != null) into.Add(obj);
+            if (obj)
+            {
+                into.Add(obj);
+            }
         }
 
         private static void CreateAtlas(string path, List<Object> sources)
@@ -72,7 +86,7 @@ namespace Vertigo.WheelOfFortune.EditorTools
 
             atlas.SetPackingSettings(new SpriteAtlasPackingSettings
             {
-                padding = 2,
+                padding = ATLAS_PADDING,
                 enableRotation = false,
                 enableTightPacking = false,
                 enableAlphaDilation = false
@@ -89,12 +103,14 @@ namespace Vertigo.WheelOfFortune.EditorTools
             if (sources.Count > 0)
                 SpriteAtlasExtensions.Add(atlas, sources.ToArray());
 
-            if (AssetDatabase.LoadAssetAtPath<SpriteAtlas>(path) != null)
+            if (AssetDatabase.LoadAssetAtPath<SpriteAtlas>(path))
                 AssetDatabase.DeleteAsset(path);
 
             AssetDatabase.CreateAsset(atlas, path);
             EditorUtility.SetDirty(atlas);
         }
+
+        #endregion
     }
 }
 #endif

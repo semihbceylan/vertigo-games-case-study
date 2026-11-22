@@ -6,6 +6,8 @@ namespace Vertigo.WheelOfFortune.Data
     [CreateAssetMenu(menuName = "Wheel of Fortune/Animation/Reward Fly", fileName = "Animation_RewardFly")]
     public sealed class RewardFlyAnimation : ScriptableObject
     {
+        #region Serialized Values
+
         [SerializeField, Min(1f)] private float _iconSize = 120f;
         [SerializeField, Min(0.01f)] private float _popDuration = 0.16f;
         [SerializeField, Min(0.01f)] private float _flyDuration = 0.55f;
@@ -16,6 +18,10 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField] private Ease _flyEase = Ease.InQuad;
         [SerializeField] private Ease _scaleEase = Ease.InQuad;
 
+        #endregion
+
+        #region Accessors
+
         public float IconSize { get { return _iconSize; } }
         public float PopDuration { get { return _popDuration; } }
         public float FlyDuration { get { return _flyDuration; } }
@@ -25,5 +31,7 @@ namespace Vertigo.WheelOfFortune.Data
         public Ease PopEase { get { return _popEase; } }
         public Ease FlyEase { get { return _flyEase; } }
         public Ease ScaleEase { get { return _scaleEase; } }
+
+        #endregion
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
 
@@ -20,7 +19,6 @@ namespace Vertigo.WheelOfFortune.UI
     {
         #region Configuration
 
-        [FormerlySerializedAs("flyLayer")]
         [SerializeField] private RectTransform _flyLayer;
         [SerializeField] private Canvas _canvas;
         [SerializeField] private RewardFlyAnimation _animation;

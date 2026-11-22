@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.Wheel
@@ -21,20 +20,20 @@ namespace Vertigo.WheelOfFortune.Wheel
         private const int MINIMUM_SLICES = 1;
         private const string SLOT_NAME_PREFIX = "ui_panel_wheel_slice_";
 
-        [SerializeField, FormerlySerializedAs("slicesRoot")] private RectTransform _slicesRoot;
-        [SerializeField, FormerlySerializedAs("slotPrefab")] private WheelSliceView _slotPrefab;
+        [SerializeField] private RectTransform _slicesRoot;
+        [SerializeField] private WheelSliceView _slotPrefab;
 
         [Header("Radial Layout")]
-        [SerializeField, Range(0f, FULL_CIRCLE_DEGREES), FormerlySerializedAs("startAngle")] private float _startAngle;
+        [SerializeField, Range(0f, FULL_CIRCLE_DEGREES)] private float _startAngle;
         [Tooltip("Distance from the wheel centre to each icon, in canvas units.")]
-        [SerializeField, Min(0f), FormerlySerializedAs("radius")] private float _radius = 177.5f;
-        [SerializeField, Min(1f), FormerlySerializedAs("iconSize")] private float _slotSize = 56f;
+        [SerializeField, Min(0f)] private float _radius = 177.5f;
+        [SerializeField, Min(1f)] private float _slotSize = 56f;
         [Tooltip("Measured offset of the socket ring from the rotation centre, in canvas units.")]
-        [SerializeField, FormerlySerializedAs("socketCenterOffset")] private Vector2 _socketCenterOffset = new Vector2(-1.7f, -0.5f);
+        [SerializeField] private Vector2 _socketCenterOffset = new Vector2(-1.7f, -0.5f);
         [Tooltip("Rotate each slot so its up-axis points away from the centre.")]
-        [SerializeField, FormerlySerializedAs("orientRadially")] private bool _isOrientedRadially = true;
+        [SerializeField] private bool _isOrientedRadially = true;
         [Tooltip("Base icon size of reward slices; each reward multiplies it by its own icon scale.")]
-        [SerializeField, Min(0.01f), FormerlySerializedAs("standardIconScale")] private float _rewardIconScale = 1.3f;
+        [SerializeField, Min(0.01f)] private float _rewardIconScale = 1.3f;
 
         private readonly List<WheelSliceView> _slots = new List<WheelSliceView>();
         private int _sliceCount;

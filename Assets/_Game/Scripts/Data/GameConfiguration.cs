@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
 
 namespace Vertigo.WheelOfFortune.Data
@@ -14,10 +13,10 @@ namespace Vertigo.WheelOfFortune.Data
     {
         #region Serialized Values
 
-        [SerializeField, FormerlySerializedAs("zones")] private ZoneConfiguration _zones;
+        [SerializeField] private ZoneConfiguration _zones;
         [Tooltip("Use a fixed seed so runs (and the editor preview) are reproducible.")]
-        [SerializeField, FormerlySerializedAs("deterministicRandom")] private bool _isDeterministicRandom;
-        [SerializeField, FormerlySerializedAs("randomSeed")] private int _randomSeed = 12345;
+        [SerializeField] private bool _isDeterministicRandom;
+        [SerializeField] private int _randomSeed = 12345;
 
         [Header("Revive")]
         [SerializeField] private CurrencyDefinition _reviveCurrency;

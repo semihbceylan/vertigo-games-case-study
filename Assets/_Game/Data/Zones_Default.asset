@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb09efae3471a482c88e9ba7ad586b65, type: 3}
   m_Name: Zones_Default
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.ZoneConfiguration
-  startingZone: 1
-  finalZone: 60
+  _startingZone: 1
+  _finalZone: 60
   _zoneRules:
   - {fileID: 11400000, guid: 879330bfd4ce444f87352cf8d2fdf259, type: 2}
   - {fileID: 11400000, guid: 54ea2bc2558349db9443909e8d754843, type: 2}

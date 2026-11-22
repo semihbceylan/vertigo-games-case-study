@@ -6,6 +6,8 @@ namespace Vertigo.WheelOfFortune.Data
     [CreateAssetMenu(menuName = "Wheel of Fortune/Animation/Reward List", fileName = "Animation_RewardList")]
     public sealed class RewardListAnimation : ScriptableObject
     {
+        #region Serialized Values
+
         [SerializeField, Min(0f)] private float _shiftDuration = 0.3f;
         [SerializeField] private Ease _shiftEase = Ease.OutCubic;
         [SerializeField, Min(0f)] private float _appearDuration = 0.25f;
@@ -18,6 +20,10 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField, Min(1)] private int _punchVibrato = 8;
         [SerializeField, Range(0f, 1f)] private float _punchElasticity = 0.6f;
 
+        #endregion
+
+        #region Accessors
+
         public float ShiftDuration { get { return _shiftDuration; } }
         public Ease ShiftEase { get { return _shiftEase; } }
         public float AppearDuration { get { return _appearDuration; } }
@@ -29,5 +35,7 @@ namespace Vertigo.WheelOfFortune.Data
         public float PunchDuration { get { return _punchDuration; } }
         public int PunchVibrato { get { return _punchVibrato; } }
         public float PunchElasticity { get { return _punchElasticity; } }
+
+        #endregion
     }
 }

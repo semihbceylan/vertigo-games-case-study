@@ -21,7 +21,7 @@ namespace Vertigo.WheelOfFortune.Game
 
         [SerializeField] private JackpotShowcaseView _showcaseView;
         [SerializeField] private RewardsListView _rewardsListView;
-        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("_rewardFly")] private RewardFlyAnimator _rewardFlyView;
+        [SerializeField] private RewardFlyAnimator _rewardFlyView;
         [SerializeField] private WheelLayout _wheelLayout;
 
         #endregion

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -28,23 +27,23 @@ namespace Vertigo.WheelOfFortune.UI
         private static readonly Vector2 SPRITE_PIVOT = new Vector2(0.5f, 0.5f);
         private const string GENERATED_NAME = "ui_vignette_generated";
 
-        [SerializeField, FormerlySerializedAs("target")] private Image _target;
+        [SerializeField] private Image _target;
 
         [Header("Look")]
-        [SerializeField, FormerlySerializedAs("color")] private Color _color = Color.black;
+        [SerializeField] private Color _color = Color.black;
         [Tooltip("How dark the edges get. 0 = invisible, 1 = fully opaque at the edge.")]
-        [SerializeField, Range(0f, 1f), FormerlySerializedAs("intensity")] private float _intensity = 0.85f;
+        [SerializeField, Range(0f, 1f)] private float _intensity = 0.85f;
         [Tooltip("How far the clear region reaches sideways. Smaller values darken the left/right more.")]
-        [SerializeField, Min(MINIMUM_SOFTNESS), FormerlySerializedAs("horizontalRadius")] private float _horizontalRadius = 0.6f;
+        [SerializeField, Min(MINIMUM_SOFTNESS)] private float _horizontalRadius = 0.6f;
         [Tooltip("How far the clear region reaches vertically. Larger than the horizontal radius keeps the top/bottom lighter.")]
-        [SerializeField, Min(MINIMUM_SOFTNESS), FormerlySerializedAs("verticalRadius")] private float _verticalRadius = 1f;
+        [SerializeField, Min(MINIMUM_SOFTNESS)] private float _verticalRadius = 1f;
         [Tooltip("Distance from the centre where the darkening starts.")]
-        [SerializeField, Range(0f, 2f), FormerlySerializedAs("clearRadius")] private float _clearRadius = 0.6f;
+        [SerializeField, Range(0f, 2f)] private float _clearRadius = 0.6f;
         [Tooltip("Width of the fade between the clear centre and the dark edge.")]
-        [SerializeField, Range(MINIMUM_SOFTNESS, 2f), FormerlySerializedAs("softness")] private float _softness = 0.6f;
+        [SerializeField, Range(MINIMUM_SOFTNESS, 2f)] private float _softness = 0.6f;
 
         [Header("Quality")]
-        [SerializeField, Range(MINIMUM_RESOLUTION, MAXIMUM_RESOLUTION), FormerlySerializedAs("resolution")] private int _resolution = 256;
+        [SerializeField, Range(MINIMUM_RESOLUTION, MAXIMUM_RESOLUTION)] private int _resolution = 256;
 
         private Texture2D _texture;
         private Sprite _sprite;

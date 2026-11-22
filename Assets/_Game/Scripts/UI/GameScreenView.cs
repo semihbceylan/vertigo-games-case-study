@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -15,14 +14,14 @@ namespace Vertigo.WheelOfFortune.UI
     {
         #region Serialized References
 
-        [SerializeField, FormerlySerializedAs("zoneBar")] private ZoneProgressBar _zoneBar;
-        [SerializeField, FormerlySerializedAs("zoneMaps")] private ZoneMapsView _zoneMaps;
-        [SerializeField, FormerlySerializedAs("rewardsList")] private RewardsListView _rewardsList;
-        [SerializeField, FormerlySerializedAs("leaveButton")] private UIButton _leaveButton;
-        [SerializeField, FormerlySerializedAs("restartButton")] private UIButton _restartButton;
-        [SerializeField, FormerlySerializedAs("feedback")] private FeedbackView _feedback;
-        [SerializeField, FormerlySerializedAs("results")] private ResultsView _results;
-        [SerializeField, FormerlySerializedAs("showcase")] private JackpotShowcaseView _showcase;
+        [SerializeField] private ZoneProgressBar _zoneBar;
+        [SerializeField] private ZoneMapsView _zoneMaps;
+        [SerializeField] private RewardsListView _rewardsList;
+        [SerializeField] private UIButton _leaveButton;
+        [SerializeField] private UIButton _restartButton;
+        [SerializeField] private FeedbackView _feedback;
+        [SerializeField] private ResultsView _results;
+        [SerializeField] private JackpotShowcaseView _showcase;
 
         #endregion
 

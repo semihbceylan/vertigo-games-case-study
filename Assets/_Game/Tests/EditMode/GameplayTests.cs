@@ -64,7 +64,7 @@ namespace Vertigo.WheelOfFortune.Tests
 
     // ---- zone classification ----
 
-    public sealed class ZoneClassifierTests
+    public sealed class ZoneRuleResolutionTests
     {
         private static readonly ZoneRules Rules = TestZones.CreateRules();
 
@@ -72,36 +72,45 @@ namespace Vertigo.WheelOfFortune.Tests
         [TestCase(2)]
         [TestCase(4)]
         [TestCase(7)]
-        public void NormalZones(int zone) => Assert.AreEqual(TestZones.Normal, ZoneClassifier.Classify(zone, Rules));
+        public void NormalZones(int zone)
+        {
+            Assert.AreEqual(TestZones.Normal, Rules.Resolve(zone));
+        }
 
         [TestCase(5)]
         [TestCase(10)]
         [TestCase(25)]
-        public void EveryFifthZoneIsSafe(int zone) => Assert.AreEqual(TestZones.Safe, ZoneClassifier.Classify(zone, Rules));
+        public void EveryFifthZoneIsSafe(int zone)
+        {
+            Assert.AreEqual(TestZones.Safe, Rules.Resolve(zone));
+        }
 
         [TestCase(30)]
         [TestCase(60)]
         [TestCase(90)]
-        public void EveryThirtiethZoneIsSuper(int zone) => Assert.AreEqual(TestZones.Super, ZoneClassifier.Classify(zone, Rules));
+        public void EveryThirtiethZoneIsSuper(int zone)
+        {
+            Assert.AreEqual(TestZones.Super, Rules.Resolve(zone));
+        }
 
         [Test]
         public void SuperTakesPrecedenceOverSafe()
         {
-            Assert.AreEqual(TestZones.Super, ZoneClassifier.Classify(30, Rules));
+            Assert.AreEqual(TestZones.Super, Rules.Resolve(30));
         }
 
         [Test]
         public void InvalidZoneThrows()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => ZoneClassifier.Classify(0, Rules));
+            Assert.Throws<ArgumentOutOfRangeException>(() => Rules.Resolve(0));
         }
 
         [Test]
         public void SafeAndSuperAreBombFree()
         {
-            Assert.IsTrue(ZoneClassifier.IsBombFree(TestZones.Safe));
-            Assert.IsTrue(ZoneClassifier.IsBombFree(TestZones.Super));
-            Assert.IsFalse(ZoneClassifier.IsBombFree(TestZones.Normal));
+            Assert.IsTrue(TestZones.Safe.IsBombFree);
+            Assert.IsTrue(TestZones.Super.IsBombFree);
+            Assert.IsFalse(TestZones.Normal.IsBombFree);
         }
     }
 
@@ -133,19 +142,6 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.AreEqual(0, wallet.AccumulatedAmount);
             Assert.IsTrue(wallet.IsEmpty);
             Assert.AreEqual(0, wallet.Totals.Count);
-        }
-
-        [Test]
-        public void ChangedFiresOnAddAndClear()
-        {
-            var wallet = new RewardWallet();
-            int events = 0;
-            wallet.Changed += () => events++;
-
-            wallet.Add(new RewardGrant("gold", 1));
-            wallet.Clear();
-
-            Assert.AreEqual(2, events);
         }
     }
 
@@ -374,7 +370,7 @@ namespace Vertigo.WheelOfFortune.Tests
             session.ResolvePendingSpin(); // zone 1 (Normal) -> zone 2, wallet = 10
 
             Assert.AreEqual(2, session.Zone);
-            Assert.IsFalse(ZoneClassifier.IsBombFree(session.CurrentZoneKind));
+            Assert.IsFalse(session.CurrentZoneKind.IsBombFree);
             Assert.IsFalse(session.CanLeave);
             Assert.Throws<InvalidOperationException>(() => session.Leave());
             Assert.AreEqual(0, session.BankedTotal);

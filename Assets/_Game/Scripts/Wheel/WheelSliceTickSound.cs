@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Vertigo.WheelOfFortune.Wheel
 {
@@ -12,12 +11,12 @@ namespace Vertigo.WheelOfFortune.Wheel
     {
         #region Configuration and Runtime
 
-        [SerializeField, FormerlySerializedAs("rotationTarget")] private RectTransform _rotationTarget;
-        [SerializeField, FormerlySerializedAs("wheelLayout")] private WheelLayout _wheelLayout;
-        [SerializeField, FormerlySerializedAs("wheelSpinner")] private WheelSpinner _wheelSpinner;
-        [SerializeField, FormerlySerializedAs("audioSource")] private AudioSource _audioSource;
-        [SerializeField, FormerlySerializedAs("clickClip")] private AudioClip _clickClip;
-        [SerializeField, Range(0f, 1f), FormerlySerializedAs("volume")] private float _volume = 0.8f;
+        [SerializeField] private RectTransform _rotationTarget;
+        [SerializeField] private WheelLayout _wheelLayout;
+        [SerializeField] private WheelSpinner _wheelSpinner;
+        [SerializeField] private AudioSource _audioSource;
+        [SerializeField] private AudioClip _clickClip;
+        [SerializeField, Range(0f, 1f)] private float _volume = 0.8f;
         [Tooltip("Minimum rotation since the last tick, in degrees, so a boundary hovering under the pointer cannot repeat.")]
         [SerializeField, Min(0f)] private float _minimumTickTravel = 2f;
 
@@ -26,9 +25,6 @@ namespace Vertigo.WheelOfFortune.Wheel
         private int _lastTickStep;
         private float _lastTickUnwrappedAngle;
         private bool _isTracking;
-
-        /// <summary>How many boundary crossings have been detected (useful for testing).</summary>
-        public int TickCount { get; private set; }
 
         #endregion
 
@@ -84,7 +80,6 @@ namespace Vertigo.WheelOfFortune.Wheel
 
         private void PlayTick()
         {
-            TickCount++;
             _audioSource.PlayOneShot(_clickClip, _volume);
         }
 

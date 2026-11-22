@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
 
 namespace Vertigo.WheelOfFortune.Data
@@ -35,20 +34,20 @@ namespace Vertigo.WheelOfFortune.Data
         #region Serialized Values
 
         [Header("Art")]
-        [SerializeField, FormerlySerializedAs("baseSprite")] private Sprite _baseSprite;
-        [SerializeField, FormerlySerializedAs("indicatorSprite")] private Sprite _indicatorSprite;
-        [SerializeField, FormerlySerializedAs("bombSprite")] private Sprite _bombSprite;
+        [SerializeField] private Sprite _baseSprite;
+        [SerializeField] private Sprite _indicatorSprite;
+        [SerializeField] private Sprite _bombSprite;
         [Tooltip("Bomb icon size relative to the slot.")]
         [SerializeField, Min(0.01f)] private float _bombIconScale = 1.5f;
 
         [Header("Slices")]
-        [SerializeField, Min(2), FormerlySerializedAs("sliceCount")] private int _sliceCount = 8;
+        [SerializeField, Min(2)] private int _sliceCount = 8;
         [Tooltip("Weighted pool used when no progression bands are configured.")]
-        [SerializeField, FormerlySerializedAs("rewardPool")] private RewardPool _rewardPool;
+        [SerializeField] private RewardPool _rewardPool;
         [Tooltip("Optional progression bands. Exactly one band must match each playable zone when configured.")]
         [SerializeField] private RewardPoolBand[] _rewardPoolBands = new RewardPoolBand[0];
         [Tooltip("Reward amounts grow by this fraction for every zone above the first.")]
-        [SerializeField, Min(0f), FormerlySerializedAs("amountScalePerZone")] private float _amountScalePerZone = 0.1f;
+        [SerializeField, Min(0f)] private float _amountScalePerZone = 0.1f;
 
         #endregion
 

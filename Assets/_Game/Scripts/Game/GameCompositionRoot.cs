@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
 using Vertigo.WheelOfFortune.Data;
 using Vertigo.WheelOfFortune.UI;
@@ -17,15 +16,15 @@ namespace Vertigo.WheelOfFortune.Game
     {
         #region Serialized References
 
-        [SerializeField, FormerlySerializedAs("configuration")] private GameConfiguration _configuration;
-        [SerializeField, FormerlySerializedAs("wheelView")] private WheelView _wheelView;
-        [SerializeField, FormerlySerializedAs("wheelSpinner")] private WheelSpinner _wheelSpinner;
-        [SerializeField, FormerlySerializedAs("screen")] private GameScreenView _screen;
+        [SerializeField] private GameConfiguration _configuration;
+        [SerializeField] private WheelView _wheelView;
+        [SerializeField] private WheelSpinner _wheelSpinner;
+        [SerializeField] private GameScreenView _screen;
         [SerializeField] private FeedbackView _lossPanel;
         [SerializeField] private ResultsView _results;
-        [SerializeField, FormerlySerializedAs("spinButton")] private SpinButton _spinButton;
-        [SerializeField, FormerlySerializedAs("leaveButton")] private UIButton _leaveButton;
-        [SerializeField, FormerlySerializedAs("restartButton")] private UIButton _restartButton;
+        [SerializeField] private SpinButton _spinButton;
+        [SerializeField] private UIButton _leaveButton;
+        [SerializeField] private UIButton _restartButton;
         [SerializeField] private RewardPresentationController _rewardPresentation;
         [SerializeField] private WheelTransitionController _wheelTransitionController;
         [SerializeField] private CurrencyHudView _currencyHud;

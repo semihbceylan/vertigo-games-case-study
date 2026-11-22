@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Vertigo.WheelOfFortune.Core
@@ -9,10 +8,11 @@ namespace Vertigo.WheelOfFortune.Core
     /// </summary>
     public sealed class RewardWallet
     {
+        #region Run Rewards
+
         private readonly List<RewardGrant> _grants = new List<RewardGrant>();
         private readonly Dictionary<string, long> _totals = new Dictionary<string, long>();
 
-        public event Action Changed;
 
         public IReadOnlyList<RewardGrant> Grants { get { return _grants; } }
         public IReadOnlyDictionary<string, long> Totals { get { return _totals; } }
@@ -29,18 +29,20 @@ namespace Vertigo.WheelOfFortune.Core
             _totals[grant.RewardId] = current + grant.Amount;
             AccumulatedAmount += grant.Amount;
 
-            Changed?.Invoke();
         }
 
         public void Clear()
         {
-            if (_grants.Count == 0 && AccumulatedAmount == 0) return;
+            if (_grants.Count == 0 && AccumulatedAmount == 0)
+            {
+                return;
+            }
 
             _grants.Clear();
             _totals.Clear();
             AccumulatedAmount = 0;
-
-            Changed?.Invoke();
         }
+
+        #endregion
     }
 }

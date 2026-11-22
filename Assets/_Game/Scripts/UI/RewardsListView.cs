@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -36,9 +35,9 @@ namespace Vertigo.WheelOfFortune.UI
 
         private const string ROW_NAME_PREFIX = "ui_panel_reward_row_";
 
-        [SerializeField, FormerlySerializedAs("content")] private RectTransform _content;
+        [SerializeField] private RectTransform _content;
         [Tooltip("Optional label shown while the list is empty.")]
-        [SerializeField, FormerlySerializedAs("emptyLabel")] private TMP_Text _emptyLabel;
+        [SerializeField] private TMP_Text _emptyLabel;
         [SerializeField] private RewardRowView _rowPrefab;
         [SerializeField, Min(1)] private int _poolCapacity = 32;
         [SerializeField] private RewardListAnimation _animation;

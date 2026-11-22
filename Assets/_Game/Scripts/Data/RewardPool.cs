@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Vertigo.WheelOfFortune.Data
 {
@@ -8,8 +7,8 @@ namespace Vertigo.WheelOfFortune.Data
     [Serializable]
     public struct RewardPoolItem
     {
-        [FormerlySerializedAs("reward")] public RewardDefinition Reward;
-        [Min(0f), FormerlySerializedAs("weight")] public float Weight;
+        public RewardDefinition Reward;
+        [Min(0f)] public float Weight;
     }
 
     /// <summary>
@@ -21,7 +20,7 @@ namespace Vertigo.WheelOfFortune.Data
     {
         #region Serialized Values
 
-        [SerializeField, FormerlySerializedAs("entries")] private RewardPoolItem[] _entries = new RewardPoolItem[0];
+        [SerializeField] private RewardPoolItem[] _entries = new RewardPoolItem[0];
 
         #endregion
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
 
@@ -25,13 +24,13 @@ namespace Vertigo.WheelOfFortune.UI
         private const float HALF_EXTENT = 0.5f;
         private const int SINGLE_REVIVE = 1;
 
-        [SerializeField, FormerlySerializedAs("group")] private CanvasGroup _group;
+        [SerializeField] private CanvasGroup _group;
 
         [Header("Death card")]
-        [SerializeField, FormerlySerializedAs("deathScreen")] private RectTransform _deathScreen;
-        [SerializeField, FormerlySerializedAs("deathTitle")] private TMP_Text _deathTitle;
-        [SerializeField, FormerlySerializedAs("deathIcon")] private Image _deathIcon;
-        [SerializeField, FormerlySerializedAs("actionButton")] private UIButton _restartButton;
+        [SerializeField] private RectTransform _deathScreen;
+        [SerializeField] private TMP_Text _deathTitle;
+        [SerializeField] private Image _deathIcon;
+        [SerializeField] private UIButton _restartButton;
         [SerializeField] private TMP_Text _actionLabel;
         [SerializeField] private UIButton _reviveButton;
         [SerializeField] private TMP_Text _reviveLabel;
@@ -43,12 +42,12 @@ namespace Vertigo.WheelOfFortune.UI
 
         [Header("Death spotlight")]
         [Tooltip("Full-screen dim with rounded cut-outs (uses the UI Dim Cutout shader).")]
-        [SerializeField, FormerlySerializedAs("dimOverlay")] private Image _dimOverlay;
+        [SerializeField] private Image _dimOverlay;
         [Tooltip("Red damage vignette shown with the death screen.")]
         [SerializeField] private Image _damageGlow;
         [Tooltip("Rects the dim leaves clear (the rewards pane and the death card).")]
-        [SerializeField, FormerlySerializedAs("spotlightA")] private RectTransform _spotlightA;
-        [SerializeField, FormerlySerializedAs("spotlightB")] private RectTransform _spotlightB;
+        [SerializeField] private RectTransform _spotlightA;
+        [SerializeField] private RectTransform _spotlightB;
 
         [Header("Copy")]
         [SerializeField] private string _lossTitle = "OH NO, A BOMB EXPLODED RIGHT IN YOUR HANDS!";

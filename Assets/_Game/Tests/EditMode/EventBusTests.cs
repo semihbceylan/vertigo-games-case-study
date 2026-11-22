@@ -3,6 +3,26 @@ using Vertigo.WheelOfFortune.Core;
 
 namespace Vertigo.WheelOfFortune.Tests
 {
+    internal readonly struct TestEventA
+    {
+        public readonly int Value;
+
+        public TestEventA(int value)
+        {
+            Value = value;
+        }
+    }
+
+    internal readonly struct TestEventB
+    {
+        public readonly int Value;
+
+        public TestEventB(int value)
+        {
+            Value = value;
+        }
+    }
+
     public sealed class EventBusTests
     {
         private EventBus _bus;
@@ -18,28 +38,28 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void PublishesOnlyToMatchingMessageType()
         {
-            _bus.Subscribe<BombHit>(OnBombHit);
-            _bus.Publish(new ZoneAdvanced(5));
+            _bus.Subscribe<TestEventA>(OnTestEventA);
+            _bus.Publish(new TestEventB(5));
             Assert.AreEqual(0, _received);
-            _bus.Publish(new BombHit(3));
+            _bus.Publish(new TestEventA(3));
             Assert.AreEqual(3, _received);
         }
 
         [Test]
         public void DuplicateSubscriptionDoesNotDuplicateDelivery()
         {
-            _bus.Subscribe<BombHit>(OnBombHit);
-            _bus.Subscribe<BombHit>(OnBombHit);
-            _bus.Publish(new BombHit(1));
+            _bus.Subscribe<TestEventA>(OnTestEventA);
+            _bus.Subscribe<TestEventA>(OnTestEventA);
+            _bus.Publish(new TestEventA(1));
             Assert.AreEqual(1, _received);
         }
 
         [Test]
         public void UnsubscribeStopsDelivery()
         {
-            _bus.Subscribe<BombHit>(OnBombHit);
-            _bus.Unsubscribe<BombHit>(OnBombHit);
-            _bus.Publish(new BombHit(1));
+            _bus.Subscribe<TestEventA>(OnTestEventA);
+            _bus.Unsubscribe<TestEventA>(OnTestEventA);
+            _bus.Publish(new TestEventA(1));
             Assert.AreEqual(0, _received);
         }
 
@@ -48,9 +68,9 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             for (int i = 0; i < 5; i++)
             {
-                _bus.Subscribe<BombHit>(OnBombHit);
-                _bus.Publish(new BombHit(1));
-                _bus.Unsubscribe<BombHit>(OnBombHit);
+                _bus.Subscribe<TestEventA>(OnTestEventA);
+                _bus.Publish(new TestEventA(1));
+                _bus.Unsubscribe<TestEventA>(OnTestEventA);
             }
             Assert.AreEqual(5, _received);
         }
@@ -58,29 +78,29 @@ namespace Vertigo.WheelOfFortune.Tests
         [Test]
         public void InstancesDoNotShareSubscribers()
         {
-            _bus.Subscribe<BombHit>(OnBombHit);
-            new EventBus().Publish(new BombHit(1));
+            _bus.Subscribe<TestEventA>(OnTestEventA);
+            new EventBus().Publish(new TestEventA(1));
             Assert.AreEqual(0, _received);
         }
 
         [Test]
         public void SubscriptionChangesDuringPublishApplyToNextMessage()
         {
-            _bus.Subscribe<BombHit>(RemoveListener);
-            _bus.Subscribe<BombHit>(OnBombHit);
-            _bus.Publish(new BombHit(1));
-            _bus.Publish(new BombHit(1));
+            _bus.Subscribe<TestEventA>(RemoveListener);
+            _bus.Subscribe<TestEventA>(OnTestEventA);
+            _bus.Publish(new TestEventA(1));
+            _bus.Publish(new TestEventA(1));
             Assert.AreEqual(1, _received);
         }
 
-        private void OnBombHit(BombHit message)
+        private void OnTestEventA(TestEventA message)
         {
-            _received += message.Zone;
+            _received += message.Value;
         }
 
-        private void RemoveListener(BombHit message)
+        private void RemoveListener(TestEventA message)
         {
-            _bus.Unsubscribe<BombHit>(OnBombHit);
+            _bus.Unsubscribe<TestEventA>(OnTestEventA);
         }
     }
 }

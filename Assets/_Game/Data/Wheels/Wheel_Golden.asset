@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9726957a73bc4522ababe1d88441989, type: 3}
   m_Name: Wheel_Golden
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.WheelDefinition
-  baseSprite: {fileID: 21300000, guid: ca3241108076046acb8b8a04c23acaad, type: 3}
-  indicatorSprite: {fileID: 21300000, guid: 75985c7c7a0b243b19f08dd98cf31eda, type: 3}
-  bombSprite: {fileID: 21300000, guid: e459f28875db840678b323d274ca70df, type: 3}
-  sliceCount: 8
-  rewardPool: {fileID: 11400000, guid: 0ace64056e93e4dde94c2a8979844133, type: 2}
-  amountScalePerZone: 0.08
+  _baseSprite: {fileID: 21300000, guid: ca3241108076046acb8b8a04c23acaad, type: 3}
+  _indicatorSprite: {fileID: 21300000, guid: 75985c7c7a0b243b19f08dd98cf31eda, type: 3}
+  _bombSprite: {fileID: 21300000, guid: e459f28875db840678b323d274ca70df, type: 3}
+  _bombIconScale: 1.5
+  _sliceCount: 8
+  _rewardPool: {fileID: 11400000, guid: 0ace64056e93e4dde94c2a8979844133, type: 2}
+  _rewardPoolBands: []
+  _amountScalePerZone: 0.08

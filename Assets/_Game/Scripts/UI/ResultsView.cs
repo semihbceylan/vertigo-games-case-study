@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
 
@@ -20,10 +19,10 @@ namespace Vertigo.WheelOfFortune.UI
         private const float SCROLL_START = 0f;
         private const string TILE_NAME_PREFIX = "ui_panel_result_reward_";
 
-        [SerializeField, FormerlySerializedAs("group")] private CanvasGroup _group;
-        [SerializeField, FormerlySerializedAs("content")] private RectTransform _content;
-        [SerializeField, FormerlySerializedAs("scroll")] private ScrollRect _scroll;
-        [SerializeField, FormerlySerializedAs("restartButton")] private UIButton _restartButton;
+        [SerializeField] private CanvasGroup _group;
+        [SerializeField] private RectTransform _content;
+        [SerializeField] private ScrollRect _scroll;
+        [SerializeField] private UIButton _restartButton;
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
         [SerializeField] private ResultTileView _tilePrefab;
         [SerializeField, Min(1)] private int _poolCapacity = 32;

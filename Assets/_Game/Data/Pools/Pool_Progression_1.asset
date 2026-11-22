@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2129bca42a89a435b9f615f11083d7b8, type: 3}
   m_Name: Pool_Progression_1
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.RewardPool
-  entries:
-  - reward: {fileID: 11400000, guid: ac6c03ec8baae45dbaf4adb811eba725, type: 2}
-    weight: 1
-  - reward: {fileID: 11400000, guid: 33e5bfe5ec4fb48a0b37d47b636c9627, type: 2}
-    weight: 1
-  - reward: {fileID: 11400000, guid: e7038acc699d34eafa47eb0b284f7a05, type: 2}
-    weight: 1
-  - reward: {fileID: 11400000, guid: 849af7d77dd114aaf8f508492a87398f, type: 2}
-    weight: 1
-  - reward: {fileID: 11400000, guid: 85c2255006e654faeb52687e2aafc567, type: 2}
-    weight: 1
-  - reward: {fileID: 11400000, guid: 0bdd6ebcb7deb471cbec67ffbdea3fab, type: 2}
-    weight: 1
+  _entries:
+  - Reward: {fileID: 11400000, guid: ac6c03ec8baae45dbaf4adb811eba725, type: 2}
+    Weight: 1
+  - Reward: {fileID: 11400000, guid: 33e5bfe5ec4fb48a0b37d47b636c9627, type: 2}
+    Weight: 1
+  - Reward: {fileID: 11400000, guid: e7038acc699d34eafa47eb0b284f7a05, type: 2}
+    Weight: 1
+  - Reward: {fileID: 11400000, guid: 849af7d77dd114aaf8f508492a87398f, type: 2}
+    Weight: 1
+  - Reward: {fileID: 11400000, guid: 85c2255006e654faeb52687e2aafc567, type: 2}
+    Weight: 1
+  - Reward: {fileID: 11400000, guid: 0bdd6ebcb7deb471cbec67ffbdea3fab, type: 2}
+    Weight: 1

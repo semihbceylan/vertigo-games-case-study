@@ -2,7 +2,6 @@ using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
 
@@ -25,9 +24,9 @@ namespace Vertigo.WheelOfFortune.UI
         private const float CENTRE_OFFSET = 0.5f;
 
         [Header("Window")]
-        [SerializeField, Min(1), FormerlySerializedAs("visibleNodes")] private int _visibleNodes = 13;
+        [SerializeField, Min(1)] private int _visibleNodes = 13;
         [Tooltip("Index within the window where the current zone sits. Set to the middle to centre it.")]
-        [SerializeField, Min(0), FormerlySerializedAs("currentSlot")] private int _currentSlot = 6;
+        [SerializeField, Min(0)] private int _currentSlot = 6;
         [Tooltip("Horizontal gap between neighbouring nodes, in canvas units.")]
         [SerializeField, Min(0f)] private float _nodeSpacing = 6f;
         [Tooltip("Zone number font size as a fraction of the bar height.")]
@@ -35,12 +34,12 @@ namespace Vertigo.WheelOfFortune.UI
 
         [Header("Current Zone Card")]
         [Tooltip("Border frame drawn around the current zone card.")]
-        [SerializeField, FormerlySerializedAs("currentZoneFrame")] private Sprite _currentZoneFrame;
+        [SerializeField] private Sprite _currentZoneFrame;
         [SerializeField] private ZoneStripAnimation _animation;
 
         [SerializeField] private Node[] _nodes = new Node[0];
         [Tooltip("Editor preview only: the strip is rendered at this configuration's starting zone.")]
-        [SerializeField, FormerlySerializedAs("_configuration")] private ZoneConfiguration _previewConfiguration;
+        [SerializeField] private ZoneConfiguration _previewConfiguration;
 
         private int _displayedZone = NO_DISPLAYED_ZONE;
         private int _transitionZone;

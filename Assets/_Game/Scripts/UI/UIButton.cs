@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -15,7 +14,7 @@ namespace Vertigo.WheelOfFortune.UI
     {
         #region Serialized References
 
-        [SerializeField, FormerlySerializedAs("button")] private Button _button;
+        [SerializeField] private Button _button;
 
         #endregion
 

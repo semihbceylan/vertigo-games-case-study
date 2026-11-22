@@ -50,6 +50,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 281fc59dd4614d72a99f7dbd583a62bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Wheel.WheelSliceView
+  _rect: {fileID: 4254270573417855141}
   _icon: {fileID: 91100123061664301}
   _amount: {fileID: 3960899669163255508}
 --- !u!1 &7255599291027186354
