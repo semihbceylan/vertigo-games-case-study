@@ -9,27 +9,35 @@ namespace Vertigo.WheelOfFortune.UI
 {
     /// <summary>Authored modal reward showcase. Completion is emitted only after dismissal finishes.</summary>
     [DisallowMultipleComponent]
-    public sealed class JackpotShowcaseView : MonoBehaviour
+    public sealed class JackpotShowcaseView : MonoBehaviour, IRewardShowcase
     {
+        #region Configuration and Runtime
+
+        /// <summary>DOTween loop count meaning "repeat until killed".</summary>
+        private const int INFINITE_LOOPS = -1;
+
         [SerializeField] private CanvasGroup _group;
         [SerializeField] private Button _dismissButton;
         [SerializeField] private Image _flash;
         [SerializeField] private Image _bigIcon;
         [SerializeField] private TMP_Text _titleLabel;
         [SerializeField] private TMP_Text _amountLabel;
-        [SerializeField] private TMP_Text _hintLabel;
         [SerializeField] private ShowcaseAnimation _animation;
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
-        [SerializeField] private string _hintText = "TAP ANYWHERE TO CONTINUE";
-        [SerializeField] private string _fallbackTitle = "JACKPOT!";
-
-        public event Action Dismissed;
-        public bool IsShowing { get; private set; }
+        [Tooltip("{0} is the formatted reward amount.")]
+        [SerializeField] private string _amountFormat = "x{0}";
 
         private Tween _fade;
         private Tween _pop;
         private Tween _spin;
         private ModalHudVisibility _hudVisibility;
+        private bool _isShowing;
+
+        public event Action Dismissed;
+
+        #endregion
+
+        #region Lifecycle
 
         private void Awake()
         {
@@ -39,19 +47,23 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void OnEnable()
         {
-            if (_dismissButton) _dismissButton.onClick.AddListener(OnDismissClicked);
+            _dismissButton.onClick.AddListener(OnDismissClicked);
         }
 
         private void OnDisable()
         {
-            if (_dismissButton) _dismissButton.onClick.RemoveListener(OnDismissClicked);
+            _dismissButton.onClick.RemoveListener(OnDismissClicked);
             HideImmediate();
         }
 
         private void OnDestroy()
         {
-            HideImmediate();
+            KillTweens();
         }
+
+        #endregion
+
+        #region Showcase
 
         public void Show(Sprite icon, string label, long amount)
         {
@@ -61,10 +73,9 @@ namespace Vertigo.WheelOfFortune.UI
             _hudVisibility.Hide();
             _bigIcon.sprite = icon;
             _bigIcon.enabled = icon;
-            _titleLabel.text = string.IsNullOrEmpty(label) ? _fallbackTitle : label;
-            _amountLabel.text = "x" + RewardAmountFormatter.Format(amount);
-            _hintLabel.text = _hintText;
-            IsShowing = true;
+            _titleLabel.text = label;
+            _amountLabel.text = string.Format(_amountFormat, RewardAmountFormatter.Format(amount));
+            _isShowing = true;
             _group.blocksRaycasts = true;
             _group.interactable = true;
             _dismissButton.interactable = true;
@@ -76,13 +87,16 @@ namespace Vertigo.WheelOfFortune.UI
                 .SetEase(_animation.PopEase).SetUpdate(true).SetLink(gameObject);
             _flash.rectTransform.localRotation = Quaternion.identity;
             _spin = _flash.rectTransform.DORotate(_animation.SpinRotation, _animation.SpinDuration, RotateMode.FastBeyond360)
-                .SetLoops(-1, LoopType.Incremental).SetEase(_animation.SpinEase).SetUpdate(true).SetLink(gameObject);
+                .SetLoops(INFINITE_LOOPS, LoopType.Incremental).SetEase(_animation.SpinEase).SetUpdate(true).SetLink(gameObject);
         }
 
         public void Hide()
         {
-            if (!IsShowing) return;
-            IsShowing = false;
+            if (!_isShowing)
+            {
+                return;
+            }
+            _isShowing = false;
             KillTweens();
             _dismissButton.interactable = false;
             // Keep the modal raycast barrier and HUD isolation until the fade has finished.
@@ -93,10 +107,10 @@ namespace Vertigo.WheelOfFortune.UI
         /// <summary>Cancellation never raises Dismissed or advances the session.</summary>
         public void HideImmediate()
         {
-            IsShowing = false;
+            _isShowing = false;
             KillTweens();
             ApplyHiddenImmediate();
-            _hudVisibility?.Restore();
+            _hudVisibility.Restore();
         }
 
         private void OnDismissClicked()
@@ -109,37 +123,52 @@ namespace Vertigo.WheelOfFortune.UI
             _fade = null;
             ApplyHiddenImmediate();
             _hudVisibility.Restore();
-            Dismissed?.Invoke();
+            if (Dismissed != null)
+            {
+                Dismissed.Invoke();
+            }
         }
 
         private void KillTweens()
         {
-            _fade?.Kill(false);
-            _pop?.Kill(false);
-            _spin?.Kill(false);
+            KillTween(_fade);
+            KillTween(_pop);
+            KillTween(_spin);
             _fade = null;
             _pop = null;
             _spin = null;
         }
 
+        private static void KillTween(Tween tween)
+        {
+            if (tween != null)
+            {
+                tween.Kill(false);
+            }
+        }
+
         private void ApplyHiddenImmediate()
         {
-            if (!_group) return;
-            _group.alpha = _animation ? _animation.HiddenAlpha : 0f;
+            _group.alpha = _animation.HiddenAlpha;
             _group.blocksRaycasts = false;
             _group.interactable = false;
         }
 
+        #endregion
+
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
             if (!_group) _group = GetComponent<CanvasGroup>();
-            if (gameObject.activeInHierarchy && (!_group || !_dismissButton || !_flash || !_bigIcon ||
-                !_titleLabel || !_amountLabel || !_hintLabel || !_animation))
+            if (!_group || !_dismissButton || !_flash || !_bigIcon || !_titleLabel || !_amountLabel || !_animation)
             {
                 Debug.LogError("Showcase requires authored widget references and an animation profile.", this);
             }
         }
+
+        #endregion
 #endif
     }
 }

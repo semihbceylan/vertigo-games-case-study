@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Vertigo.WheelOfFortune.Core
 {
@@ -10,6 +11,8 @@ namespace Vertigo.WheelOfFortune.Core
     /// <summary>Session-scoped successful-run settlement. Does not control session progression.</summary>
     public sealed class RunCurrencySettlement
     {
+        #region Construction
+
         private readonly IEventBus _events;
         private readonly RewardWallet _rewards;
         private readonly ICurrencyWallet _currencies;
@@ -24,6 +27,11 @@ namespace Vertigo.WheelOfFortune.Core
             _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
         }
 
+        #endregion
+
+        #region Subscription
+
+        /// <summary>The event bus ignores duplicate handlers, so repeated enable cycles are safe.</summary>
         public void Subscribe()
         {
             _events.Subscribe<RunCompleted>(OnRunCompleted);
@@ -36,11 +44,16 @@ namespace Vertigo.WheelOfFortune.Core
 
         private void OnRunCompleted(RunCompleted message)
         {
-            foreach (var pair in _rewards.Totals)
+            foreach (KeyValuePair<string, long> pair in _rewards.Totals)
             {
                 string currencyId = _resolver.ResolveCurrencyId(pair.Key);
-                if (!string.IsNullOrEmpty(currencyId)) _currencies.Credit(currencyId, pair.Value);
+                if (!string.IsNullOrEmpty(currencyId))
+                {
+                    _currencies.Credit(currencyId, pair.Value);
+                }
             }
         }
+
+        #endregion
     }
 }

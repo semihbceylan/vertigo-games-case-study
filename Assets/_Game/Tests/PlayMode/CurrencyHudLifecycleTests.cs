@@ -36,13 +36,11 @@ namespace Vertigo.WheelOfFortune.Tests
             yield return SceneManager.LoadSceneAsync("Game");
             yield return null;
             Component view = Find("Vertigo.WheelOfFortune.UI.CurrencyHudView");
-            Component controller = Find("Vertigo.WheelOfFortune.Game.GameController");
+            Component controller = Find("Vertigo.WheelOfFortune.Game.GameCompositionRoot");
             Type type = view.GetType();
             object session = controller.GetType().GetField("_session", FIELDS).GetValue(controller);
             var balances = (CanvasGroup)type.GetField("_balancesGroup", FIELDS).GetValue(view);
             Assert.AreEqual(0f, balances.alpha);
-            controller.GetType().GetMethod("OnTopUpRequested", FIELDS).Invoke(controller, null);
-            Assert.IsFalse((bool)type.GetProperty("IsTopUpOpen").GetValue(view));
             session.GetType().GetMethod("BeginSpin").Invoke(session, null);
             object wheel = session.GetType().GetProperty("CurrentWheel").GetValue(session);
             int slices = (int)wheel.GetType().GetProperty("SliceCount").GetValue(wheel);
@@ -62,7 +60,7 @@ namespace Vertigo.WheelOfFortune.Tests
             var panel = (CanvasGroup)type.GetField("_topUpPanel", FIELDS).GetValue(view);
             for (int cycle = 0; cycle < 2; cycle++)
             {
-                controller.GetType().GetMethod("OnTopUpRequested", FIELDS).Invoke(controller, null);
+                type.GetMethod("OpenTopUp").Invoke(view, null);
                 Assert.IsTrue(panel.blocksRaycasts);
                 foreach (CanvasGroup hud in groups)
                 {
@@ -70,7 +68,8 @@ namespace Vertigo.WheelOfFortune.Tests
                     Assert.IsFalse(hud.interactable);
                     Assert.IsFalse(hud.blocksRaycasts);
                 }
-                controller.GetType().GetMethod("OnSpinClicked", FIELDS).Invoke(controller, null);
+                var spinButton = (Component)controller.GetType().GetField("_spinButton", FIELDS).GetValue(controller);
+                spinButton.GetComponent<Button>().onClick.Invoke();
                 Assert.IsTrue((bool)session.GetType().GetProperty("CanRestart").GetValue(session));
                 foreach (Button button in panel.GetComponentsInChildren<Button>(true))
                 {
@@ -97,15 +96,21 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             yield return SceneManager.LoadSceneAsync("Game");
             yield return null;
-            Component controller = Find("Vertigo.WheelOfFortune.Game.GameController");
+            Component controller = Find("Vertigo.WheelOfFortune.Game.GameCompositionRoot");
             object session = controller.GetType().GetField("_session", FIELDS).GetValue(controller);
             object wallet = session.GetType().GetProperty("Wallet").GetValue(session);
             MethodInfo add = wallet.GetType().GetMethod("Add");
             Type grantType = add.GetParameters()[0].ParameterType;
-            for (int i = 0; i < 20; i++)
+            // Fill the preview with real catalogue rewards so the list must scroll.
+            Type rewardType = Type.GetType("Vertigo.WheelOfFortune.Data.RewardDefinition, Assembly-CSharp", true);
+            int added = 0;
+            foreach (UnityEngine.Object reward in Resources.FindObjectsOfTypeAll(rewardType))
             {
-                add.Invoke(wallet, new[] { Activator.CreateInstance(grantType, "preview_" + i, 10L) });
+                string id = (string)rewardType.GetProperty("RewardId").GetValue(reward);
+                add.Invoke(wallet, new[] { Activator.CreateInstance(grantType, id, 10L) });
+                added++;
             }
+            Assert.Greater(added, 10);
             session.GetType().GetMethod("BeginSpin").Invoke(session, null);
             object wheel = session.GetType().GetProperty("CurrentWheel").GetValue(session);
             int count = (int)wheel.GetType().GetProperty("SliceCount").GetValue(wheel);
@@ -146,18 +151,18 @@ namespace Vertigo.WheelOfFortune.Tests
             yield return null;
             Component view = Find("Vertigo.WheelOfFortune.UI.FeedbackView");
             Type type = view.GetType();
-            type.GetMethod("ShowBanner").Invoke(view, new object[] { "Bomb", Color.white, null, "Restart" });
-            type.GetMethod("SetReviveOffer").Invoke(view, new object[] { true, 825L, 4 });
+            type.GetMethod("ShowLoss").Invoke(view, new object[] { null });
+            type.GetMethod("SetReviveOffer").Invoke(view, new object[] { 825L, 4 });
             var button = (Component)type.GetField("_reviveButton", FIELDS).GetValue(view);
             object label = type.GetField("_reviveLabel", FIELDS).GetValue(view);
             Assert.IsTrue(button.gameObject.activeSelf);
             Assert.IsTrue(button.GetComponent<Button>().interactable);
             Assert.AreEqual("825", Text(label));
-            type.GetMethod("ShowInsufficientGold").Invoke(view, null);
+            type.GetMethod("ShowInsufficientFunds").Invoke(view, null);
             object status = type.GetField("_reviveStatus", FIELDS).GetValue(view);
             Assert.AreEqual("Not enough gold — 4 revives remaining", Text(status));
             Assert.IsTrue(button.GetComponent<Button>().interactable);
-            type.GetMethod("SetReviveOffer").Invoke(view, new object[] { true, 825L, 0 });
+            type.GetMethod("SetReviveOffer").Invoke(view, new object[] { 825L, 0 });
             Assert.IsTrue(button.gameObject.activeSelf);
             Assert.IsFalse(button.GetComponent<Button>().interactable);
             StringAssert.Contains("limit reached", Text(status));

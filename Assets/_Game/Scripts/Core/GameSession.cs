@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Vertigo.WheelOfFortune.Core
 {
@@ -86,17 +87,17 @@ namespace Vertigo.WheelOfFortune.Core
         }
 
         public RewardWallet Wallet { get; }
-        public System.Collections.Generic.IReadOnlyDictionary<string, long> RecoverableRewards { get { return _recoverableRewards.Totals; } }
+        public IReadOnlyDictionary<string, long> RecoverableRewards { get { return _recoverableRewards.Totals; } }
         public IEventBus Events { get; }
         public int Zone { get; private set; }
         public ZoneWheel CurrentWheel { get; private set; }
         public int PendingSliceIndex { get; private set; }
         public long BankedTotal { get; private set; }
         public ZoneKind CurrentZoneKind { get { return ZoneClassifier.Classify(Zone, _rules); } }
-        public bool IsIdle { get { return _state.CanSpin; } }
         public bool CanSpin { get { return _state.CanSpin; } }
         public bool CanLeave { get { return _state.CanLeave; } }
         public bool CanRestart { get { return _state.CanRestart; } }
+        public bool IsLost { get { return _state.IsLost; } }
         public bool CanRevive { get { return _state.CanRevive; } }
         public int RevivesRemaining { get { return _revivePolicy == null ? 0 : _revivePolicy.MaxRevives - _revivesUsed; } }
         public long ReviveCost { get { return _revivePolicy == null ? 0 : _revivePolicy.GetCost(Zone); } }
@@ -210,10 +211,18 @@ namespace Vertigo.WheelOfFortune.Core
             public virtual bool CanLeave { get { return false; } }
             public virtual bool CanRestart { get { return false; } }
             public virtual bool CanRevive { get { return false; } }
-            public virtual bool TryRevive() { return false; }
+            public virtual bool IsLost { get { return false; } }
+
+            public virtual bool TryRevive()
+            {
+                return false;
+            }
+
             public virtual bool IsCompleted { get { return false; } }
             public virtual bool IsZoneTransitioning { get { return false; } }
-            public virtual void Enter() { }
+            public virtual void Enter()
+            {
+            }
 
             public virtual void BeginSpin()
             {
@@ -232,10 +241,12 @@ namespace Vertigo.WheelOfFortune.Core
 
             public virtual void Restart()
             {
-                throw new InvalidOperationException("Restart is only allowed after a loss.");
+                throw new InvalidOperationException("Restart is only allowed after the run has ended.");
             }
 
-            public virtual void JumpToZone(int zone) { }
+            public virtual void JumpToZone(int zone)
+            {
+            }
         }
 
         private sealed class ReadyState : SessionState
@@ -294,7 +305,10 @@ namespace Vertigo.WheelOfFortune.Core
                 if (Session.CurrentWheel[sliceIndex].IsBomb)
                 {
                     Session._recoverableRewards.Clear();
-                    foreach (RewardGrant grant in Session.Wallet.Grants) Session._recoverableRewards.Add(grant);
+                    foreach (RewardGrant grant in Session.Wallet.Grants)
+                    {
+                        Session._recoverableRewards.Add(grant);
+                    }
                     Session.Wallet.Clear();
                     Session.PendingSliceIndex = NO_PENDING_SLICE;
                     Session.ChangeState(Session._lost);
@@ -344,17 +358,27 @@ namespace Vertigo.WheelOfFortune.Core
         {
             public LostState(GameSession session) : base(session) { }
             public override bool CanRestart { get { return true; } }
+            public override bool IsLost { get { return true; } }
             public override bool CanRevive { get { return Session._currencies != null && Session._revivePolicy != null && Session.RevivesRemaining > 0; } }
 
             public override bool TryRevive()
             {
-                if (!CanRevive) return false;
+                if (!CanRevive)
+                {
+                    return false;
+                }
                 // Prepare content before charging so invalid configuration cannot consume gold.
                 ZoneWheel wheel = Session._factory.CreateWheel(Session.Zone, Session.CurrentZoneKind, Session._random);
-                if (!Session._currencies.TrySpend(Session._revivePolicy.CurrencyId, Session.ReviveCost)) return false;
+                if (!Session._currencies.TrySpend(Session._revivePolicy.CurrencyId, Session.ReviveCost))
+                {
+                    return false;
+                }
                 Session._revivesUsed++;
                 Session.CurrentWheel = wheel;
-                foreach (RewardGrant grant in Session._recoverableRewards.Grants) Session.Wallet.Add(grant);
+                foreach (RewardGrant grant in Session._recoverableRewards.Grants)
+                {
+                    Session.Wallet.Add(grant);
+                }
                 Session._recoverableRewards.Clear();
                 Session.PendingSliceIndex = NO_PENDING_SLICE;
                 Session._presentation?.Reset();
@@ -379,6 +403,13 @@ namespace Vertigo.WheelOfFortune.Core
         {
             public CompletedState(GameSession session) : base(session) { }
             public override bool IsCompleted { get { return true; } }
+            public override bool CanRestart { get { return true; } }
+
+            public override void Restart()
+            {
+                Session.StartNewRun();
+                Session.Events.Publish(new RunRestarted());
+            }
 
             public override void Enter()
             {

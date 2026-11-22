@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -22,367 +23,262 @@ namespace Vertigo.WheelOfFortune.UI
             Label = label;
             Amount = amount;
         }
-
-        public RewardRowData(Sprite icon, string label, long amount) : this(null, icon, label, amount) { }
     }
 
     /// <summary>
-    /// Builds and recycles reward rows at runtime so the accumulated rewards panel stays dynamic.
-    /// Rows are created in code (no prefab dependency) and pooled. Each row is keyed by reward id,
-    /// so when a new reward is inserted the rows below animate into their new slots.
+    /// Accumulated rewards panel. Rows are pooled instances of an authored prefab, keyed by reward
+    /// id, so when a reward is inserted the rows below ease into their new slots.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class RewardsListView : MonoBehaviour
+    public sealed class RewardsListView : MonoBehaviour, IRewardRowTargets
     {
-        [SerializeField] private RectTransform content;
-        [SerializeField] private TMP_Text emptyLabel;
-        [Tooltip("Optional row prefab. When set, rows are cloned from it instead of built in code.")]
+        #region Configuration and Runtime
+
+        private const string ROW_NAME_PREFIX = "ui_panel_reward_row_";
+
+        [SerializeField, FormerlySerializedAs("content")] private RectTransform _content;
+        [Tooltip("Optional label shown while the list is empty.")]
+        [SerializeField, FormerlySerializedAs("emptyLabel")] private TMP_Text _emptyLabel;
         [SerializeField] private RewardRowView _rowPrefab;
         [SerializeField, Min(1)] private int _poolCapacity = 32;
-        [SerializeField] private float rowHeight = 72f;
-        [SerializeField] private float iconSize = 56f;
-
         [SerializeField] private RewardListAnimation _animation;
 
-        private readonly Dictionary<string, RowWidgets> _active = new Dictionary<string, RowWidgets>();
-        private readonly List<RowWidgets> _pool = new List<RowWidgets>();
+        private readonly Dictionary<string, RewardRowView> _active = new Dictionary<string, RewardRowView>();
+        private readonly List<RewardRowView> _pool = new List<RewardRowView>();
         private readonly List<string> _retire = new List<string>();
+        private float _rowHeight;
+
+        #endregion
+
+        #region Lifecycle
 
         private void Awake()
         {
+            _rowHeight = _rowPrefab.Rect.rect.height;
             for (int i = 0; i < _poolCapacity; i++)
             {
-                RowWidgets row = CreateRow(content);
-                row.Root.SetActive(false);
+                RewardRowView row = Instantiate(_rowPrefab, _content, false);
+                row.gameObject.SetActive(false);
                 _pool.Add(row);
+            }
+        }
+
+        /// <summary>Settles interrupted rows so a re-enabled list never shows half-animated rows.</summary>
+        private void OnDisable()
+        {
+            foreach (KeyValuePair<string, RewardRowView> pair in _active)
+            {
+                RewardRowView row = pair.Value;
+                KillRowTweens(row);
+                row.Rect.localScale = Vector3.one;
+                row.Group.alpha = _animation.VisibleAlpha;
+                row.Icon.rectTransform.localScale = Vector3.one;
+            }
+            foreach (RewardRowView row in _pool)
+            {
+                KillRowTweens(row);
             }
         }
 
         private void OnDestroy()
         {
-            foreach (RowWidgets row in _pool) KillRowTweens(row);
-            foreach (var pair in _active) KillRowTweens(pair.Value);
-        }
-
-        private void OnDisable()
-        {
-            foreach (var pair in _active)
+            foreach (KeyValuePair<string, RewardRowView> pair in _active)
             {
-                RowWidgets row = pair.Value;
-                KillRowTweens(row);
-                row.Rect.localScale = Vector3.one;
-                if (row.Group) row.Group.alpha = _animation.VisibleAlpha;
-                if (row.Icon) row.Icon.rectTransform.localScale = Vector3.one;
+                KillRowTweens(pair.Value);
             }
-            foreach (RowWidgets row in _pool) KillRowTweens(row);
+            foreach (RewardRowView row in _pool)
+            {
+                KillRowTweens(row);
+            }
         }
 
-        private static void KillRowTweens(RowWidgets row)
+        private static void KillRowTweens(RewardRowView row)
         {
-            if (row.Rect) row.Rect.DOKill();
-            if (row.Group) row.Group.DOKill();
-            if (row.Icon) row.Icon.rectTransform.DOKill();
+            if (!row)
+            {
+                return;
+            }
+            row.Rect.DOKill();
+            row.Group.DOKill();
+            row.Icon.rectTransform.DOKill();
         }
 
-        /// <summary>The visible list rect, used as a fallback target for reward fly animations.</summary>
-        public RectTransform ListRect { get { return (RectTransform)transform; } }
+        #endregion
+
+        #region Fly Targets
+
+        /// <summary>The visible list rect, used as the target when a reward's row does not exist yet.</summary>
+        public RectTransform ListRect
+        {
+            get { return (RectTransform)transform; }
+        }
 
         /// <summary>True when an active row for <paramref name="id"/> exists; returns its icon rect.</summary>
         public bool TryGetRowIcon(string id, out RectTransform icon)
         {
             icon = null;
-            if (string.IsNullOrEmpty(id)) return false;
-            if (!_active.TryGetValue(id, out var row) || row == null || row.Icon == null) return false;
-            if (row.Root == null || !row.Root.activeSelf) return false;
-
-            icon = (RectTransform)row.Icon.transform;
+            RewardRowView row;
+            if (string.IsNullOrEmpty(id) || !_active.TryGetValue(id, out row) || !row.gameObject.activeSelf)
+            {
+                return false;
+            }
+            icon = row.Icon.rectTransform;
             return true;
         }
 
-        /// <summary>Plays a short scale punch on a row's icon (e.g. when a flown reward lands).</summary>
+        /// <summary>Plays a short scale punch on a row's icon when a flown reward lands.</summary>
         public void PunchRow(string id)
         {
-            if (!TryGetRowIcon(id, out var icon)) return;
+            RectTransform icon;
+            if (!TryGetRowIcon(id, out icon))
+            {
+                return;
+            }
             icon.DOKill();
             icon.localScale = Vector3.one;
             icon.DOPunchScale(Vector3.one * _animation.PunchScale, _animation.PunchDuration,
                 _animation.PunchVibrato, _animation.PunchElasticity).SetUpdate(true).SetLink(gameObject);
         }
 
-        /// <summary>
-        /// World position the icon of the row at <paramref name="index"/> will occupy. Lets a reward
-        /// be flown to its final slot before that row exists (first time a reward type is earned).
-        /// Mirrors the layout used by <see cref="CreateRow"/> / <see cref="CreateRowFromPrefab"/>:
-        /// rows sit at y = -index * rowHeight and the icon is inset from the row's left edge.
-        /// Targets the icon's pivot (its left edge), matching <see cref="TryGetRowIcon"/> so repeat
-        /// and first-time rewards land in the same spot.
-        /// </summary>
-        public bool TryGetSlotIconWorldPosition(int index, out Vector3 worldPosition)
-        {
-            var parent = content != null ? content : (RectTransform)transform;
-            var rect = parent.rect;
+        #endregion
 
-            const float iconLeftInset = 6f;
-            float x = rect.xMin + iconLeftInset;
-            float y = rect.yMax - index * rowHeight - rowHeight * 0.5f;
-
-            worldPosition = parent.TransformPoint(new Vector3(x, y, 0f));
-            return true;
-        }
-
-        private sealed class RowWidgets
-        {
-            public GameObject Root;
-            public RectTransform Rect;
-            public Image Icon;
-            public TMP_Text Amount;
-            public CanvasGroup Group;
-        }
+        #region Rows
 
         public void SetRows(IReadOnlyList<RewardRowData> data)
         {
-            int count = data?.Count ?? 0;
-
-            RetireMissingRows(data, count);
+            int count = data.Count;
+            RetireMissingRows(data);
 
             for (int i = 0; i < count; i++)
             {
-                var row = data[i];
-                string id = string.IsNullOrEmpty(row.Id) ? "row_" + i : row.Id;
-
-                bool isNew = !_active.TryGetValue(id, out var widgets);
+                RewardRowData rowData = data[i];
+                RewardRowView row;
+                bool isNew = !_active.TryGetValue(rowData.Id, out row);
                 if (isNew)
                 {
-                    widgets = Acquire(id);
-                    _active[id] = widgets;
+                    row = Acquire(rowData.Id);
+                    _active[rowData.Id] = row;
                 }
 
-                widgets.Root.SetActive(true);
-                if (widgets.Icon != null) widgets.Icon.sprite = row.Icon;
-                if (widgets.Amount != null)
-                    widgets.Amount.text = RewardAmountFormatter.Format(row.Amount);
+                row.gameObject.SetActive(true);
+                row.Icon.sprite = rowData.Icon;
+                row.Amount.text = RewardAmountFormatter.Format(rowData.Amount);
 
-                float targetY = -(i * rowHeight);
-
+                float targetY = -(i * _rowHeight);
                 if (isNew)
                 {
                     // New reward: sit in its final slot and pop in while the rows below slide down.
-                    widgets.Rect.DOKill();
-                    widgets.Rect.anchoredPosition = new Vector2(0f, targetY);
-                    PlayAppear(widgets);
+                    row.Rect.DOKill();
+                    row.Rect.anchoredPosition = new Vector2(0f, targetY);
+                    PlayAppear(row);
                 }
-                else if (!Mathf.Approximately(widgets.Rect.anchoredPosition.y, targetY))
+                else if (!Mathf.Approximately(row.Rect.anchoredPosition.y, targetY))
                 {
-                    // Existing reward: ease into the new slot so the list opens up gracefully.
-                    widgets.Rect.DOKill();
-                    widgets.Rect.DOAnchorPosY(targetY, _animation.ShiftDuration).SetEase(_animation.ShiftEase).SetUpdate(true).SetLink(gameObject);
+                    row.Rect.DOKill();
+                    row.Rect.DOAnchorPosY(targetY, _animation.ShiftDuration).SetEase(_animation.ShiftEase)
+                        .SetUpdate(true).SetLink(gameObject);
                 }
             }
 
             // Grow the content so the list can scroll when it overflows the viewport.
-            if (content != null)
-                content.sizeDelta = new Vector2(content.sizeDelta.x, count * rowHeight);
-
-            if (emptyLabel != null)
-                emptyLabel.gameObject.SetActive(count == 0);
-        }
-
-        private void RetireMissingRows(IReadOnlyList<RewardRowData> data, int count)
-        {
-            if (_active.Count == 0) return;
-
-            _retire.Clear();
-            foreach (var pair in _active)
+            _content.sizeDelta = new Vector2(_content.sizeDelta.x, count * _rowHeight);
+            if (_emptyLabel)
             {
-                if (!ContainsId(data, count, pair.Key)) _retire.Add(pair.Key);
+                _emptyLabel.gameObject.SetActive(count == 0);
             }
-
-            for (int i = 0; i < _retire.Count; i++)
-                Retire(_retire[i]);
         }
 
-        private static bool ContainsId(IReadOnlyList<RewardRowData> data, int count, string id)
+        private void RetireMissingRows(IReadOnlyList<RewardRowData> data)
         {
-            for (int i = 0; i < count; i++)
+            if (_active.Count == 0)
             {
-                string candidate = string.IsNullOrEmpty(data[i].Id) ? "row_" + i : data[i].Id;
-                if (string.Equals(candidate, id, System.StringComparison.Ordinal)) return true;
+                return;
+            }
+            _retire.Clear();
+            foreach (KeyValuePair<string, RewardRowView> pair in _active)
+            {
+                if (!ContainsId(data, pair.Key))
+                {
+                    _retire.Add(pair.Key);
+                }
+            }
+            for (int i = 0; i < _retire.Count; i++)
+            {
+                Retire(_retire[i]);
+            }
+        }
+
+        private static bool ContainsId(IReadOnlyList<RewardRowData> data, string id)
+        {
+            for (int i = 0; i < data.Count; i++)
+            {
+                if (string.Equals(data[i].Id, id, StringComparison.Ordinal))
+                {
+                    return true;
+                }
             }
             return false;
         }
 
-        private void PlayAppear(RowWidgets row)
+        private void PlayAppear(RewardRowView row)
         {
-            if (_animation.AppearDuration <= 0f)
-            {
-                if (row.Group != null) row.Group.alpha = 1f;
-                row.Rect.localScale = Vector3.one;
-                return;
-            }
-
-            if (row.Group != null)
-            {
-                row.Group.DOKill();
-                row.Group.alpha = _animation.HiddenAlpha;
-                row.Group.DOFade(_animation.VisibleAlpha, _animation.AppearDuration).SetUpdate(true).SetLink(gameObject);
-            }
-
+            row.Group.DOKill();
+            row.Group.alpha = _animation.HiddenAlpha;
+            row.Group.DOFade(_animation.VisibleAlpha, _animation.AppearDuration).SetUpdate(true).SetLink(gameObject);
             row.Rect.localScale = Vector3.one * _animation.AppearScale;
-            row.Rect.DOScale(Vector3.one, _animation.AppearDuration).SetEase(_animation.AppearEase).SetUpdate(true).SetLink(gameObject);
+            row.Rect.DOScale(Vector3.one, _animation.AppearDuration).SetEase(_animation.AppearEase)
+                .SetUpdate(true).SetLink(gameObject);
         }
 
-        private RowWidgets Acquire(string id)
+        private RewardRowView Acquire(string id)
         {
-            RowWidgets widgets;
-
-            if (_pool.Count > 0)
+            if (_pool.Count == 0)
             {
-                widgets = _pool[_pool.Count - 1];
-                _pool.RemoveAt(_pool.Count - 1);
+                throw new InvalidOperationException("Reward row pool exhausted; configure capacity for the reward catalogue.");
             }
-            else
-            {
-                throw new System.InvalidOperationException("Reward row pool exhausted; configure capacity for the reward catalogue.");
-            }
-
-            widgets.Root.name = "ui_panel_reward_row_" + id;
-            widgets.Root.transform.SetAsLastSibling();
-
-            // Reset any leftover animation state from a previous life in the pool.
-            widgets.Rect.DOKill();
-            widgets.Rect.localScale = Vector3.one;
-            if (widgets.Group != null)
-            {
-                widgets.Group.DOKill();
-                widgets.Group.alpha = 1f;
-            }
-
-            return widgets;
+            int last = _pool.Count - 1;
+            RewardRowView row = _pool[last];
+            _pool.RemoveAt(last);
+            row.name = ROW_NAME_PREFIX + id;
+            row.transform.SetAsLastSibling();
+            KillRowTweens(row);
+            row.Rect.localScale = Vector3.one;
+            row.Group.alpha = _animation.VisibleAlpha;
+            return row;
         }
 
         private void Retire(string id)
         {
-            if (!_active.TryGetValue(id, out var widgets)) return;
+            RewardRowView row;
+            if (!_active.TryGetValue(id, out row))
+            {
+                return;
+            }
             _active.Remove(id);
-            if (widgets == null) return;
-
-            widgets.Rect.DOKill();
-            if (widgets.Group != null) widgets.Group.DOKill();
-            widgets.Root.SetActive(false);
-            _pool.Add(widgets);
+            KillRowTweens(row);
+            row.gameObject.SetActive(false);
+            _pool.Add(row);
         }
 
-        private RowWidgets CreateRow(RectTransform parent)
-        {
-            if (_rowPrefab)
-                return CreateRowFromPrefab(parent);
-
-            var rowGo = new GameObject("ui_panel_reward_row", typeof(RectTransform));
-            rowGo.layer = gameObject.layer;
-            rowGo.transform.SetParent(parent, false);
-
-            var rowRect = (RectTransform)rowGo.transform;
-            rowRect.anchorMin = new Vector2(0f, 1f);
-            rowRect.anchorMax = new Vector2(1f, 1f);
-            rowRect.pivot = new Vector2(0.5f, 1f);
-            rowRect.sizeDelta = new Vector2(0f, rowHeight);
-
-            var iconGo = new GameObject("ui_image_reward_icon_value", typeof(RectTransform));
-            iconGo.layer = gameObject.layer;
-            iconGo.transform.SetParent(rowGo.transform, false);
-            var icon = iconGo.AddComponent<Image>();
-            icon.raycastTarget = false;
-            icon.preserveAspect = true;
-            var iconRect = (RectTransform)iconGo.transform;
-            iconRect.anchorMin = new Vector2(0f, 0.5f);
-            iconRect.anchorMax = new Vector2(0f, 0.5f);
-            iconRect.pivot = new Vector2(0f, 0.5f);
-            iconRect.sizeDelta = new Vector2(iconSize, iconSize);
-            iconRect.anchoredPosition = new Vector2(6f, 0f);
-
-            var amountGo = new GameObject("ui_text_reward_amount_value", typeof(RectTransform));
-            amountGo.layer = gameObject.layer;
-            amountGo.transform.SetParent(rowGo.transform, false);
-            var amount = amountGo.AddComponent<TextMeshProUGUI>();
-            amount.text = "0";
-            amount.fontSize = 38f;
-            amount.alignment = TextAlignmentOptions.Left;
-            amount.color = Color.white;
-            amount.raycastTarget = false;
-            var amountRect = (RectTransform)amountGo.transform;
-            amountRect.anchorMin = new Vector2(0f, 0f);
-            amountRect.anchorMax = new Vector2(1f, 1f);
-            amountRect.pivot = new Vector2(0f, 0.5f);
-            amountRect.offsetMin = new Vector2(iconSize + 16f, 0f);
-            amountRect.offsetMax = new Vector2(-8f, 0f);
-
-            PrepareWidgets(icon, amount);
-
-            return new RowWidgets
-            {
-                Root = rowGo,
-                Rect = rowRect,
-                Icon = icon,
-                Amount = amount,
-                Group = rowGo.AddComponent<CanvasGroup>()
-            };
-        }
-
-        private RowWidgets CreateRowFromPrefab(RectTransform parent)
-        {
-            var instance = Instantiate(_rowPrefab, parent, false);
-            instance.name = "ui_panel_reward_row";
-            instance.gameObject.layer = gameObject.layer;
-
-            var icon = instance.Icon;
-            var amount = instance.Amount;
-
-            PrepareWidgets(icon, amount);
-
-            return new RowWidgets
-            {
-                Root = instance.gameObject,
-                Rect = instance.Rect,
-                Icon = icon,
-                Amount = amount,
-                Group = instance.Group
-            };
-        }
-
-        /// <summary>
-        /// Keeps row widgets consistent regardless of where they came from (prefab or code):
-        /// non-interactive, but masked so the viewport's RectMask2D clips them.
-        /// </summary>
-        private static void PrepareWidgets(Image icon, TMP_Text amount)
-        {
-            if (icon != null)
-            {
-                icon.raycastTarget = false;
-                icon.maskable = true;
-            }
-
-            if (amount != null)
-            {
-                amount.raycastTarget = false;
-                if (amount is MaskableGraphic maskable) maskable.maskable = true;
-            }
-        }
+        #endregion
 
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
-            if (content == null)
+            if (!_content)
             {
-                var t = transform.Find("ui_layout_rewards_content");
-                if (t != null) content = (RectTransform)t;
+                Transform content = transform.Find("ui_layout_rewards_content");
+                if (content) _content = (RectTransform)content;
             }
-
-            if (emptyLabel == null)
+            if (!_content || !_rowPrefab || !_animation)
             {
-                var t = transform.Find("ui_text_rewards_empty_value");
-                if (t != null) emptyLabel = t.GetComponent<TMP_Text>();
+                Debug.LogError("RewardsListView requires serialized content, row prefab and animation profile.", this);
             }
         }
+
+        #endregion
 #endif
     }
 }

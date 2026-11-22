@@ -8,9 +8,15 @@ using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
+    public interface IRewardFlight
+    {
+        void Fly(Sprite icon, RectTransform from, RectTransform to, Action onArrive);
+        void CancelAll();
+    }
+
     /// <summary>Owns a prewarmed icon pool. Cancellation never invokes gameplay completion.</summary>
     [DisallowMultipleComponent]
-    public sealed class RewardFlyAnimator : MonoBehaviour
+    public sealed class RewardFlyAnimator : MonoBehaviour, IRewardFlight
     {
         #region Configuration
 
@@ -18,6 +24,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private RectTransform _flyLayer;
         [SerializeField] private Canvas _canvas;
         [SerializeField] private RewardFlyAnimation _animation;
+        [SerializeField] private Image _iconPrefab;
         [SerializeField, Min(1)] private int _poolCapacity = 4;
 
         private readonly List<Flight> _flights = new List<Flight>();
@@ -56,7 +63,10 @@ namespace Vertigo.WheelOfFortune.UI
 
             public void Cancel()
             {
-                _sequence?.Kill(false);
+                if (_sequence != null)
+                {
+                    _sequence.Kill(false);
+                }
                 _sequence = null;
                 _onArrive = null;
                 Release();
@@ -68,7 +78,10 @@ namespace Vertigo.WheelOfFortune.UI
                 Action completion = _onArrive;
                 _onArrive = null;
                 Release();
-                completion?.Invoke();
+                if (completion != null)
+                {
+                    completion();
+                }
             }
 
             private void Release()
@@ -91,22 +104,14 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void Awake()
         {
-            if (!_flyLayer || !_canvas || !_animation)
+            if (!_flyLayer || !_canvas || !_animation || !_iconPrefab)
             {
-                throw new InvalidOperationException("RewardFlyAnimator requires serialized layer, canvas and animation profile.");
+                throw new InvalidOperationException("RewardFlyAnimator requires serialized layer, canvas, icon prefab and animation profile.");
             }
             for (int i = 0; i < _poolCapacity; i++)
             {
-                var iconObject = new GameObject("ui_image_reward_fly_" + i + "_value", typeof(RectTransform));
-                iconObject.layer = _flyLayer.gameObject.layer;
-                iconObject.transform.SetParent(_flyLayer, false);
-                var rect = (RectTransform)iconObject.transform;
-                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * 0.5f;
-                Image image = iconObject.AddComponent<Image>();
-                image.preserveAspect = true;
-                image.raycastTarget = false;
-                image.maskable = false;
-                _flights.Add(new Flight(rect, image));
+                Image image = Instantiate(_iconPrefab, _flyLayer, false);
+                _flights.Add(new Flight(image.rectTransform, image));
             }
         }
 
@@ -132,25 +137,9 @@ namespace Vertigo.WheelOfFortune.UI
 
         #region Playback
 
-        public void Fly(Sprite icon, RectTransform from, RectTransform to, Action onArrive = null)
+        public void Fly(Sprite icon, RectTransform from, RectTransform to, Action onArrive)
         {
-            if (!icon || !from)
-            {
-                onArrive?.Invoke();
-                return;
-            }
-            Vector2 start = WorldToLayer(from.position);
-            FlyLocal(icon, start, to ? WorldToLayer(to.position) : start, onArrive);
-        }
-
-        public void FlyToPosition(Sprite icon, RectTransform from, Vector3 worldTarget, Action onArrive = null)
-        {
-            if (!icon || !from)
-            {
-                onArrive?.Invoke();
-                return;
-            }
-            FlyLocal(icon, WorldToLayer(from.position), WorldToLayer(worldTarget), onArrive);
+            FlyLocal(icon, WorldToLayer(from.position), WorldToLayer(to.position), onArrive);
         }
 
         private void FlyLocal(Sprite icon, Vector2 start, Vector2 end, Action onArrive)
@@ -164,7 +153,10 @@ namespace Vertigo.WheelOfFortune.UI
                 }
             }
             // Bounded cosmetic pool: skip the visual rather than allocating or blocking gameplay.
-            onArrive?.Invoke();
+            if (onArrive != null)
+            {
+                onArrive();
+            }
         }
 
         private Vector2 WorldToLayer(Vector3 world)
@@ -178,6 +170,8 @@ namespace Vertigo.WheelOfFortune.UI
         #endregion
 
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
             if (!_flyLayer)
@@ -189,6 +183,8 @@ namespace Vertigo.WheelOfFortune.UI
                 _canvas = GetComponentInParent<Canvas>();
             }
         }
+
+        #endregion
 #endif
     }
 }

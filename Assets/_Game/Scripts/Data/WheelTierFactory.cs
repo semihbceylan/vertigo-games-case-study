@@ -10,6 +10,14 @@ namespace Vertigo.WheelOfFortune.Data
     /// </summary>
     public sealed class WheelTierFactory : IZoneWheelFactory
     {
+        #region Configuration
+
+        private const int FIRST_ZONE = 1;
+        /// <summary>Zone one shows authored amounts unchanged.</summary>
+        private const double BASE_AMOUNT_SCALE = 1d;
+        /// <summary>Rounding never reduces a reward to nothing.</summary>
+        private const long MINIMUM_AMOUNT = 1;
+
         private readonly ZoneConfiguration _zones;
         private readonly ZoneWheelBuilder _builder = new ZoneWheelBuilder();
 
@@ -18,42 +26,42 @@ namespace Vertigo.WheelOfFortune.Data
             _zones = zones ?? throw new ArgumentNullException(nameof(zones));
         }
 
+        #endregion
+
+        #region Wheel Construction
+
         public ZoneWheel CreateWheel(int zone, ZoneKind kind, IRandomSource random)
         {
             WheelDefinition wheel = _zones.GetWheel(kind);
-
             if (!wheel)
             {
                 throw new InvalidOperationException("A wheel definition is required for each zone.");
             }
-
-            int sliceCount = wheel.SliceCount;
-            var pool = BuildPool(wheel, zone);
-            return _builder.Build(sliceCount, kind, pool, random);
+            return _builder.Build(wheel.SliceCount, kind, BuildPool(wheel, zone), random);
         }
 
         /// <summary>Builds the weighted pool for a zone, scaling reward amounts with progression.</summary>
         public static List<RewardPoolEntry> BuildPool(WheelDefinition wheel, int zone)
         {
             var pool = new List<RewardPoolEntry>();
-
-            RewardPool selectedPool = wheel ? wheel.GetRewardPool(zone) : null;
+            RewardPool selectedPool = wheel.GetRewardPool(zone);
             if (selectedPool)
             {
-                var entries = selectedPool.Entries;
+                double scale = BASE_AMOUNT_SCALE + wheel.AmountScalePerZone * (zone - FIRST_ZONE);
+                RewardPoolItem[] entries = selectedPool.Entries;
                 for (int i = 0; i < entries.Length; i++)
                 {
-                    var entry = entries[i];
-                    if (!entry.reward || !entry.reward.IsAvailableAt(zone)) continue;
-
-                    double scale = 1d + wheel.AmountScalePerZone * (zone - 1);
-                    // Skins are a single item; everything else keeps the per-zone scaling.
-                    long amount = entry.reward.IsAmountScaled
-                        ? (long)Math.Round(entry.reward.Amount * scale)
-                        : entry.reward.Amount;
-                    if (amount < 1) amount = 1;
-
-                    pool.Add(new RewardPoolEntry(entry.reward.RewardId, amount, entry.weight));
+                    RewardDefinition reward = entries[i].Reward;
+                    if (!reward)
+                    {
+                        throw new InvalidOperationException("Reward pool '" + selectedPool.name + "' contains an empty entry.");
+                    }
+                    if (!reward.IsAvailableAt(zone))
+                    {
+                        continue;
+                    }
+                    long amount = reward.IsAmountScaled ? (long)Math.Round(reward.Amount * scale) : reward.Amount;
+                    pool.Add(new RewardPoolEntry(reward.RewardId, Math.Max(MINIMUM_AMOUNT, amount), entries[i].Weight));
                 }
             }
 
@@ -61,9 +69,9 @@ namespace Vertigo.WheelOfFortune.Data
             {
                 throw new InvalidOperationException("The wheel reward pool must contain valid rewards.");
             }
-
             return pool;
         }
 
+        #endregion
     }
 }

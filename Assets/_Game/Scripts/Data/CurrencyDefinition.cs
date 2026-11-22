@@ -2,12 +2,19 @@ using UnityEngine;
 
 namespace Vertigo.WheelOfFortune.Data
 {
+    /// <summary>A persistent currency. Adding a currency is a new asset, not a code change.</summary>
     [CreateAssetMenu(menuName = "Wheel of Fortune/Currency", fileName = "Currency_")]
     public sealed class CurrencyDefinition : ScriptableObject
     {
+        #region Serialized Values
+
         [SerializeField] private string _currencyId;
         [SerializeField] private string _displayName;
         [SerializeField] private Sprite _icon;
+
+        #endregion
+
+        #region Accessors
 
         public string CurrencyId
         {
@@ -23,5 +30,7 @@ namespace Vertigo.WheelOfFortune.Data
         {
             get { return _icon; }
         }
+
+        #endregion
     }
 }

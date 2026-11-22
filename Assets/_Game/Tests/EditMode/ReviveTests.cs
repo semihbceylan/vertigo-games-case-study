@@ -7,6 +7,8 @@ namespace Vertigo.WheelOfFortune.Tests
 {
     public sealed class ReviveTests
     {
+        private const int TEST_MAX_REVIVES = 4;
+
         private sealed class Store : ICurrencyStore
         {
             private readonly Dictionary<string, long> _balances = new Dictionary<string, long>();
@@ -26,7 +28,7 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             return new GameSession(TestZones.CreateRules(),
                 new FakeWheelFactory((zone, kind) => Wheels.WithBomb(2, 0, "loot")),
-                new ScriptedRandom(), currencies: currencies, revivePolicy: new RevivePolicy("gold", 100, 25));
+                new ScriptedRandom(), currencies: currencies, revivePolicy: new RevivePolicy("gold", 100, 25, TEST_MAX_REVIVES));
         }
 
         private static void Bomb(GameSession session)
@@ -40,18 +42,18 @@ namespace Vertigo.WheelOfFortune.Tests
         [TestCase(30, 825)]
         public void PriceIncreasesByFailedZone(int zone, long expected)
         {
-            Assert.AreEqual(expected, new RevivePolicy("gold", 100, 25).GetCost(zone));
+            Assert.AreEqual(expected, new RevivePolicy("gold", 100, 25, TEST_MAX_REVIVES).GetCost(zone));
         }
 
         [Test]
         public void InvalidPricingIsRejected()
         {
-            Assert.Throws<ArgumentException>(() => new RevivePolicy("", 100, 25));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 0, 25));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 100, 0));
+            Assert.Throws<ArgumentException>(() => new RevivePolicy("", 100, 25, TEST_MAX_REVIVES));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 0, 25, TEST_MAX_REVIVES));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 100, 0, TEST_MAX_REVIVES));
             Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 100, 25, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 100, 25).GetCost(0));
-            Assert.Throws<OverflowException>(() => new RevivePolicy("gold", long.MaxValue, 1).GetCost(2));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RevivePolicy("gold", 100, 25, TEST_MAX_REVIVES).GetCost(0));
+            Assert.Throws<OverflowException>(() => new RevivePolicy("gold", long.MaxValue, 1, TEST_MAX_REVIVES).GetCost(2));
         }
 
         [Test]

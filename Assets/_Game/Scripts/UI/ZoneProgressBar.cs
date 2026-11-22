@@ -2,41 +2,49 @@ using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
     /// <summary>
-    /// Horizontal zone progression strip. Renders a sliding window of numbered zone nodes that
-    /// fill the bar height with no background. Only the current zone shows a background card:
-    /// rounded white for normal, rounded safe for safe, gold for super (all from generated assets).
+    /// Horizontal zone progression strip. Renders a sliding window of numbered zone nodes; only the
+    /// current zone shows a background card and frame, both taken from the zone rule asset.
     /// Node sizing is computed from the bar rect so the editor preview and play mode match.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ZoneProgressBar : MonoBehaviour
     {
-        private const float NodeSpacing = 6f;
-        private const float NumberFontFactor = 0.5f;
-        private const float CurrentScale = 1f;
-        private const float MarkerClearance = 18f;
+        #region Configuration and Runtime
 
-        [SerializeField] private RectTransform nodesRoot;
-        [SerializeField] private RectTransform marker;
+        private const int NO_DISPLAYED_ZONE = int.MinValue;
+        private const int FIRST_ZONE = 1;
+        private const int ENDLESS_FINAL_ZONE = 0;
+        /// <summary>Window slots are laid out symmetrically around the bar centre.</summary>
+        private const float CENTRE_OFFSET = 0.5f;
 
         [Header("Window")]
-        [SerializeField, Min(3)] private int visibleNodes = 13;
+        [SerializeField, Min(1), FormerlySerializedAs("visibleNodes")] private int _visibleNodes = 13;
         [Tooltip("Index within the window where the current zone sits. Set to the middle to centre it.")]
-        [SerializeField, Min(0)] private int currentSlot = 6;
+        [SerializeField, Min(0), FormerlySerializedAs("currentSlot")] private int _currentSlot = 6;
+        [Tooltip("Horizontal gap between neighbouring nodes, in canvas units.")]
+        [SerializeField, Min(0f)] private float _nodeSpacing = 6f;
+        [Tooltip("Zone number font size as a fraction of the bar height.")]
+        [SerializeField, Range(0.1f, 1f)] private float _numberFontScale = 0.5f;
 
         [Header("Current Zone Card")]
         [Tooltip("Border frame drawn around the current zone card.")]
-        [SerializeField] private Sprite currentZoneFrame;
+        [SerializeField, FormerlySerializedAs("currentZoneFrame")] private Sprite _currentZoneFrame;
+        [SerializeField] private ZoneStripAnimation _animation;
 
         [SerializeField] private Node[] _nodes = new Node[0];
-        private int _displayedZone = int.MinValue;
-        [SerializeField] private ZoneConfiguration _configuration;
+        [Tooltip("Editor preview only: the strip is rendered at this configuration's starting zone.")]
+        [SerializeField, FormerlySerializedAs("_configuration")] private ZoneConfiguration _previewConfiguration;
+
+        private int _displayedZone = NO_DISPLAYED_ZONE;
         private int _transitionZone;
+        private ZoneCatalog _zones;
         private Sequence _transition;
 
         [Serializable]
@@ -48,173 +56,9 @@ namespace Vertigo.WheelOfFortune.UI
             public TMP_Text Label;
         }
 
-        public void Set(int currentZone, ZoneConfiguration configuration)
-        {
-            CancelTransition();
-            _configuration = configuration;
-            int finalZone = configuration.FinalZone;
+        #endregion
 
-            var self = (RectTransform)transform;
-            float slot = self.rect.width / visibleNodes;
-            float nodeHeight = self.rect.height;
-            float nodeWidth = Mathf.Max(1f, slot - NodeSpacing);
-
-            // Window slides so the current zone stays at currentSlot. Out-of-range slots stay
-            // empty: zones below 1 don't exist, and the run ends at finalZone (0 = endless).
-            int startZone = currentZone - currentSlot;
-            ValidateNodes();
-
-            for (int i = 0; i < visibleNodes; i++)
-            {
-                int zone = startZone + i;
-                var node = _nodes[i];
-                if (node == null || node.Rect == null) continue;
-
-                if (zone < 1 || (finalZone > 0 && zone > finalZone))
-                {
-                    node.Rect.gameObject.SetActive(false);
-                    continue;
-                }
-
-                node.Rect.gameObject.SetActive(true);
-                var kind = configuration.Resolve(zone);
-                bool isCurrent = zone == currentZone;
-
-                PlaceNode(node, i, slot, nodeWidth, nodeHeight, isCurrent);
-
-                // Only the current zone shows a background card (rounded white / safe / gold from generated assets).
-                if (node.Bg != null)
-                {
-                    if (isCurrent)
-                    {
-                        node.Bg.enabled = true;
-                        ApplyCurrentBackground(node.Bg, kind);
-                    }
-                    else
-                    {
-                        node.Bg.enabled = false;
-                    }
-                }
-
-                if (node.Label != null)
-                {
-                    node.Label.text = zone.ToString();
-                    node.Label.color = TextColor(kind, isCurrent);
-                }
-
-                ApplyFrame(node, isCurrent, currentZoneFrame);
-            }
-
-            if (marker != null)
-            {
-                int index = Mathf.Clamp(currentZone - startZone, 0, visibleNodes - 1);
-                marker.anchoredPosition = new Vector2(
-                    (index - (visibleNodes - 1) * 0.5f) * slot,
-                    nodeHeight * 0.5f + MarkerClearance);
-            }
-
-            _displayedZone = currentZone;
-        }
-
-        /// <summary>
-        /// Slides the numbered strip from the currently displayed zone to <paramref name="newZone"/>
-        /// so the new number travels into the current slot, cross-fading the current-zone card.
-        /// The final layout is applied on completion. Returns the tween, or null when there is
-        /// nothing to animate (in which case the strip is set instantly).
-        /// </summary>
-        public Sequence PlayTransition(int newZone, ZoneConfiguration configuration, float duration, Ease ease)
-        {
-            CancelTransition();
-            if (_displayedZone != int.MinValue) Set(_displayedZone, configuration);
-            _configuration = configuration;
-            _transitionZone = newZone;
-            if (duration <= 0f || newZone == _displayedZone)
-            {
-                Set(newZone, configuration);
-                return null;
-            }
-
-            var self = (RectTransform)transform;
-            float slot = self.rect.width / visibleNodes;
-            int step = newZone - _displayedZone;
-
-            ValidateNodes();
-
-            int outgoingIndex = Mathf.Clamp(currentSlot, 0, visibleNodes - 1);
-            int incomingIndex = Mathf.Clamp(currentSlot + step, 0, visibleNodes - 1);
-
-            var seq = DOTween.Sequence();
-            _transition = seq;
-            seq.SetLink(gameObject);
-            seq.SetUpdate(true);
-
-            // Slide every visible node by one step; the reset on completion is visually seamless
-            // because the number now occupying each slot matches the one that just left it.
-            for (int i = 0; i < visibleNodes; i++)
-            {
-                var node = _nodes[i];
-                if (node == null || node.Rect == null || !node.Rect.gameObject.activeSelf) continue;
-
-                float x = node.Rect.anchoredPosition.x;
-                seq.Join(node.Rect.DOAnchorPosX(x - step * slot, duration).SetEase(ease));
-            }
-
-            var incoming = _nodes[incomingIndex];
-            if (incoming != null)
-            {
-                var kind = configuration.Resolve(newZone);
-
-                if (incoming.Bg != null)
-                {
-                    incoming.Bg.enabled = true;
-                    ApplyCurrentBackground(incoming.Bg, kind, faded: true);
-                    seq.Join(incoming.Bg.DOColor(Color.white, duration).SetEase(ease));
-                }
-
-                if (incoming.Frame != null && currentZoneFrame != null)
-                {
-                    incoming.Frame.enabled = true;
-                    incoming.Frame.sprite = currentZoneFrame;
-                    incoming.Frame.type = Image.Type.Sliced;
-                    incoming.Frame.color = new Color(1f, 1f, 1f, 0f);
-                    seq.Join(incoming.Frame.DOColor(Color.white, duration).SetEase(ease));
-                }
-
-                // The number fading into the current-zone colour rides along with its slide.
-                if (incoming.Label != null)
-                    seq.Join(TweenTextColor(incoming.Label, TextColor(kind, true), duration, ease));
-            }
-
-            var outgoing = _nodes[outgoingIndex];
-            if (outgoing != null)
-            {
-                if (outgoing.Bg != null)
-                    seq.Join(outgoing.Bg.DOColor(new Color(1f, 1f, 1f, 0f), duration).SetEase(ease));
-
-                // The border slides out to the left with the outgoing card.
-                if (outgoing.Frame != null && outgoing.Frame.enabled)
-                    seq.Join(outgoing.Frame.DOColor(new Color(1f, 1f, 1f, 0f), duration).SetEase(ease));
-
-                // ...and the number that was current fades back to its plain colour.
-                if (outgoing.Label != null)
-                    seq.Join(TweenTextColor(outgoing.Label, TextColor(configuration.Resolve(_displayedZone), false), duration, ease));
-            }
-
-            seq.OnComplete(CompleteTransition);
-            return seq;
-        }
-
-        private void CompleteTransition()
-        {
-            _transition = null;
-            Set(_transitionZone, _configuration);
-        }
-
-        public void CancelTransition()
-        {
-            _transition?.Kill(false);
-            _transition = null;
-        }
+        #region Lifecycle
 
         private void OnDisable()
         {
@@ -226,138 +70,217 @@ namespace Vertigo.WheelOfFortune.UI
             CancelTransition();
         }
 
-        /// <summary>Tweens a label's colour from its current value to <paramref name="target"/>.</summary>
-        private static Tweener TweenTextColor(TMP_Text label, Color target, float duration, Ease ease)
+        #endregion
+
+        #region Layout
+
+        public void Set(int currentZone, ZoneCatalog zones)
         {
-            return label.DOColor(target, duration).SetEase(ease);
+            CancelTransition();
+            ValidateNodes();
+            int finalZone = zones.FinalZone;
+
+            RectTransform self = (RectTransform)transform;
+            float slot = self.rect.width / _visibleNodes;
+            float nodeHeight = self.rect.height;
+            float nodeWidth = Mathf.Max(0f, slot - _nodeSpacing);
+
+            // The window slides so the current zone stays at _currentSlot. Out-of-range slots stay
+            // empty: zones below the first don't exist, and the run ends at finalZone (0 = endless).
+            int startZone = currentZone - _currentSlot;
+            for (int i = 0; i < _visibleNodes; i++)
+            {
+                int zone = startZone + i;
+                Node node = _nodes[i];
+                bool isInRange = zone >= FIRST_ZONE && (finalZone == ENDLESS_FINAL_ZONE || zone <= finalZone);
+                node.Rect.gameObject.SetActive(isInRange);
+                if (!isInRange)
+                {
+                    continue;
+                }
+
+                ZoneRuleDefinition rule = zones.Resolve(zone);
+                bool isCurrent = zone == currentZone;
+                PlaceNode(node, i, slot, nodeWidth, nodeHeight);
+
+                node.Bg.enabled = isCurrent;
+                if (isCurrent)
+                {
+                    node.Bg.sprite = rule.CurrentBackground;
+                    node.Bg.color = _animation.VisibleTint;
+                }
+
+                node.Label.text = zone.ToString();
+                node.Label.color = GetTextColor(rule, isCurrent);
+                ApplyFrame(node, isCurrent);
+            }
+            _displayedZone = currentZone;
         }
 
-        /// <summary>Positions a node and applies the shared number styling (size, bold, no wrap).</summary>
-        private void PlaceNode(Node node, int index, float slot, float nodeWidth, float nodeHeight, bool isCurrent)
+        private void PlaceNode(Node node, int index, float slot, float nodeWidth, float nodeHeight)
         {
-            float x = (index - (visibleNodes - 1) * 0.5f) * slot;
-            node.Rect.anchoredPosition = new Vector2(x, 0f);
-
-            // Square root so the rounded card stays proportional (no stretch).
+            node.Rect.anchoredPosition = new Vector2(GetSlotX(index, slot), 0f);
+            // Square node so the rounded card keeps its proportions.
             float side = Mathf.Min(nodeHeight, nodeWidth);
             node.Rect.sizeDelta = new Vector2(side, side);
-            node.Rect.localScale = Vector3.one * (isCurrent ? CurrentScale : 1f);
-
-            if (node.Label != null)
-            {
-                node.Label.fontSize = nodeHeight * NumberFontFactor;
-                node.Label.fontStyle = FontStyles.Bold;
-                node.Label.textWrappingMode = TextWrappingModes.NoWrap;
-                node.Label.raycastTarget = false;
-            }
-
-            if (node.Bg != null)
-            {
-                node.Bg.raycastTarget = false;
-                node.Bg.maskable = false;
-            }
-
-            if (node.Frame != null)
-            {
-                node.Frame.raycastTarget = false;
-                node.Frame.maskable = false;
-            }
+            node.Rect.localScale = Vector3.one;
+            node.Label.fontSize = nodeHeight * _numberFontScale;
         }
 
-        /// <summary>Applies the current-zone card: rounded white for normal, rounded safe for safe, gold for super.</summary>
-        private void ApplyCurrentBackground(Image bg, ZoneRuleDefinition kind, bool faded = false)
+        private float GetSlotX(int index, float slot)
         {
-            // Sliced + square node = no stretch; rounding is baked in the generated asset.
-            bg.sprite = kind.CurrentBackground;
-            bg.type = Image.Type.Sliced;
-            bg.preserveAspect = true;
-            bg.color = faded ? new Color(1f, 1f, 1f, 0f) : Color.white;
-
-            bg.raycastTarget = false;
-            bg.maskable = false;
+            return (index - (_visibleNodes - 1) * CENTRE_OFFSET) * slot;
         }
 
-        private Color TextColor(ZoneRuleDefinition kind, bool isCurrent)
+        private void ApplyFrame(Node node, bool isCurrent)
         {
-            return isCurrent ? kind.CurrentTextColor : kind.TextColor;
-        }
-
-        /// <summary>Shows the border frame on the current node and hides it everywhere else.</summary>
-        private static void ApplyFrame(Node node, bool isCurrent, Sprite frameSprite)
-        {
-            if (node == null || node.Frame == null) return;
-
-            if (isCurrent && frameSprite != null)
+            bool hasFrame = isCurrent && _currentZoneFrame;
+            node.Frame.enabled = hasFrame;
+            if (hasFrame)
             {
-                node.Frame.enabled = true;
-                node.Frame.sprite = frameSprite;
-                node.Frame.type = Image.Type.Sliced;
-                node.Frame.color = Color.white;
-            }
-            else
-            {
-                node.Frame.enabled = false;
+                node.Frame.sprite = _currentZoneFrame;
+                node.Frame.color = _animation.VisibleTint;
             }
         }
+
+        private static Color GetTextColor(ZoneRuleDefinition rule, bool isCurrent)
+        {
+            return isCurrent ? rule.CurrentTextColor : rule.TextColor;
+        }
+
+        #endregion
+
+        #region Transition
+
+        /// <summary>
+        /// Slides the numbered strip from the displayed zone to <paramref name="newZone"/>, cross-fading
+        /// the current-zone card. The final layout is applied on completion. Returns null when there
+        /// is nothing to animate, in which case the strip is set instantly.
+        /// </summary>
+        public Sequence PlayTransition(int newZone, ZoneCatalog zones)
+        {
+            CancelTransition();
+            if (_displayedZone != NO_DISPLAYED_ZONE)
+            {
+                Set(_displayedZone, zones);
+            }
+            _zones = zones;
+            _transitionZone = newZone;
+            float duration = _animation.SlideDuration;
+            if (duration <= 0f || newZone == _displayedZone || _displayedZone == NO_DISPLAYED_ZONE)
+            {
+                Set(newZone, zones);
+                return null;
+            }
+
+            RectTransform self = (RectTransform)transform;
+            float slot = self.rect.width / _visibleNodes;
+            int step = newZone - _displayedZone;
+            Ease ease = _animation.SlideEase;
+            int outgoingIndex = Mathf.Clamp(_currentSlot, 0, _visibleNodes - 1);
+            int incomingIndex = Mathf.Clamp(_currentSlot + step, 0, _visibleNodes - 1);
+
+            _transition = DOTween.Sequence().SetLink(gameObject).SetUpdate(true);
+
+            // Every visible node slides by the step; the reset on completion is seamless because the
+            // number now occupying each slot matches the one that just left it.
+            for (int i = 0; i < _visibleNodes; i++)
+            {
+                Node node = _nodes[i];
+                if (!node.Rect.gameObject.activeSelf)
+                {
+                    continue;
+                }
+                float x = node.Rect.anchoredPosition.x;
+                _transition.Join(node.Rect.DOAnchorPosX(x - step * slot, duration).SetEase(ease));
+            }
+
+            Node incoming = _nodes[incomingIndex];
+            ZoneRuleDefinition incomingRule = zones.Resolve(newZone);
+            incoming.Bg.enabled = true;
+            incoming.Bg.sprite = incomingRule.CurrentBackground;
+            incoming.Bg.color = _animation.HiddenTint;
+            _transition.Join(incoming.Bg.DOColor(_animation.VisibleTint, duration).SetEase(ease));
+            if (_currentZoneFrame)
+            {
+                incoming.Frame.enabled = true;
+                incoming.Frame.sprite = _currentZoneFrame;
+                incoming.Frame.color = _animation.HiddenTint;
+                _transition.Join(incoming.Frame.DOColor(_animation.VisibleTint, duration).SetEase(ease));
+            }
+            _transition.Join(incoming.Label.DOColor(GetTextColor(incomingRule, true), duration).SetEase(ease));
+
+            Node outgoing = _nodes[outgoingIndex];
+            _transition.Join(outgoing.Bg.DOColor(_animation.HiddenTint, duration).SetEase(ease));
+            if (outgoing.Frame.enabled)
+            {
+                _transition.Join(outgoing.Frame.DOColor(_animation.HiddenTint, duration).SetEase(ease));
+            }
+            ZoneRuleDefinition outgoingRule = zones.Resolve(_displayedZone);
+            _transition.Join(outgoing.Label.DOColor(GetTextColor(outgoingRule, false), duration).SetEase(ease));
+
+            _transition.OnComplete(CompleteTransition);
+            return _transition;
+        }
+
+        private void CompleteTransition()
+        {
+            _transition = null;
+            Set(_transitionZone, _zones);
+        }
+
+        public void CancelTransition()
+        {
+            if (_transition != null)
+            {
+                _transition.Kill(false);
+            }
+            _transition = null;
+        }
+
+        #endregion
+
+        #region Validation
 
         private void ValidateNodes()
         {
-            if (_nodes.Length != visibleNodes)
+            if (!HasValidNodes())
             {
-                throw new InvalidOperationException("Zone strip requires one serialized node per visible slot.");
+                throw new InvalidOperationException("Zone strip requires one fully wired node per visible slot and an animation profile.");
+            }
+        }
+
+        private bool HasValidNodes()
+        {
+            if (!_animation || _nodes.Length != _visibleNodes || _currentSlot >= _visibleNodes)
+            {
+                return false;
             }
             foreach (Node node in _nodes)
             {
                 if (node == null || !node.Rect || !node.Bg || !node.Frame || !node.Label)
                 {
-                    throw new InvalidOperationException("Zone strip node references must be wired in the scene.");
+                    return false;
                 }
             }
+            return true;
         }
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (nodesRoot == null)
+            if (!HasValidNodes())
             {
-                var t = transform.Find("ui_layout_zone_nodes");
-                if (t != null) nodesRoot = (RectTransform)t;
-            }
-
-            if (marker == null)
-            {
-                var t = transform.Find("ui_image_zone_marker");
-                if (t != null) marker = (RectTransform)t;
-            }
-
-            if (_nodes.Length != visibleNodes)
-            {
-                if (gameObject.activeInHierarchy)
-                    Debug.LogError("Zone strip requires one serialized node per visible slot.", this);
+                Debug.LogError("Zone strip requires one fully wired node per visible slot and an animation profile.", this);
                 return;
             }
-            foreach (Node node in _nodes)
+            if (!Application.isPlaying && _previewConfiguration)
             {
-                if (node == null || !node.Rect || !node.Bg || !node.Frame || !node.Label)
-                {
-                    Debug.LogError("Zone strip has missing serialized node references.", this);
-                    return;
-                }
+                Set(_previewConfiguration.StartingZone, new ZoneCatalog(_previewConfiguration));
             }
-            if (!Application.isPlaying)
-                ApplyEditorPreview();
-        }
-
-        /// <summary>Applies the runtime node sizing in edit mode so the scene preview matches play.</summary>
-        /// <remarks>
-        /// Renders a fresh run using the assigned configuration so the
-        /// editor shows the current-zone card, frame and numbers exactly like play mode.
-        /// The side maps are owned by ZoneMapsView and intentionally left untouched here.
-        /// </remarks>
-        private void ApplyEditorPreview()
-        {
-            if (_configuration) Set(_configuration.StartingZone, _configuration);
         }
 #endif
+
+        #endregion
     }
 }

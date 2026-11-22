@@ -12,9 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79db9aa44fdb4420eb5a17b40e50bc77, type: 3}
   m_Name: Reward_ChestSilver
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.RewardDefinition
-  rewardId: chest_silver
-  displayName: Silver Chest
-  icon: {fileID: 21300000, guid: f1c17e105fd9a4b40801651dad36fd5d, type: 3}
-  amount: 30
-  category: 3
-  showcaseBig: 0
+  _rewardId: chest_silver
+  _displayName: Silver Chest
+  _icon: {fileID: 21300000, guid: f1c17e105fd9a4b40801651dad36fd5d, type: 3}
+  _amount: 30
+  _category: {fileID: 11400000, guid: bb06f9d32743248168e59cb92dbf1e73, type: 2}
+  _isShowcased: 0
+  _minimumZone: 1
+  _maximumZone: 0
+  _isAmountScaled: 1
+  _iconScaleMultiplier: 1
+  _currency: {fileID: 0}

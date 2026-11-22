@@ -25,24 +25,25 @@ namespace Vertigo.WheelOfFortune.Tests
             }
             Assert.IsTrue(view);
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
-            object configuration = type.GetField("_configuration", FLAGS).GetValue(view);
+            object zones = Activator.CreateInstance(Type.GetType("Vertigo.WheelOfFortune.Data.ZoneCatalog, Assembly-CSharp", true),
+                type.GetField("_previewConfiguration", FLAGS).GetValue(view));
+            object profile = type.GetField("_animation", FLAGS).GetValue(view);
+            float duration = (float)profile.GetType().GetProperty("SlideDuration").GetValue(profile);
             MethodInfo transition = type.GetMethod("PlayTransition");
-            Type easeType = transition.GetParameters()[3].ParameterType;
-            object ease = Enum.Parse(easeType, "Linear");
-            type.GetMethod("Set").Invoke(view, new object[] { 1, configuration });
-            transition.Invoke(view, new object[] { 2, configuration, 0.05f, ease });
-            transition.Invoke(view, new object[] { 3, configuration, 0.2f, ease });
-            yield return new WaitForSecondsRealtime(0.1f);
+            type.GetMethod("Set").Invoke(view, new object[] { 1, zones });
+            transition.Invoke(view, new object[] { 2, zones });
+            transition.Invoke(view, new object[] { 3, zones });
+            yield return new WaitForSecondsRealtime(duration * 0.5f);
             Assert.AreEqual(1, type.GetField("_displayedZone", FLAGS).GetValue(view));
-            yield return new WaitForSecondsRealtime(0.2f);
+            yield return new WaitForSecondsRealtime(duration);
             Assert.AreEqual(3, type.GetField("_displayedZone", FLAGS).GetValue(view));
-            transition.Invoke(view, new object[] { 4, configuration, 0.1f, ease });
+            transition.Invoke(view, new object[] { 4, zones });
             view.gameObject.SetActive(false);
-            yield return new WaitForSecondsRealtime(0.2f);
+            yield return new WaitForSecondsRealtime(duration + 0.1f);
             Assert.IsNull(type.GetField("_transition", FLAGS).GetValue(view));
             Assert.AreEqual(3, type.GetField("_displayedZone", FLAGS).GetValue(view));
             view.gameObject.SetActive(true);
-            type.GetMethod("Set").Invoke(view, new object[] { 1, configuration });
+            type.GetMethod("Set").Invoke(view, new object[] { 1, zones });
         }
     }
 }

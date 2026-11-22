@@ -7,13 +7,19 @@ namespace Vertigo.WheelOfFortune.Wheel
 {
     public interface IWheelTransition
     {
-        void Play(Action<WheelDiscView> populateIncoming, Tween zoneBar, Action onComplete);
+        void Play(Action<IWheelDisc> populateIncoming, Tween zoneBar, Action onComplete);
         void Cancel();
     }
 
     /// <summary>Owns wheel movement, geometry and one reusable incoming disc, not game flow.</summary>
     public sealed class WheelTransitionController : MonoBehaviour, IWheelTransition
     {
+        #region Configuration and Runtime
+
+        /// <summary>Converts a rect width into the distance from its centre to its edge.</summary>
+        private const float HALF_EXTENT = 0.5f;
+        private const string INCOMING_DISC_NAME = "ui_panel_wheel_incoming";
+
         [SerializeField] private WheelDiscView _live;
         [SerializeField] private RectTransform _canvasRect;
         [SerializeField] private WheelTransitionAnimation _animation;
@@ -23,7 +29,9 @@ namespace Vertigo.WheelOfFortune.Wheel
         private Action _onComplete;
         private Vector2 _home;
 
-        public WheelTransitionAnimation Animation { get { return _animation; } }
+        #endregion
+
+        #region Lifecycle
 
         private void Awake()
         {
@@ -33,18 +41,36 @@ namespace Vertigo.WheelOfFortune.Wheel
             }
             _home = _live.Rect.anchoredPosition;
             _incoming = Instantiate(_live, _live.transform.parent);
-            _incoming.name = "ui_panel_wheel_incoming";
+            _incoming.name = INCOMING_DISC_NAME;
             _incoming.gameObject.SetActive(false);
         }
 
-        public void Play(Action<WheelDiscView> populateIncoming, Tween zoneBar, Action onComplete)
+        private void OnDisable()
+        {
+            Cancel();
+        }
+
+        private void OnDestroy()
+        {
+            Cancel();
+            if (_incoming)
+            {
+                Destroy(_incoming.gameObject);
+            }
+        }
+
+        #endregion
+
+        #region Playback
+
+        public void Play(Action<IWheelDisc> populateIncoming, Tween zoneBar, Action onComplete)
         {
             Cancel();
             _onComplete = onComplete;
             populateIncoming(_incoming);
             RectTransform parent = (RectTransform)_live.Rect.parent;
-            Vector3 edge = _canvasRect.TransformPoint(new Vector3(_canvasRect.rect.width * 0.5f, 0f, 0f));
-            float distance = Mathf.Abs(parent.InverseTransformPoint(edge).x - _home.x) + parent.rect.width * 0.5f;
+            Vector3 canvasEdge = _canvasRect.TransformPoint(new Vector3(_canvasRect.rect.width * HALF_EXTENT, 0f, 0f));
+            float distance = Mathf.Abs(parent.InverseTransformPoint(canvasEdge).x - _home.x) + parent.rect.width * HALF_EXTENT;
             _incoming.Rect.anchoredPosition = _home + Vector2.right * distance;
             _incoming.Rect.localRotation = Quaternion.identity;
             _incoming.gameObject.SetActive(true);
@@ -52,17 +78,30 @@ namespace Vertigo.WheelOfFortune.Wheel
             _sequence.AppendInterval(_animation.HoldDuration);
             _sequence.Append(_live.Rect.DOAnchorPosX(_home.x - distance, _animation.SlideDuration).SetEase(_animation.SlideEase));
             _sequence.Join(_incoming.Rect.DOAnchorPosX(_home.x, _animation.SlideDuration).SetEase(_animation.SlideEase));
-            if (zoneBar != null) _sequence.Join(zoneBar);
+            if (zoneBar != null)
+            {
+                _sequence.Join(zoneBar);
+            }
             _sequence.OnComplete(Complete);
         }
 
+        /// <summary>Stops the slide and drops its callback so a cancelled transition never advances flow.</summary>
         public void Cancel()
         {
-            _sequence?.Kill(false);
+            if (_sequence != null)
+            {
+                _sequence.Kill(false);
+            }
             _sequence = null;
             _onComplete = null;
-            if (_live && _incoming) _live.Rect.anchoredPosition = _home;
-            if (_incoming) _incoming.gameObject.SetActive(false);
+            if (_live && _incoming)
+            {
+                _live.Rect.anchoredPosition = _home;
+            }
+            if (_incoming)
+            {
+                _incoming.gameObject.SetActive(false);
+            }
         }
 
         private void Complete()
@@ -72,15 +111,12 @@ namespace Vertigo.WheelOfFortune.Wheel
             _incoming.gameObject.SetActive(false);
             Action completion = _onComplete;
             _onComplete = null;
-            completion?.Invoke();
+            if (completion != null)
+            {
+                completion();
+            }
         }
 
-        private void OnDisable() { Cancel(); }
-
-        private void OnDestroy()
-        {
-            Cancel();
-            if (_incoming) Destroy(_incoming.gameObject);
-        }
+        #endregion
     }
 }

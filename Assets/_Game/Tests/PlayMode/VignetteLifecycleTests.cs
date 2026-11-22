@@ -23,7 +23,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 var view = (Behaviour)candidate;
                 if (view.gameObject.scene != SceneManager.GetActiveScene() || !view.isActiveAndEnabled) continue;
                 count++;
-                var image = (UnityEngine.UI.Image)type.GetField("target", FLAGS).GetValue(view);
+                var image = (UnityEngine.UI.Image)type.GetField("_target", FLAGS).GetValue(view);
                 Assert.IsTrue(image);
                 Assert.IsTrue(image.sprite);
                 view.enabled = false;

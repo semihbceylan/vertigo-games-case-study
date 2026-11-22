@@ -23,7 +23,7 @@ namespace Vertigo.WheelOfFortune.Tests
                     count++;
                     var serialized = new SerializedObject(component);
                     foreach (string field in new[] { "_group", "_dismissButton", "_flash", "_bigIcon",
-                        "_titleLabel", "_amountLabel", "_hintLabel", "_animation" })
+                        "_titleLabel", "_amountLabel", "_animation" })
                     {
                         Assert.IsTrue(serialized.FindProperty(field).objectReferenceValue, field);
                     }

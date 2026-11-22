@@ -1,84 +1,39 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
 
 namespace Vertigo.WheelOfFortune.Data
 {
+    /// <summary>Authored run bounds and the ordered zone rule assets.</summary>
     [CreateAssetMenu(menuName = "Wheel of Fortune/Zone Configuration", fileName = "Zones_")]
     public sealed class ZoneConfiguration : ScriptableObject
     {
-        [SerializeField, Min(1)] private int startingZone = 1;
-        [SerializeField, Min(0)] private int finalZone = 60;
+        #region Serialized Values
+
+        [SerializeField, Min(1), FormerlySerializedAs("startingZone")] private int _startingZone = 1;
+        [Tooltip("The run completes after this zone. Zero means endless.")]
+        [SerializeField, Min(0), FormerlySerializedAs("finalZone")] private int _finalZone = 60;
         [SerializeField] private ZoneRuleDefinition[] _zoneRules = new ZoneRuleDefinition[0];
 
-        public int StartingZone { get { return startingZone; } }
-        public int FinalZone { get { return finalZone; } }
+        #endregion
 
-        public ZoneRules ToRules()
+        #region Accessors
+
+        public int StartingZone
         {
-            var rules = new ZoneRule[_zoneRules.Length];
-            for (int i = 0; i < rules.Length; i++)
-            {
-                if (!_zoneRules[i]) throw new InvalidOperationException("Missing zone rule asset.");
-                rules[i] = _zoneRules[i].ToRule();
-            }
-            return new ZoneRules(rules);
+            get { return _startingZone; }
         }
 
-        public ZoneRuleDefinition Resolve(int zone)
+        public int FinalZone
         {
-            if (zone < 1) throw new ArgumentOutOfRangeException(nameof(zone));
-            ZoneRuleDefinition selected = null;
-            foreach (ZoneRuleDefinition rule in _zoneRules)
-            {
-                if (!rule) throw new InvalidOperationException("Missing zone rule asset.");
-                if (!rule.Matches(zone)) continue;
-                if (!selected || rule.Priority > selected.Priority) selected = rule;
-            }
-            if (!selected) throw new InvalidOperationException("No zone rule matches zone " + zone);
-            foreach (ZoneRuleDefinition rule in _zoneRules)
-            {
-                if (rule != selected && rule.Priority == selected.Priority && rule.Matches(zone))
-                    throw new InvalidOperationException("Ambiguous zone rules at zone " + zone);
-            }
-            return selected;
+            get { return _finalZone; }
         }
 
-        public ZoneRuleDefinition GetDefinition(ZoneKind kind)
+        public IReadOnlyList<ZoneRuleDefinition> RuleDefinitions
         {
-            foreach (ZoneRuleDefinition rule in _zoneRules)
-            {
-                if (rule.Id == kind.Id) return rule;
-            }
-            throw new InvalidOperationException("Zone rule identity is not configured: " + kind.Id);
-        }
-
-        public WheelDefinition GetWheelForZone(int zone) { return Resolve(zone).Wheel; }
-        public WheelDefinition GetWheel(ZoneKind kind) { return GetDefinition(kind).Wheel; }
-
-        public int FindNextZone(int currentZone, ZoneRuleDefinition rule)
-        {
-            ZoneRule match = rule.ToRule();
-            foreach (ZoneRuleDefinition other in _zoneRules)
-            {
-                ZoneRule blocker = other.ToRule();
-                if (blocker.Priority > match.Priority && match.Interval % blocker.Interval == 0 &&
-                    blocker.MinimumZone <= match.MinimumZone &&
-                    (blocker.MaximumZone == 0 || (match.MaximumZone > 0 && blocker.MaximumZone >= match.MaximumZone)))
-                {
-                    return 0;
-                }
-            }
-            long candidate = ((long)currentZone / match.Interval + 1) * match.Interval;
-            long limit = finalZone > 0 ? finalZone : int.MaxValue;
-            if (match.MaximumZone > 0) limit = Math.Min(limit, match.MaximumZone);
-            candidate = Math.Max(candidate, ((long)match.MinimumZone + match.Interval - 1) / match.Interval * match.Interval);
-            for (; candidate <= limit; candidate += match.Interval)
-            {
-                if (Resolve((int)candidate) == rule) return (int)candidate;
-            }
-            return 0;
+            get { return _zoneRules; }
         }
 
         public IEnumerable<WheelDefinition> AllWheels
@@ -87,10 +42,59 @@ namespace Vertigo.WheelOfFortune.Data
             {
                 foreach (ZoneRuleDefinition rule in _zoneRules)
                 {
-                    if (rule && rule.Wheel) yield return rule.Wheel;
+                    yield return rule.Wheel;
                 }
             }
         }
 
+        /// <summary>Adapts the assets into the Unity-independent gameplay rules.</summary>
+        public ZoneRules ToRules()
+        {
+            var rules = new ZoneRule[_zoneRules.Length];
+            for (int i = 0; i < rules.Length; i++)
+            {
+                if (!_zoneRules[i])
+                {
+                    throw new InvalidOperationException("Missing zone rule asset.");
+                }
+                rules[i] = _zoneRules[i].ToRule();
+            }
+            return new ZoneRules(rules);
+        }
+
+        public WheelDefinition GetWheel(ZoneKind kind)
+        {
+            foreach (ZoneRuleDefinition rule in _zoneRules)
+            {
+                if (rule.Id == kind.Id)
+                {
+                    return rule.Wheel;
+                }
+            }
+            throw new InvalidOperationException("Zone rule identity is not configured: " + kind.Id);
+        }
+
+        #endregion
+
+#if UNITY_EDITOR
+        #region Validation
+
+        private void OnValidate()
+        {
+            if (_finalZone != ZoneRules.ENDLESS_FINAL_ZONE && _finalZone < _startingZone)
+            {
+                Debug.LogError("Final zone must not be below the starting zone.", this);
+            }
+            foreach (ZoneRuleDefinition rule in _zoneRules)
+            {
+                if (!rule || !rule.Wheel)
+                {
+                    Debug.LogError("Every zone rule entry needs a rule asset with a wheel.", this);
+                }
+            }
+        }
+
+        #endregion
+#endif
     }
 }

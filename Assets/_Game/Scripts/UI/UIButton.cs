@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.UI
@@ -10,38 +11,75 @@ namespace Vertigo.WheelOfFortune.UI
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Button))]
-    public class UIButton : MonoBehaviour, IButtonInteractability
+    public class UIButton : MonoBehaviour, IClickSource, IButtonInteractability
     {
-        [SerializeField] protected Button button;
+        #region Serialized References
+
+        [SerializeField, FormerlySerializedAs("button")] private Button _button;
+
+        #endregion
+
+        #region Public API
 
         public event UnityAction Clicked;
 
-        public Button Button { get { return button; } }
-
-        public bool Interactable
+        public bool IsInteractable
         {
-            get { return button && button.interactable; }
-            set { if (button) button.interactable = value; }
+            get
+            {
+                return _button && _button.interactable;
+            }
+            set
+            {
+                if (_button)
+                {
+                    _button.interactable = value;
+                }
+            }
         }
 
-        protected virtual void OnValidate()
-        {
-            if (button == null) button = GetComponent<Button>();
-        }
+        #endregion
+
+        #region Lifecycle
 
         protected virtual void OnEnable()
         {
-            if (button) button.onClick.AddListener(HandleClick);
+            if (_button)
+            {
+                _button.onClick.AddListener(HandleClick);
+            }
         }
 
         protected virtual void OnDisable()
         {
-            if (button != null) button.onClick.RemoveListener(HandleClick);
+            if (_button)
+            {
+                _button.onClick.RemoveListener(HandleClick);
+            }
         }
 
         private void HandleClick()
         {
-            Clicked?.Invoke();
+            if (Clicked != null)
+            {
+                Clicked.Invoke();
+            }
         }
+
+        #endregion
+
+#if UNITY_EDITOR
+        #region Editor Wiring
+
+        protected virtual void OnValidate()
+        {
+            if (!_button)
+            {
+                _button = GetComponent<Button>();
+            }
+        }
+
+        #endregion
+#endif
     }
 }

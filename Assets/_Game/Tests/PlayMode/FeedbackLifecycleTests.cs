@@ -30,12 +30,12 @@ namespace Vertigo.WheelOfFortune.Tests
             hud.alpha = 0.7f;
             hud.interactable = false;
             hud.blocksRaycasts = true;
-            var panel = (CanvasGroup)type.GetField("group", FLAGS).GetValue(view);
+            var panel = (CanvasGroup)type.GetField("_group", FLAGS).GetValue(view);
             object profile = type.GetField("_animation", FLAGS).GetValue(view);
             float duration = (float)profile.GetType().GetProperty("FadeDuration").GetValue(profile);
             for (int i = 0; i < 2; i++)
             {
-                type.GetMethod("ShowBanner").Invoke(view, new object[] { "Bomb", Color.white, null, "Restart" });
+                type.GetMethod("ShowLoss").Invoke(view, new object[] { null });
                 Assert.AreEqual(0f, hud.alpha);
                 Assert.IsFalse(hud.interactable);
                 Assert.IsFalse(hud.blocksRaycasts);
@@ -47,7 +47,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 Assert.IsFalse(hud.interactable);
                 Assert.IsTrue(hud.blocksRaycasts);
             }
-            type.GetMethod("ShowBanner").Invoke(view, new object[] { "Bomb", Color.white, null, "Restart" });
+            type.GetMethod("ShowLoss").Invoke(view, new object[] { null });
             view.gameObject.SetActive(false);
             Assert.AreEqual(0.7f, hud.alpha);
             Assert.IsFalse(hud.interactable);
@@ -59,7 +59,7 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             yield return SceneManager.LoadSceneAsync("Game");
             yield return null;
-            Type type = Type.GetType("Vertigo.WheelOfFortune.Game.GameController, Assembly-CSharp", true);
+            Type type = Type.GetType("Vertigo.WheelOfFortune.Game.GameCompositionRoot, Assembly-CSharp", true);
             Component controller = null;
             foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(type))
             {
@@ -71,8 +71,7 @@ namespace Vertigo.WheelOfFortune.Tests
             Type presenterType = presenter.GetType();
             presenterType.GetMethod("ShowLoss").Invoke(presenter, new object[] { 1 });
             presenterType.GetMethod("ShowResults").Invoke(presenter, null);
-            object screen = type.GetField("screen", FLAGS).GetValue(controller);
-            object results = screen.GetType().GetProperty("Results").GetValue(screen);
+            object results = type.GetField("_results", FLAGS).GetValue(controller);
             var groups = (CanvasGroup[])results.GetType().GetField("_underlyingHud", FLAGS).GetValue(results);
             Assert.AreEqual(4, groups.Length);
             yield return new WaitForSecondsRealtime(0.5f);
@@ -85,7 +84,7 @@ namespace Vertigo.WheelOfFortune.Tests
         }
 
         [UnityTest]
-        public IEnumerator DisableCancelsToastAndFadeWithoutResurrectingFeedback()
+        public IEnumerator DisableCancelsLossFadeWithoutResurrectingFeedback()
         {
             yield return SceneManager.LoadSceneAsync("Game");
             Type type = Type.GetType("Vertigo.WheelOfFortune.UI.FeedbackView, Assembly-CSharp", true);
@@ -97,12 +96,11 @@ namespace Vertigo.WheelOfFortune.Tests
             }
             Assert.IsTrue(view);
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
-            var group = (CanvasGroup)type.GetField("group", FLAGS).GetValue(view);
+            var group = (CanvasGroup)type.GetField("_group", FLAGS).GetValue(view);
             for (int i = 0; i < 3; i++)
             {
-                type.GetMethod("ShowToast").Invoke(view, new object[] { "Test", Color.white, null });
+                type.GetMethod("ShowLoss").Invoke(view, new object[] { null });
                 view.gameObject.SetActive(false);
-                Assert.IsNull(type.GetField("_toastSequence", FLAGS).GetValue(view));
                 Assert.IsNull(type.GetField("_fade", FLAGS).GetValue(view));
                 Assert.AreEqual(0f, group.alpha);
                 Assert.IsFalse(group.blocksRaycasts);

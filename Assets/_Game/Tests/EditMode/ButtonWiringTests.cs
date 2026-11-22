@@ -22,7 +22,7 @@ namespace Vertigo.WheelOfFortune.Tests
                     if (component.gameObject.scene != scene) continue;
                     count++;
                     var serialized = new SerializedObject(component);
-                    var button = (UnityEngine.UI.Button)serialized.FindProperty("button").objectReferenceValue;
+                    var button = (UnityEngine.UI.Button)serialized.FindProperty("_button").objectReferenceValue;
                     Assert.IsTrue(button, component.name);
                     Assert.AreEqual(0, button.onClick.GetPersistentEventCount(), component.name);
                 }

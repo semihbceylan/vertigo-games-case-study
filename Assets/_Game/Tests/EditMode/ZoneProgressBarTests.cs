@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Vertigo.WheelOfFortune.Tests
 {
@@ -24,7 +25,7 @@ namespace Vertigo.WheelOfFortune.Tests
                     count++;
                     var serialized = new SerializedObject(component);
                     var nodes = serialized.FindProperty("_nodes");
-                    Assert.AreEqual(serialized.FindProperty("visibleNodes").intValue, nodes.arraySize);
+                    Assert.AreEqual(serialized.FindProperty("_visibleNodes").intValue, nodes.arraySize);
                     for (int i = 0; i < nodes.arraySize; i++)
                     {
                         foreach (string field in new[] { "Rect", "Bg", "Frame", "Label" })
@@ -50,6 +51,7 @@ namespace Vertigo.WheelOfFortune.Tests
             owner.SetActive(false);
             try
             {
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Zone strip requires"));
                 Component component = owner.AddComponent(type);
                 MethodInfo validate = type.GetMethod("ValidateNodes", BindingFlags.NonPublic | BindingFlags.Instance);
                 var exception = Assert.Throws<TargetInvocationException>(() => validate.Invoke(component, null));

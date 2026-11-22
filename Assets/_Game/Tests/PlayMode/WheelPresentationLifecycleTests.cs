@@ -18,7 +18,7 @@ namespace Vertigo.WheelOfFortune.Tests
             yield return SceneManager.LoadSceneAsync("Game");
             yield return null;
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
-            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameController, Assembly-CSharp", true);
+            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameCompositionRoot, Assembly-CSharp", true);
             Component controller = null;
             foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(controllerType))
             {
@@ -41,9 +41,8 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.GreaterOrEqual(rewardIndex, 0);
             sessionType.GetMethod("BeginSpin").Invoke(session, null);
             sessionType.GetMethod("ResolveSpin").Invoke(session, new object[] { rewardIndex });
-            object screen = controllerType.GetField("screen", FLAGS).GetValue(controller);
-            object feedback = screen.GetType().GetProperty("Feedback").GetValue(screen);
-            var group = (CanvasGroup)feedback.GetType().GetField("group", FLAGS).GetValue(feedback);
+            object feedback = controllerType.GetField("_lossPanel", FLAGS).GetValue(controller);
+            var group = (CanvasGroup)feedback.GetType().GetField("_group", FLAGS).GetValue(feedback);
             yield return new WaitForSecondsRealtime(0.1f);
             Assert.AreEqual(0f, group.alpha, "Ordinary reward must not display a toast.");
             Assert.IsFalse(group.blocksRaycasts);
@@ -57,7 +56,7 @@ namespace Vertigo.WheelOfFortune.Tests
             yield return SceneManager.LoadSceneAsync("Game");
             yield return null;
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
-            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameController, Assembly-CSharp", true);
+            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameCompositionRoot, Assembly-CSharp", true);
             Component controller = null;
             foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(controllerType))
             {
@@ -68,7 +67,7 @@ namespace Vertigo.WheelOfFortune.Tests
             object presenter = controllerType.GetField("_presentation", FLAGS).GetValue(controller);
             Type presenterType = presenter.GetType();
             object transition = controllerType.GetField("_wheelTransitionController", FLAGS).GetValue(controller);
-            object profile = transition.GetType().GetProperty("Animation").GetValue(transition);
+            object profile = transition.GetType().GetField("_animation", FLAGS).GetValue(transition);
             float duration = (float)profile.GetType().GetProperty("SlideDuration").GetValue(profile);
             duration += (float)profile.GetType().GetProperty("HoldDuration").GetValue(profile);
             _completions = 0;
@@ -92,7 +91,7 @@ namespace Vertigo.WheelOfFortune.Tests
             yield return SceneManager.LoadSceneAsync("Game");
             yield return null;
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
-            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameController, Assembly-CSharp", true);
+            Type controllerType = Type.GetType("Vertigo.WheelOfFortune.Game.GameCompositionRoot, Assembly-CSharp", true);
             Component controller = null;
             foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(controllerType))
             {
@@ -100,13 +99,15 @@ namespace Vertigo.WheelOfFortune.Tests
                 if (component.gameObject.scene == SceneManager.GetActiveScene()) controller = component;
             }
             Assert.IsTrue(controller);
-            object layout = controllerType.GetField("wheelLayout", FLAGS).GetValue(controller);
+            object wheelView = controllerType.GetField("_wheelView", FLAGS).GetValue(controller);
+            object disc = wheelView.GetType().GetProperty("Disc").GetValue(wheelView);
+            object layout = disc.GetType().GetProperty("Layout").GetValue(disc);
             Type layoutType = layout.GetType();
             object firstIcon = layoutType.GetMethod("GetIcon").Invoke(layout, new object[] { 0 });
             foreach (int zone in new[] { 1, 5, 30, 31, 5 })
             {
-                controllerType.GetMethod("DebugJumpTo", FLAGS).Invoke(controller, new object[] { zone });
                 object session = controllerType.GetField("_session", FLAGS).GetValue(controller);
+                session.GetType().GetMethod("JumpToZone").Invoke(session, new object[] { zone });
                 object wheel = session.GetType().GetProperty("CurrentWheel").GetValue(session);
                 Type wheelType = wheel.GetType();
                 int count = (int)wheelType.GetProperty("SliceCount").GetValue(wheel);

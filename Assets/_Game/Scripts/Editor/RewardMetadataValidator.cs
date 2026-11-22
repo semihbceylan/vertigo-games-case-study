@@ -5,9 +5,11 @@ using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.EditorTools
 {
-    /// <summary>Reports missing authored metadata without inferring behavior from reward IDs.</summary>
-    public static class RewardCategoryAssigner
+    /// <summary>Reports rewards with missing authored metadata; never infers behaviour from IDs.</summary>
+    public static class RewardMetadataValidator
     {
+        #region Menu
+
         [MenuItem("Tools/Wheel of Fortune/Validate Reward Metadata")]
         public static void ValidateMetadata()
         {
@@ -17,12 +19,7 @@ namespace Vertigo.WheelOfFortune.EditorTools
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 RewardDefinition reward = AssetDatabase.LoadAssetAtPath<RewardDefinition>(path);
-                if (!reward)
-                {
-                    continue;
-                }
-                if (reward.Category == RewardCategory.Uncategorized ||
-                    string.IsNullOrWhiteSpace(reward.RewardId) || !reward.Icon)
+                if (!reward.Category || string.IsNullOrWhiteSpace(reward.RewardId) || !reward.Icon)
                 {
                     Debug.LogWarning("Reward requires an authored ID, category and icon: " + path, reward);
                     invalidCount++;
@@ -30,6 +27,8 @@ namespace Vertigo.WheelOfFortune.EditorTools
             }
             Debug.Log("Reward metadata validation: " + guids.Length + " scanned, " + invalidCount + " incomplete.");
         }
+
+        #endregion
     }
 }
 #endif

@@ -252,7 +252,7 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             var session = CreateSession((z, k) => Wheels.RewardOnly("gold", "cash"), new ScriptedRandom());
 
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
             Assert.IsTrue(session.CanSpin);
             Assert.IsFalse(session.CanLeave); // zone 1 is Normal
         }
@@ -279,7 +279,7 @@ namespace Vertigo.WheelOfFortune.Tests
             session.BeginSpin();
             session.ResolvePendingSpin();
 
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
             Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
             Assert.AreEqual(2, session.Zone);
         }
@@ -326,7 +326,7 @@ namespace Vertigo.WheelOfFortune.Tests
 
             session.Restart();
 
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
             Assert.AreEqual(1, session.Zone);
             Assert.AreEqual(0, session.Wallet.AccumulatedAmount);
         }
@@ -396,7 +396,7 @@ namespace Vertigo.WheelOfFortune.Tests
 
             session.Restart();
 
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
             Assert.AreEqual(1, session.Zone);
             Assert.IsTrue(session.Wallet.IsEmpty);
             Assert.IsTrue(session.CanSpin);
@@ -441,7 +441,7 @@ namespace Vertigo.WheelOfFortune.Tests
             session.JumpToZone(54);
 
             Assert.AreEqual(54, session.Zone);
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
             Assert.AreEqual(10, session.Wallet.AccumulatedAmount);
             Assert.IsTrue(session.CanSpin);
             Assert.AreEqual(TestZones.Normal, session.CurrentZoneKind);
@@ -506,7 +506,7 @@ namespace Vertigo.WheelOfFortune.Tests
             }
 
             Assert.AreEqual(3, session.Zone);
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
 
             // Collecting the zone-3 reward banks everything and finishes the run.
             session.BeginSpin();
@@ -534,7 +534,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 session.ResolvePendingSpin();
             }
 
-            Assert.IsTrue(session.IsIdle);
+            Assert.IsTrue(session.CanSpin);
             Assert.AreEqual(6, session.Zone);
         }
     }

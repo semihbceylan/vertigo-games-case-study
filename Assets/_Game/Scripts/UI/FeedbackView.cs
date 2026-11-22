@@ -1,202 +1,178 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
     /// <summary>
-    /// Central feedback widget. Blocking banners (bomb / death screen) use a tall, gradient-framed
-    /// panel with the title on top, a large image in the middle and the buttons stacked at the
-    /// bottom. Non-blocking reward toasts fade away on their own.
+    /// Blocking loss panel: bomb card, recoverable-reward preview, paid revive and free restart.
+    /// A dim overlay leaves rounded spotlights over the death card and the reward preview.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class FeedbackView : MonoBehaviour
+    public sealed class FeedbackView : MonoBehaviour, ILossPanelInput
     {
-        [SerializeField] private CanvasGroup group;
+        #region Configuration and Runtime
 
-        [Header("Death screen (blocking banner)")]
-        [SerializeField] private RectTransform deathScreen;
-        [SerializeField] private TMP_Text deathTitle;
-        [SerializeField] private Image deathIcon;
-        [SerializeField] private UIButton actionButton;
+        private static readonly int DIM_SIZE_ID = Shader.PropertyToID("_DimSize");
+        private static readonly int CUTOUT_A_ID = Shader.PropertyToID("_CutoutA");
+        private static readonly int CUTOUT_B_ID = Shader.PropertyToID("_CutoutB");
+        /// <summary>Converts a rect size into the half extents the cutout shader expects.</summary>
+        private const float HALF_EXTENT = 0.5f;
+        private const int SINGLE_REVIVE = 1;
+
+        [SerializeField, FormerlySerializedAs("group")] private CanvasGroup _group;
+
+        [Header("Death card")]
+        [SerializeField, FormerlySerializedAs("deathScreen")] private RectTransform _deathScreen;
+        [SerializeField, FormerlySerializedAs("deathTitle")] private TMP_Text _deathTitle;
+        [SerializeField, FormerlySerializedAs("deathIcon")] private Image _deathIcon;
+        [SerializeField, FormerlySerializedAs("actionButton")] private UIButton _restartButton;
         [SerializeField] private TMP_Text _actionLabel;
         [SerializeField] private UIButton _reviveButton;
         [SerializeField] private TMP_Text _reviveLabel;
         [SerializeField] private TMP_Text _reviveStatus;
+
+        [Header("Recoverable rewards")]
+        [SerializeField] private GameObject _recoverableRewardsPanel;
         [SerializeField] private RewardsListView _recoverableRewardsList;
-
-        public void SetRecoverableRewards(System.Collections.Generic.IReadOnlyList<RewardRowData> rows)
-        {
-            _recoverableRewardsList.SetRows(rows);
-        }
-
-        [Header("Reward toast")]
-        [SerializeField] private Image toastBackground;
-        [SerializeField] private Image toastIcon;
-        [SerializeField] private TMP_Text toastMessage;
 
         [Header("Death spotlight")]
         [Tooltip("Full-screen dim with rounded cut-outs (uses the UI Dim Cutout shader).")]
-        [SerializeField] private Image dimOverlay;
+        [SerializeField, FormerlySerializedAs("dimOverlay")] private Image _dimOverlay;
         [Tooltip("Red damage vignette shown with the death screen.")]
-        [SerializeField] private GameObject damageGlow;
-        [Tooltip("Rects the dim leaves clear (e.g. the rewards pane and the death card).")]
-        [SerializeField] private RectTransform spotlightA;
-        [SerializeField] private RectTransform spotlightB;
+        [SerializeField] private Image _damageGlow;
+        [Tooltip("Rects the dim leaves clear (the rewards pane and the death card).")]
+        [SerializeField, FormerlySerializedAs("spotlightA")] private RectTransform _spotlightA;
+        [SerializeField, FormerlySerializedAs("spotlightB")] private RectTransform _spotlightB;
+
+        [Header("Copy")]
+        [SerializeField] private string _lossTitle = "OH NO, A BOMB EXPLODED RIGHT IN YOUR HANDS!";
+        [SerializeField] private string _restartLabel = "RESTART";
+        [SerializeField] private string _reviveLimitReachedText = "Revive limit reached — restart for free";
+        [SerializeField] private string _singleReviveRemainingText = "1 revive remaining";
+        [Tooltip("{0} is the number of revives left.")]
+        [SerializeField] private string _revivesRemainingFormat = "{0} revives remaining";
+        [Tooltip("{0} is the remaining-revives text.")]
+        [SerializeField] private string _insufficientFundsFormat = "Not enough gold — {0}";
 
         [SerializeField] private PanelAnimation _animation;
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
 
-        public event Action ActionRequested;
-        public event Action ReviveRequested;
-
         private Tween _fade;
-        private Sequence _toastSequence;
         private Material _dimMaterial;
         private ModalHudVisibility _hudVisibility;
         private int _revivesRemaining;
 
+        #endregion
+
+        #region Events
+
+        public event Action RestartRequested;
+        public event Action ReviveRequested;
+
+        #endregion
+
+        #region Lifecycle
+
         private void Awake()
         {
             _hudVisibility = new ModalHudVisibility(_underlyingHud);
-            if (group != null)
-            {
-                group.alpha = 0f;
-                group.blocksRaycasts = false;
-                group.interactable = false;
-            }
-
+            _group.alpha = _animation.HiddenAlpha;
+            SetBlocking(false);
         }
 
         private void OnEnable()
         {
-            if (actionButton) actionButton.Clicked += OnActionClicked;
-            if (_reviveButton) _reviveButton.Clicked += OnReviveClicked;
+            _restartButton.Clicked += OnRestartClicked;
+            _reviveButton.Clicked += OnReviveClicked;
         }
 
         private void OnDisable()
         {
-            if (actionButton) actionButton.Clicked -= OnActionClicked;
-            if (_reviveButton) _reviveButton.Clicked -= OnReviveClicked;
+            _restartButton.Clicked -= OnRestartClicked;
+            _reviveButton.Clicked -= OnReviveClicked;
             HideImmediate();
         }
 
         private void OnDestroy()
         {
-            HideImmediate();
+            KillFade();
             if (_dimMaterial)
             {
                 Destroy(_dimMaterial);
             }
         }
 
-        private void OnActionClicked()
+        private void OnRestartClicked()
         {
             Hide();
-            ActionRequested?.Invoke();
+            if (RestartRequested != null)
+            {
+                RestartRequested.Invoke();
+            }
         }
 
         private void OnReviveClicked()
         {
-            ReviveRequested?.Invoke();
+            if (ReviveRequested != null)
+            {
+                ReviveRequested.Invoke();
+            }
         }
 
-        public void SetReviveOffer(bool visible, long cost, int remaining)
-        {
-            _revivesRemaining = remaining;
-            _reviveButton.gameObject.SetActive(visible);
-            _reviveButton.Interactable = remaining > 0;
-            _reviveLabel.text = RewardAmountFormatter.Format(cost);
-            _reviveStatus.text = remaining > 0 ? GetRemainingRevivesText() : "Revive limit reached — restart for free";
-        }
+        #endregion
 
-        private string GetRemainingRevivesText()
-        {
-            return _revivesRemaining == 1 ? "1 revive remaining" : _revivesRemaining + " revives remaining";
-        }
+        #region Loss Panel
 
-        public void ShowInsufficientGold()
+        /// <summary>Blocking loss message that requires the player to restart or revive.</summary>
+        public void ShowLoss(Sprite bombIcon)
         {
-            _reviveStatus.text = "Not enough gold — " + GetRemainingRevivesText();
-        }
-
-        /// <summary>Blocking message that requires the player to press the action button.</summary>
-        public void ShowBanner(string text, Color color, Sprite iconSprite, string actionLabel)
-        {
-            KillToast();
             _hudVisibility.Hide();
-            if (_reviveButton) _reviveButton.gameObject.SetActive(false);
-            SetRoots(banner: true);
-
-            if (deathTitle != null)
-            {
-                deathTitle.text = text;
-                deathTitle.color = color;
-            }
-
-            if (deathIcon != null)
-            {
-                deathIcon.sprite = iconSprite;
-                deathIcon.enabled = iconSprite != null;
-            }
-
-            bool hasAction = !string.IsNullOrEmpty(actionLabel);
-            if (actionButton != null)
-            {
-                actionButton.gameObject.SetActive(hasAction);
-                if (hasAction)
-                {
-                    if (_actionLabel) _actionLabel.text = actionLabel;
-                }
-            }
-
+            SetLossWidgetsActive(true);
+            _deathTitle.text = _lossTitle;
+            _deathIcon.sprite = bombIcon;
+            _deathIcon.enabled = bombIcon;
+            _actionLabel.text = _restartLabel;
+            ApplySpotlight();
             SetBlocking(true);
             FadeTo(_animation.VisibleAlpha);
         }
 
-        /// <summary>Non-blocking toast that fades away by itself.</summary>
-        public void ShowToast(string text, Color color, Sprite iconSprite)
+        public void SetRecoverableRewards(IReadOnlyList<RewardRowData> rows)
         {
-            KillToast();
-            _hudVisibility.Restore();
-            SetRoots(banner: false);
-
-            if (toastMessage != null)
-            {
-                toastMessage.text = text;
-                toastMessage.color = color;
-            }
-
-            if (toastIcon != null)
-            {
-                toastIcon.sprite = iconSprite;
-                toastIcon.enabled = iconSprite != null;
-            }
-
-            SetBlocking(false);
-            FadeTo(_animation.VisibleAlpha);
-
-            _toastSequence = DOTween.Sequence();
-            _toastSequence.AppendInterval(_animation.HoldDuration);
-            _toastSequence.AppendCallback(HideToast);
-            _toastSequence.SetUpdate(true);
-            _toastSequence.SetLink(gameObject);
+            _recoverableRewardsList.SetRows(rows);
         }
 
-        private void HideToast()
+        public void SetReviveOffer(long cost, int remaining)
         {
-            FadeTo(_animation.HiddenAlpha);
+            _revivesRemaining = remaining;
+            _reviveButton.gameObject.SetActive(true);
+            _reviveButton.IsInteractable = remaining > 0;
+            _reviveLabel.text = RewardAmountFormatter.Format(cost);
+            _reviveStatus.text = remaining > 0 ? GetRemainingRevivesText() : _reviveLimitReachedText;
+        }
+
+        public void ShowInsufficientFunds()
+        {
+            _reviveStatus.text = string.Format(_insufficientFundsFormat, GetRemainingRevivesText());
+        }
+
+        private string GetRemainingRevivesText()
+        {
+            return _revivesRemaining == SINGLE_REVIVE
+                ? _singleReviveRemainingText
+                : string.Format(_revivesRemainingFormat, _revivesRemaining);
         }
 
         public void Hide()
         {
-            KillToast();
-
-            _fade?.Kill(false);
-            _fade = group.DOFade(_animation.HiddenAlpha, _animation.FadeDuration)
+            KillFade();
+            _fade = _group.DOFade(_animation.HiddenAlpha, _animation.FadeDuration)
                 .SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject)
                 .OnComplete(FinishHide);
         }
@@ -205,101 +181,104 @@ namespace Vertigo.WheelOfFortune.UI
         {
             _fade = null;
             SetBlocking(false);
+            SetLossWidgetsActive(false);
             _hudVisibility.Restore();
         }
 
         public void HideImmediate()
         {
-            KillToast();
-            _fade?.Kill(false);
-            _fade = null;
+            KillFade();
             SetBlocking(false);
-            _hudVisibility?.Restore();
-            if (group) group.alpha = _animation ? _animation.HiddenAlpha : 0f;
+            SetLossWidgetsActive(false);
+            _hudVisibility.Restore();
+            _group.alpha = _animation.HiddenAlpha;
         }
 
-        private void KillToast()
-        {
-            if (_toastSequence != null && _toastSequence.IsActive()) _toastSequence.Kill(false);
-            _toastSequence = null;
-        }
+        #endregion
 
-        private void SetRoots(bool banner)
-        {
-            if (_recoverableRewardsList) _recoverableRewardsList.transform.parent.gameObject.SetActive(banner);
-            if (deathScreen != null) deathScreen.gameObject.SetActive(banner);
-            if (toastBackground != null) toastBackground.gameObject.SetActive(!banner);
-            if (dimOverlay != null) dimOverlay.gameObject.SetActive(banner);
-            if (damageGlow != null) damageGlow.SetActive(banner);
+        #region Presentation Helpers
 
-            if (banner) ApplySpotlight();
+        private void SetLossWidgetsActive(bool isActive)
+        {
+            _recoverableRewardsPanel.SetActive(isActive);
+            _deathScreen.gameObject.SetActive(isActive);
+            _dimOverlay.gameObject.SetActive(isActive);
+            // Toggle the graphic, not its GameObject, so the generated vignette is not rebuilt each loss.
+            _damageGlow.enabled = isActive;
         }
 
         /// <summary>Punches rounded cut-outs for the rewards pane and the death card into the dim.</summary>
         private void ApplySpotlight()
         {
-            if (dimOverlay == null) return;
-
-            if (_dimMaterial == null)
+            if (!_dimMaterial)
             {
-                _dimMaterial = new Material(dimOverlay.material);
-                dimOverlay.material = _dimMaterial;
+                _dimMaterial = new Material(_dimOverlay.material);
+                _dimOverlay.material = _dimMaterial;
             }
 
-            var dimRect = (RectTransform)dimOverlay.transform;
+            RectTransform dimRect = (RectTransform)_dimOverlay.transform;
             Vector2 size = dimRect.rect.size;
-            _dimMaterial.SetVector("_DimSize", new Vector4(size.x, size.y, 0f, 0f));
-            _dimMaterial.SetVector("_CutoutA", CutoutFor(spotlightA, dimRect));
-            _dimMaterial.SetVector("_CutoutB", CutoutFor(spotlightB, dimRect));
+            _dimMaterial.SetVector(DIM_SIZE_ID, new Vector4(size.x, size.y, 0f, 0f));
+            _dimMaterial.SetVector(CUTOUT_A_ID, GetCutout(_spotlightA, dimRect));
+            _dimMaterial.SetVector(CUTOUT_B_ID, GetCutout(_spotlightB, dimRect));
         }
 
-        private static Vector4 CutoutFor(RectTransform target, RectTransform dimRect)
+        private static Vector4 GetCutout(RectTransform target, RectTransform dimRect)
         {
-            if (target == null) return new Vector4(0f, -99999f, 0f, 0f);
-
             Vector3 local = dimRect.InverseTransformPoint(target.position);
-            Vector2 size = target.rect.size;
-            return new Vector4(local.x, local.y, size.x * 0.5f, size.y * 0.5f);
+            Vector2 halfSize = target.rect.size * HALF_EXTENT;
+            return new Vector4(local.x, local.y, halfSize.x, halfSize.y);
         }
 
-        private void SetBlocking(bool blocking)
+        private void SetBlocking(bool isBlocking)
         {
-            if (group == null) return;
-            group.blocksRaycasts = blocking;
-            group.interactable = blocking;
+            _group.blocksRaycasts = isBlocking;
+            _group.interactable = isBlocking;
         }
 
         private void FadeTo(float target)
         {
-            if (group == null)
-            {
-                gameObject.SetActive(target > 0f);
-                return;
-            }
-
-            _fade?.Kill();
-            _fade = group.DOFade(target, _animation.FadeDuration).SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject);
+            KillFade();
+            _fade = _group.DOFade(target, _animation.FadeDuration).SetEase(_animation.FadeEase).SetUpdate(true).SetLink(gameObject);
         }
+
+        private void KillFade()
+        {
+            if (_fade != null)
+            {
+                _fade.Kill(false);
+            }
+            _fade = null;
+        }
+
+        #endregion
 
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
-            if (!group) group = GetComponent<CanvasGroup>();
+            if (!_group) _group = GetComponent<CanvasGroup>();
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
             {
-                if (!deathScreen && child.name == "ui_image_feedback_death_screen") deathScreen = (RectTransform)child;
-                if (!deathTitle && child.name == "ui_text_feedback_title_value") deathTitle = child.GetComponent<TMP_Text>();
-                if (!deathIcon && child.name == "ui_image_feedback_death_value") deathIcon = child.GetComponent<Image>();
-                if (!actionButton && child.name == "ui_button_feedback_action") actionButton = child.GetComponent<UIButton>();
-                if (!toastBackground && child.name == "ui_image_feedback_toast") toastBackground = child.GetComponent<Image>();
-                if (!toastIcon && child.name == "ui_image_feedback_toast_icon_value") toastIcon = child.GetComponent<Image>();
-                if (!toastMessage && child.name == "ui_text_feedback_toast_message_value") toastMessage = child.GetComponent<TMP_Text>();
-                if (!dimOverlay && child.name == "ui_image_feedback_dim") dimOverlay = child.GetComponent<Image>();
-                if (!damageGlow && child.name == "ui_image_feedback_damage_glow") damageGlow = child.gameObject;
+                if (!_deathScreen && child.name == "ui_image_feedback_death_screen") _deathScreen = (RectTransform)child;
+                if (!_deathTitle && child.name == "ui_text_feedback_title_value") _deathTitle = child.GetComponent<TMP_Text>();
+                if (!_deathIcon && child.name == "ui_image_feedback_death_value") _deathIcon = child.GetComponent<Image>();
+                if (!_restartButton && child.name == "ui_button_feedback_action") _restartButton = child.GetComponent<UIButton>();
+                if (!_dimOverlay && child.name == "ui_image_feedback_dim") _dimOverlay = child.GetComponent<Image>();
+                if (!_damageGlow && child.name == "ui_image_feedback_damage_glow") _damageGlow = child.GetComponent<Image>();
             }
-            if (!_actionLabel && actionButton) _actionLabel = actionButton.GetComponentInChildren<TMP_Text>(true);
-            if (spotlightB == null && deathScreen != null) spotlightB = deathScreen;
+            if (!_actionLabel && _restartButton) _actionLabel = _restartButton.GetComponentInChildren<TMP_Text>(true);
+            if (!_recoverableRewardsPanel && _recoverableRewardsList) _recoverableRewardsPanel = _recoverableRewardsList.transform.parent.gameObject;
+            if (!_group || !_deathScreen || !_deathTitle || !_deathIcon || !_restartButton || !_actionLabel || !_reviveButton ||
+                !_reviveLabel || !_reviveStatus || !_recoverableRewardsPanel || !_recoverableRewardsList || !_dimOverlay ||
+                !_damageGlow || !_spotlightA || !_spotlightB || !_animation)
+            {
+                Debug.LogError("FeedbackView has missing serialized references.", this);
+            }
         }
+
+        #endregion
 #endif
     }
 }

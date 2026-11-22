@@ -29,13 +29,12 @@ namespace Vertigo.WheelOfFortune.Tests
                 }
             }
             Assert.IsTrue(view);
-            var button = (UnityEngine.UI.Button)type.GetProperty("Button").GetValue(view);
             // Remove gameplay subscribers from the equation by using a fresh wrapper with authored target.
             var owner = new GameObject("button-lifecycle", typeof(RectTransform), typeof(UnityEngine.UI.Button));
             owner.SetActive(false);
             var wrapper = (Behaviour)owner.AddComponent(type);
-            button = owner.GetComponent<UnityEngine.UI.Button>();
-            type.GetField("button", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            var button = owner.GetComponent<UnityEngine.UI.Button>();
+            type.GetField("_button", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 .SetValue(wrapper, button);
             type.GetEvent("Clicked").AddEventHandler(wrapper, (UnityAction)OnClick);
             _clicks = 0;

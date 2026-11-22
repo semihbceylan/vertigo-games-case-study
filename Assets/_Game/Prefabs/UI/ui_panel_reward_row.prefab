@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 749335522278814747}
+  - component: {fileID: 8496226450466616594}
+  - component: {fileID: 3540572821946514792}
   m_Layer: 5
   m_Name: ui_panel_reward_row
   m_TagString: Untagged
@@ -37,6 +39,34 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 72}
   m_Pivot: {x: 0.5, y: 1}
+--- !u!225 &8496226450466616594
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3255338387184593843}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &3540572821946514792
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3255338387184593843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad74e4bf4d15647d7aa6940d9858b9ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.UI.RewardRowView
+  _rect: {fileID: 749335522278814747}
+  _icon: {fileID: 9114767765360461544}
+  _amount: {fileID: 2091619109384026615}
+  _group: {fileID: 8496226450466616594}
 --- !u!1 &3503974960566837821
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.Serialization;
 using Vertigo.WheelOfFortune.Core;
 using Vertigo.WheelOfFortune.Data;
 using Vertigo.WheelOfFortune.UI;
@@ -8,361 +8,153 @@ using Vertigo.WheelOfFortune.Wheel;
 namespace Vertigo.WheelOfFortune.Game
 {
     /// <summary>
-    /// Owns the runtime <see cref="GameSession"/> and connects it to the wheel view, animation and
-    /// HUD. All button listeners are registered here in code.
+    /// Composition root: builds the session-scoped objects from serialized scene references and
+    /// pairs their subscriptions with this component's enable/disable lifecycle. It holds no flow
+    /// state and handles no input itself.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class GameController : MonoBehaviour
+    public sealed class GameCompositionRoot : MonoBehaviour
     {
-        [SerializeField] private GameConfiguration configuration;
-        [SerializeField] private WheelView wheelView;
-        [SerializeField] private WheelLayout wheelLayout;
-        [SerializeField] private WheelSpinner wheelSpinner;
-        [SerializeField] private GameScreenView screen;
-        [SerializeField] private SpinButton spinButton;
-        [SerializeField] private UIButton leaveButton;
-        [SerializeField] private UIButton restartButton;
+        #region Serialized References
+
+        [SerializeField, FormerlySerializedAs("configuration")] private GameConfiguration _configuration;
+        [SerializeField, FormerlySerializedAs("wheelView")] private WheelView _wheelView;
+        [SerializeField, FormerlySerializedAs("wheelSpinner")] private WheelSpinner _wheelSpinner;
+        [SerializeField, FormerlySerializedAs("screen")] private GameScreenView _screen;
+        [SerializeField] private FeedbackView _lossPanel;
+        [SerializeField] private ResultsView _results;
+        [SerializeField, FormerlySerializedAs("spinButton")] private SpinButton _spinButton;
+        [SerializeField, FormerlySerializedAs("leaveButton")] private UIButton _leaveButton;
+        [SerializeField, FormerlySerializedAs("restartButton")] private UIButton _restartButton;
         [SerializeField] private RewardPresentationController _rewardPresentation;
-        [SerializeField] private RectTransform _canvasRect;
         [SerializeField] private WheelTransitionController _wheelTransitionController;
         [SerializeField] private CurrencyHudView _currencyHud;
+        [Tooltip("Optional editor/development zone teleport.")]
+        [SerializeField] private DevZoneTeleport _devZoneTeleport;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        [Header("Debug (Editor / Development builds only)")]
-        [Tooltip("Start the run at this zone. 0 uses the configured starting zone.")]
-        [SerializeField, Min(0)] private int debugStartZone = 0;
-#endif
+        #endregion
 
-        private readonly RewardCatalogPresenter _rewardCatalog = new RewardCatalogPresenter();
-        private IWheelVisualPresenter _wheelVisualPresenter;
-        private ISessionHudPresenter _hudPresenter;
+        #region Session Scope
+
         private GameSession _session;
-        private ICurrencyWallet _currencyWallet;
-        private RunCurrencySettlement _currencySettlement;
         private SessionPresenter _presentation;
-
-        private void OnEnable()
-        {
-            SubscribeSessionEvents();
-            if (_currencyHud) _currencyHud.TopUpRequested += OnTopUpRequested;
-            if (spinButton != null) spinButton.Clicked += OnSpinClicked;
-            if (leaveButton != null) leaveButton.Clicked += OnLeaveClicked;
-            if (restartButton != null) restartButton.Clicked += OnRestartClicked;
-            if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested += OnFeedbackAction;
-            if (screen && screen.Feedback) screen.Feedback.ReviveRequested += OnReviveRequested;
-            if (screen != null && screen.Results != null) screen.Results.RestartRequested += OnResultsRestartRequested;
-        }
-
-        private void OnDisable()
-        {
-            UnsubscribeSessionEvents();
-            if (_currencyHud) _currencyHud.TopUpRequested -= OnTopUpRequested;
-            if (spinButton != null) spinButton.Clicked -= OnSpinClicked;
-            if (leaveButton != null) leaveButton.Clicked -= OnLeaveClicked;
-            if (restartButton != null) restartButton.Clicked -= OnRestartClicked;
-            if (screen != null && screen.Feedback != null) screen.Feedback.ActionRequested -= OnFeedbackAction;
-            if (screen && screen.Feedback) screen.Feedback.ReviveRequested -= OnReviveRequested;
-            if (screen != null && screen.Results != null) screen.Results.RestartRequested -= OnResultsRestartRequested;
-        }
+        private SessionHudPresenter _hudPresenter;
+        private SessionInputController _input;
+        private RunCurrencySettlement _currencySettlement;
+        private bool _isComposed;
 
         private void Start()
         {
-            if (configuration == null || configuration.Zones == null)
-            {
-                Debug.LogError("[GameController] A GameConfiguration with a ZoneConfiguration is required.", this);
-                enabled = false;
-                return;
-            }
-
-            BuildRewardLookup();
-
-            _presentation = new SessionPresenter(configuration.Zones, wheelView, wheelLayout,
-                wheelSpinner, screen, _rewardPresentation, _wheelTransitionController,
-                _wheelTransitionController.Animation, _wheelVisualPresenter, _rewardCatalog);
-
-            var events = new EventBus();
-            _currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events);
-            _currencyHud.Bind(_currencyWallet, events);
-            _session = new GameSession(
-                configuration.Zones.ToRules(),
-                new WheelTierFactory(configuration.Zones),
-                CreateRandomSource(),
-                configuration.Zones.StartingZone,
-                configuration.Zones.FinalZone,
-                events: events, presentation: _presentation,
-                currencies: _currencyWallet, revivePolicy: configuration.CreateRevivePolicy());
-
-            _currencySettlement = new RunCurrencySettlement(_session.Events, _session.Wallet, _currencyWallet, _rewardCatalog);
-            _hudPresenter = new SessionHudPresenter(_session, configuration.Zones, screen, spinButton, _rewardCatalog);
-            _presentation.Bind(_session, _hudPresenter);
-
-            SubscribeSessionEvents();
-
+            Compose();
+            BindListeners();
             _session.StartNewRun();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (debugStartZone > 0) _session.JumpToZone(debugStartZone);
-#endif
-            ApplyZoneWheel();
-            RefreshState();
+            if (_devZoneTeleport)
+            {
+                _devZoneTeleport.Bind(_session);
+            }
         }
 
-        private void OnDestroy()
+        private void Compose()
         {
-            _presentation?.Cancel();
-            UnsubscribeSessionEvents();
-        }
+            var zones = new ZoneCatalog(_configuration.Zones);
+            var catalog = new RewardCatalogPresenter();
+            catalog.Configure(_configuration.Zones);
+            var events = new EventBus();
+            var currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events);
+            _currencyHud.Bind(currencyWallet, events);
 
-        private void SubscribeSessionEvents()
-        {
-            if (_session == null) return;
-            _session.Events.Subscribe<SessionChanged>(OnSessionChanged);
-            _currencySettlement.Subscribe();
-        }
-
-        private void UnsubscribeSessionEvents()
-        {
-            if (_session == null) return;
-            _session.Events.Unsubscribe<SessionChanged>(OnSessionChanged);
-            _currencySettlement.Unsubscribe();
-        }
-
-        private void OnSessionChanged(SessionChanged message)
-        {
-            RefreshState();
+            _presentation = new SessionPresenter(zones, _wheelView, _wheelSpinner, _screen, _rewardPresentation,
+                _wheelTransitionController, new WheelVisualPresenter(catalog), catalog);
+            _session = new GameSession(zones.Rules, new WheelTierFactory(_configuration.Zones), CreateRandomSource(),
+                zones.StartingZone, zones.FinalZone, events, _presentation, currencyWallet,
+                _configuration.CreateRevivePolicy());
+            _hudPresenter = new SessionHudPresenter(_session, zones, _screen, _spinButton, _currencyHud, catalog);
+            _presentation.Bind(_session, _hudPresenter);
+            _currencySettlement = new RunCurrencySettlement(events, _session.Wallet, currencyWallet, catalog);
+            _input = new SessionInputController(_session, _spinButton, _leaveButton, _restartButton, _lossPanel, _results);
+            _isComposed = true;
         }
 
         private IRandomSource CreateRandomSource()
         {
-            return configuration.DeterministicRandom
-                ? (IRandomSource)new SystemRandomSource(configuration.RandomSeed)
+            return _configuration.IsDeterministicRandom
+                ? new SystemRandomSource(_configuration.RandomSeed)
                 : new SystemRandomSource();
         }
 
-        private void BuildRewardLookup()
+        #endregion
+
+        #region Listener Lifecycle
+
+        private void OnEnable()
         {
-            _rewardCatalog.Configure(configuration.Zones);
-            if (_wheelVisualPresenter == null) _wheelVisualPresenter = new WheelVisualPresenter(_rewardCatalog);
+            BindListeners();
         }
 
-        // ---- input ----
-
-        private void OnSpinClicked()
+        private void OnDisable()
         {
-            if (_currencyHud.IsTopUpOpen) return;
-            if (_session == null || !_session.CanSpin) return;
-            _session.BeginSpin();
+            UnbindListeners();
         }
 
-        private void OnLeaveClicked()
+        private void OnDestroy()
         {
-            if (_currencyHud.IsTopUpOpen) return;
-            if (_session != null && _session.CanLeave) _session.Leave();
-        }
-
-        private void OnRestartClicked()
-        {
-            if (_session == null) return;
-            if (_session.CanRestart) _session.Restart();
-            else if (_session.IsIdle && screen != null) screen.HideFeedback();
-        }
-
-        private void OnFeedbackAction()
-        {
-            if (_session == null) return;
-            if (_session.CanRestart) _session.Restart();
-            else if (_session.IsCompleted) _session.StartNewRun();
-        }
-
-        private void OnReviveRequested()
-        {
-            if (_session == null || !_session.CanRevive) return;
-            if (!_session.TryRevive()) screen.Feedback.ShowInsufficientGold();
-        }
-
-        private void OnTopUpRequested()
-        {
-            if (_session != null && _session.CanRestart) _currencyHud.OpenTopUp();
-        }
-
-        private void OnResultsRestartRequested()
-        {
-            if (_session == null) return;
-
-            _presentation.Cancel();
-            _session.StartNewRun();
-            ApplyZoneWheel();
-            RefreshState();
-        }
-
-        // ---- view ----
-
-        private void ApplyZoneWheel()
-        {
-            _presentation.ApplyZoneWheel();
-        }
-
-        /// <summary>Shared wheel filler used by both the live session and the edit-mode preview.</summary>
-        private void FillWheelVisual(ZoneWheel wheel, WheelDefinition definition, RectTransform rotation, Image baseImage, WheelLayout layout)
-        {
-            _wheelVisualPresenter.Fill(wheel, definition, rotation, baseImage, layout);
-        }
-
-        private void RefreshState()
-        {
-            _hudPresenter?.Refresh();
-            if (_currencyHud && _session != null) _currencyHud.SetDeathScreenVisible(_session.CanRestart);
-        }
-
-        // ---- development teleport (editor / development builds only) ----
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private void Update()
-        {
-            if (_session == null) return;
-
-            var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            if (keyboard == null) return;
-
-            // Step one zone ( ] / [ ), a whole safe-zone gap ( PageUp / PageDown ),
-            // or jump straight to a demo zone: 1 -> 54, 2 -> 60.
-            if (keyboard.rightBracketKey.wasPressedThisFrame) DebugJumpTo(_session.Zone + 1);
-            else if (keyboard.leftBracketKey.wasPressedThisFrame) DebugJumpTo(_session.Zone - 1);
-            else if (keyboard.pageUpKey.wasPressedThisFrame) DebugJumpTo(_session.Zone + 5);
-            else if (keyboard.pageDownKey.wasPressedThisFrame) DebugJumpTo(_session.Zone - 5);
-            else if (keyboard.digit1Key.wasPressedThisFrame) DebugJumpTo(54);
-            else if (keyboard.digit2Key.wasPressedThisFrame) DebugJumpTo(60);
-        }
-
-        /// <summary>Dev helper: teleports the live run to a zone and refreshes the whole view.</summary>
-        private void DebugJumpTo(int zone)
-        {
-            if (_currencyHud.IsTopUpOpen) return;
-            if (_session == null || !_session.CanSpin) return;
-
-            _presentation.Cancel();
-            _session.JumpToZone(zone);
-            ApplyZoneWheel();
-            RefreshState();
-        }
-#endif
-
-#if UNITY_EDITOR
-        [ContextMenu("Debug/Jump To Zone 54")]
-        private void DebugJumpToZone54()
-        {
-            DebugJumpTo(54);
-        }
-
-        [ContextMenu("Debug/Jump To Zone 55 (Safe)")]
-        private void DebugJumpToZone55()
-        {
-            DebugJumpTo(55);
-        }
-
-        [ContextMenu("Debug/Jump To Zone 59")]
-        private void DebugJumpToZone59()
-        {
-            DebugJumpTo(59);
-        }
-
-        [ContextMenu("Debug/Jump To Zone 60 (Super)")]
-        private void DebugJumpToZone60()
-        {
-            DebugJumpTo(60);
-        }
-#endif
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (!wheelView) wheelView = GetComponentInChildren<WheelView>(true);
-            if (!wheelLayout) wheelLayout = GetComponentInChildren<WheelLayout>(true);
-            if (!wheelSpinner) wheelSpinner = GetComponentInChildren<WheelSpinner>(true);
-            if (!screen) screen = GetComponentInChildren<GameScreenView>(true);
-            if (!spinButton) spinButton = GetComponentInChildren<SpinButton>(true);
-            if (!_rewardPresentation) _rewardPresentation = GetComponent<RewardPresentationController>();
-            if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
-            if (!_canvasRect)
+            if (_isComposed)
             {
-                Canvas canvas = GetComponentInParent<Canvas>();
-                if (canvas) _canvasRect = (RectTransform)canvas.rootCanvas.transform;
+                _presentation.Cancel();
             }
-            foreach (UIButton button in GetComponentsInChildren<UIButton>(true))
-            {
-                if (!leaveButton && button.name == "ui_button_leave") leaveButton = button;
-                if (!restartButton && button.name == "ui_button_restart") restartButton = button;
-            }
-            PreviewZoneOneInEditor();
         }
 
         /// <summary>
-        /// Edit-mode only: stages the scene to look like a fresh zone-1 run (Bronze wheel +
-        /// zone bar on 1) so edit mode matches play mode. Never touches the side maps.
-        /// Deterministic seed keeps the preview stable between validations.
+        /// The first OnEnable runs before Start has composed the session, so Start binds once
+        /// composition is complete; every later enable binds here. Each binding is idempotent.
         /// </summary>
-        private void PreviewZoneOneInEditor()
+        private void BindListeners()
         {
-            if (Application.isPlaying) return;
-            if (configuration == null || configuration.Zones == null) return;
-            if (wheelView == null || wheelLayout == null || screen == null || screen.ZoneBar == null) return;
-
-            // Scene mutation (destroy/recreate slots) silently fails inside OnValidate while
-            // Unity holds the scene graph, which stacks duplicate slots. Defer past validation.
-            if (_previewQueued) return;
-            _previewQueued = true;
-            UnityEditor.EditorApplication.delayCall += RunQueuedPreview;
-        }
-
-        private bool _previewQueued;
-
-        private void RunQueuedPreview()
-        {
-            _previewQueued = false;
-            PreviewZoneOneNow();
-        }
-
-#if UNITY_EDITOR
-        [UnityEditor.MenuItem("Tools/Wheel of Fortune/Preview Zone 1 (Edit)")]
-        private static void PreviewZoneOneMenu()
-        {
-            var controller = UnityEngine.Object.FindFirstObjectByType<GameController>();
-            if (controller == null)
+            if (!_isComposed)
             {
-                UnityEngine.Debug.LogWarning("[GameController] No GameController in the open scene to preview.");
                 return;
             }
-
-            controller.PreviewZoneOneNow();
+            _hudPresenter.Subscribe();
+            _currencySettlement.Subscribe();
+            _input.Bind();
         }
-#endif
 
-        /// <summary>Immediate zone-1 preview. Must run outside OnValidate (menu, delayed call).</summary>
-        public void PreviewZoneOneNow()
+        private void UnbindListeners()
         {
-            if (Application.isPlaying) return;
-            if (configuration == null || configuration.Zones == null) return;
-            if (wheelView == null || wheelLayout == null || screen == null || screen.ZoneBar == null) return;
-
-            var zones = configuration.Zones;
-            var kind = ZoneClassifier.Classify(1, zones.ToRules());
-            var definition = zones.GetWheel(kind);
-            if (definition == null) return;
-
-            BuildRewardLookup();
-
-            var preview = new WheelTierFactory(zones).CreateWheel(1, kind, new SystemRandomSource(12345));
-            if (wheelView.WheelIndicator != null && definition.IndicatorSprite != null)
-                wheelView.WheelIndicator.sprite = definition.IndicatorSprite;
-
-            FillWheelVisual(
-                preview,
-                definition,
-                wheelView.WheelRotation,
-                wheelView.WheelBase,
-                wheelLayout);
-
-            screen.ZoneBar.Set(zones.StartingZone, zones);
+            if (!_isComposed)
+            {
+                return;
+            }
+            _hudPresenter.Unsubscribe();
+            _currencySettlement.Unsubscribe();
+            _input.Unbind();
         }
+
+        #endregion
+
+#if UNITY_EDITOR
+        #region Editor Wiring
+
+        private void OnValidate()
+        {
+            if (!_wheelView) _wheelView = GetComponentInChildren<WheelView>(true);
+            if (!_wheelSpinner) _wheelSpinner = GetComponentInChildren<WheelSpinner>(true);
+            if (!_screen) _screen = GetComponentInChildren<GameScreenView>(true);
+            if (!_lossPanel) _lossPanel = GetComponentInChildren<FeedbackView>(true);
+            if (!_results) _results = GetComponentInChildren<ResultsView>(true);
+            if (!_spinButton) _spinButton = GetComponentInChildren<SpinButton>(true);
+            if (!_rewardPresentation) _rewardPresentation = GetComponent<RewardPresentationController>();
+            if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
+            if (!_devZoneTeleport) _devZoneTeleport = GetComponent<DevZoneTeleport>();
+            if (!_configuration || !_configuration.Zones || !_wheelView || !_wheelSpinner || !_screen || !_lossPanel ||
+                !_results || !_spinButton || !_leaveButton || !_restartButton || !_rewardPresentation ||
+                !_wheelTransitionController || !_currencyHud)
+            {
+                Debug.LogError("GameCompositionRoot has missing serialized references.", this);
+            }
+        }
+
+        #endregion
 #endif
     }
 }

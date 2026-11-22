@@ -28,7 +28,7 @@ namespace Vertigo.WheelOfFortune.Tests
             }
             Assert.IsTrue(_view);
             _hud = ((CanvasGroup[])Field("_underlyingHud"))[0];
-            _group = (CanvasGroup)Field("group");
+            _group = (CanvasGroup)Field("_group");
         }
 
         [UnityTearDown]
@@ -81,7 +81,8 @@ namespace Vertigo.WheelOfFortune.Tests
 
         private void Show()
         {
-            _type.GetMethod("Show").Invoke(_view, new object[] { null });
+            Type rowType = Type.GetType("Vertigo.WheelOfFortune.UI.RewardRowData, Assembly-CSharp", true);
+            _type.GetMethod("Show").Invoke(_view, new object[] { Array.CreateInstance(rowType, 0) });
         }
 
         private float FadeDuration()

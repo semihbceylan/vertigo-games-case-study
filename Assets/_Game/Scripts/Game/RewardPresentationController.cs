@@ -17,29 +17,49 @@ namespace Vertigo.WheelOfFortune.Game
     /// <summary>Owns showcase dismissal and reward flights, never session progression.</summary>
     public sealed class RewardPresentationController : MonoBehaviour, IRewardPresentation
     {
-        [SerializeField] private GameScreenView _screen;
-        [SerializeField] private WheelLayout _wheelLayout;
-        [SerializeField] private RewardFlyAnimator _rewardFly;
+        #region Serialized References
 
+        [SerializeField] private JackpotShowcaseView _showcaseView;
+        [SerializeField] private RewardsListView _rewardsListView;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("_rewardFly")] private RewardFlyAnimator _rewardFlyView;
+        [SerializeField] private WheelLayout _wheelLayout;
+
+        #endregion
+
+        #region Runtime State
+
+        private IRewardShowcase _showcase;
+        private IRewardRowTargets _rows;
+        private IRewardFlight _flight;
         private Action _onComplete;
         private string _rewardId;
         private int _sliceIndex;
 
+        #endregion
+
+        #region Lifecycle
+
+        private void Awake()
+        {
+            _showcase = _showcaseView;
+            _rows = _rewardsListView;
+            _flight = _rewardFlyView;
+        }
+
         private void OnEnable()
         {
-            if (_screen && _screen.Showcase) _screen.Showcase.Dismissed += OnShowcaseDismissed;
+            _showcase.Dismissed += OnShowcaseDismissed;
         }
 
         private void OnDisable()
         {
-            if (_screen && _screen.Showcase) _screen.Showcase.Dismissed -= OnShowcaseDismissed;
+            _showcase.Dismissed -= OnShowcaseDismissed;
             Cancel();
         }
 
-        private void OnDestroy()
-        {
-            Cancel();
-        }
+        #endregion
+
+        #region Presentation
 
         public void Play(RewardGrant grant, RewardDefinition definition, int sliceIndex, Action onComplete)
         {
@@ -47,65 +67,69 @@ namespace Vertigo.WheelOfFortune.Game
             _rewardId = grant.RewardId;
             _sliceIndex = sliceIndex;
             _onComplete = onComplete;
-            if (definition && definition.ShowcaseBig)
+            if (definition.ShowcaseBig)
             {
-                _screen.HideFeedback();
-                _screen.ShowJackpot(definition.Icon, definition.DisplayName, grant.Amount);
+                _showcase.Show(definition.Icon, definition.DisplayName, grant.Amount);
                 return;
             }
             PlayFlight();
         }
 
+        /// <summary>Drops the completion callback first so cancelled visuals cannot advance the session.</summary>
         public void Cancel()
         {
             _onComplete = null;
-            if (_rewardFly) _rewardFly.CancelAll();
-            if (_screen) _screen.HideJackpot();
+            _flight.CancelAll();
+            _showcase.HideImmediate();
         }
 
         private void OnShowcaseDismissed()
         {
-            if (_onComplete == null) return;
-            PlayFlight();
+            if (_onComplete != null)
+            {
+                PlayFlight();
+            }
         }
 
         private void PlayFlight()
         {
             Image source = _wheelLayout.GetIcon(_sliceIndex);
-            if (source && source.sprite)
+            RectTransform target;
+            if (!_rows.TryGetRowIcon(_rewardId, out target))
             {
-                RectTransform target;
-                if (!_screen.RewardsList.TryGetRowIcon(_rewardId, out target))
-                {
-                    target = _screen.RewardsList.ListRect;
-                }
-                _rewardFly.Fly(source.sprite, source.rectTransform, target, Complete);
-                return;
+                target = _rows.ListRect;
             }
-            Complete();
+            _flight.Fly(source.sprite, source.rectTransform, target, Complete);
         }
 
         private void Complete()
         {
             Action completion = _onComplete;
             _onComplete = null;
-            if (completion == null) return;
-            if (_screen && _screen.RewardsList) _screen.RewardsList.PunchRow(_rewardId);
+            if (completion == null)
+            {
+                return;
+            }
+            _rows.PunchRow(_rewardId);
             completion();
         }
 
+        #endregion
+
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
-            if (!_screen) _screen = GetComponentInChildren<GameScreenView>(true);
-            if (!_wheelLayout) _wheelLayout = GetComponentInChildren<WheelLayout>(true);
-            if (!_rewardFly) _rewardFly = GetComponentInChildren<RewardFlyAnimator>(true);
-            if (gameObject.activeInHierarchy &&
-                (!_screen || !_screen.Showcase || !_screen.RewardsList || !_wheelLayout || !_rewardFly))
+            if (!_showcaseView) _showcaseView = GetComponentInChildren<JackpotShowcaseView>(true);
+            if (!_rewardFlyView) _rewardFlyView = GetComponentInChildren<RewardFlyAnimator>(true);
+            if (!_showcaseView || !_rewardsListView || !_rewardFlyView || !_wheelLayout)
             {
-                Debug.LogError("Reward presentation requires serialized screen, showcase, rewards list, wheel layout and fly animator references.", this);
+                Debug.LogError("Reward presentation requires serialized showcase, rewards list, fly animator and wheel layout references.", this);
             }
         }
+
+        #endregion
 #endif
     }
 }

@@ -1,212 +1,174 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.Wheel
 {
     /// <summary>
-    /// Places wheel slice slots on a circle using a mathematical radial layout:
-    /// angleStep = 360 / sliceCount; angle = startAngle + index * angleStep;
-    /// x = sin(angle) * radius; y = cos(angle) * radius.
-    /// Each slot holds a reward icon plus a prize-count label on the hub-facing side.
+    /// Places pooled slice slots on a circle: angleStep = 360 / sliceCount,
+    /// angle = startAngle + index * angleStep, x = sin(angle) * radius, y = cos(angle) * radius.
     /// Slots are children of the rotating wheel so they spin with it.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WheelLayout : MonoBehaviour
     {
-        [SerializeField] private RectTransform slicesRoot;
-        [Tooltip("Optional slot prefab. When set, slices are cloned from it instead of built in code.")]
-        [SerializeField] private WheelSliceView slotPrefab;
+        #region Configuration and Runtime
+
+        public const float FULL_CIRCLE_DEGREES = 360f;
+        private const int MINIMUM_SLICES = 1;
+        private const string SLOT_NAME_PREFIX = "ui_panel_wheel_slice_";
+
+        [SerializeField, FormerlySerializedAs("slicesRoot")] private RectTransform _slicesRoot;
+        [SerializeField, FormerlySerializedAs("slotPrefab")] private WheelSliceView _slotPrefab;
 
         [Header("Radial Layout")]
-        [SerializeField, Range(0f, 360f)] private float startAngle = 0f;
+        [SerializeField, Range(0f, FULL_CIRCLE_DEGREES), FormerlySerializedAs("startAngle")] private float _startAngle;
         [Tooltip("Distance from the wheel centre to each icon, in canvas units.")]
-        [SerializeField] private float radius = 177.5f;
-        [SerializeField] private float iconSize = 56f;
-        [SerializeField, Min(0.05f)] private float iconScale = 1f;
-        [Tooltip("Measured offset of the socket ring from the rotation centre, in canvas units. Keeps icons centred in their sockets.")]
-        [SerializeField] private Vector2 socketCenterOffset = new Vector2(-1.7f, -0.5f);
+        [SerializeField, Min(0f), FormerlySerializedAs("radius")] private float _radius = 177.5f;
+        [SerializeField, Min(1f), FormerlySerializedAs("iconSize")] private float _slotSize = 56f;
+        [Tooltip("Measured offset of the socket ring from the rotation centre, in canvas units.")]
+        [SerializeField, FormerlySerializedAs("socketCenterOffset")] private Vector2 _socketCenterOffset = new Vector2(-1.7f, -0.5f);
         [Tooltip("Rotate each slot so its up-axis points away from the centre.")]
-        [SerializeField] private bool orientRadially = true;
+        [SerializeField, FormerlySerializedAs("orientRadially")] private bool _isOrientedRadially = true;
+        [Tooltip("Base icon size of reward slices; each reward multiplies it by its own icon scale.")]
+        [SerializeField, Min(0.01f), FormerlySerializedAs("standardIconScale")] private float _rewardIconScale = 1.3f;
 
-        [Header("Per-Category Icon Scales")]
-        [Tooltip("Points rewards are square 256px icons that read large; kept smaller.")]
-        [SerializeField, Min(0.1f)] private float pointsIconScale = 0.8f;
-        [Tooltip("Standard rewards (wide renders/chests letterbox small); scaled up.")]
-        [SerializeField, Min(0.1f)] private float standardIconScale = 1.3f;
-        [Tooltip("Bomb/death icon; biggest on the wheel.")]
-        [SerializeField, Min(0.1f)] private float bombIconScale = 1.5f;
-
-        private readonly List<SliceSlot> _slots = new List<SliceSlot>();
+        private readonly List<WheelSliceView> _slots = new List<WheelSliceView>();
         private int _sliceCount;
 
-        private sealed class SliceSlot
+        #endregion
+
+        #region Queries
+
+        public int SliceCount
         {
-            public RectTransform Root;
-            public Image Icon;
-            public TMP_Text Amount;
+            get { return _sliceCount; }
         }
 
-        public RectTransform SlicesRoot { get { return slicesRoot ? slicesRoot : (RectTransform)transform; } }
-        public int SliceCount { get { return _sliceCount; } }
-        public float StartAngle { get { return startAngle; } }
-        public float Radius { get { return radius; } }
-        public float IconScale { get { return iconScale; } }
-        public float PointsIconScale { get { return pointsIconScale; } }
-        public float StandardIconScale { get { return standardIconScale; } }
-        public float BombIconScale { get { return bombIconScale; } }
+        public float StartAngle
+        {
+            get { return _startAngle; }
+        }
 
-        public float AngleStep { get { return _sliceCount > 0 ? 360f / _sliceCount : 0f; } }
+        public float RewardIconScale
+        {
+            get { return _rewardIconScale; }
+        }
 
         public Image GetIcon(int index)
         {
-            return IsValid(index) ? _slots[index].Icon : null;
+            return GetSlot(index).Icon;
         }
 
         public TMP_Text GetAmountText(int index)
         {
-            return IsValid(index) ? _slots[index].Amount : null;
+            return GetSlot(index).Amount;
         }
 
+        private WheelSliceView GetSlot(int index)
+        {
+            if (index < 0 || index >= _sliceCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+            return _slots[index];
+        }
+
+        #endregion
+
+        #region Layout
+
         /// <summary>
-        /// Scales only the icon inside its slot. Slot roots and amount labels are untouched,
-        /// so prize counts stay in uniform spots no matter the category.
+        /// Scales only the icon inside its slot so prize counts stay in uniform spots.
         /// </summary>
         public void SetSlotIconScale(int index, float scale)
         {
-            if (!IsValid(index)) return;
-            var icon = _slots[index].Icon;
-            if (icon != null) icon.rectTransform.localScale = new Vector3(scale, scale, 1f);
-        }
-
-        private bool IsValid(int index)
-        {
-            return index >= 0 && index < _sliceCount && _slots[index] != null;
+            GetSlot(index).Icon.rectTransform.localScale = new Vector3(scale, scale, 1f);
         }
 
         /// <summary>Reuses slots up to the largest requested wheel, then lays out the active subset.</summary>
         public void SetSliceCount(int count)
         {
-            if (count < 1) count = 1;
-
-            var root = SlicesRoot;
-
+            count = Mathf.Max(MINIMUM_SLICES, count);
             if (_slots.Count == 0)
             {
                 // Authored editor-preview children are replaced only on first initialization.
-                for (int i = root.childCount - 1; i >= 0; i--)
+                for (int i = _slicesRoot.childCount - 1; i >= 0; i--)
                 {
-                    var child = root.GetChild(i).gameObject;
+                    GameObject child = _slicesRoot.GetChild(i).gameObject;
                     child.SetActive(false);
-                    if (Application.isPlaying) Destroy(child);
-                    else DestroyImmediate(child);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(child);
+                    }
+                    else
+                    {
+                        DestroyImmediate(child);
+                    }
                 }
             }
-            while (_slots.Count < count) _slots.Add(CreateSlot(root, _slots.Count));
+            while (_slots.Count < count)
+            {
+                WheelSliceView slot = Instantiate(_slotPrefab, _slicesRoot, false);
+                slot.name = SLOT_NAME_PREFIX + _slots.Count;
+                _slots.Add(slot);
+            }
             _sliceCount = count;
-            for (int i = 0; i < _slots.Count; i++) _slots[i].Root.gameObject.SetActive(i < count);
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                _slots[i].gameObject.SetActive(i < count);
+            }
             ApplyLayout();
         }
 
         /// <summary>Recomputes every slot position, rotation and size from the radial formula.</summary>
         public void ApplyLayout()
         {
-            int count = _sliceCount;
-            if (count == 0) return;
-
-            float angleStep = 360f / count;
-            float slotSize = iconSize * iconScale;
-
-            for (int i = 0; i < count; i++)
+            if (_sliceCount == 0)
             {
-                var slot = _slots[i];
-                if (slot == null || slot.Root == null) continue;
-
-                float angle = startAngle + i * angleStep;
+                return;
+            }
+            float angleStep = FULL_CIRCLE_DEGREES / _sliceCount;
+            for (int i = 0; i < _sliceCount; i++)
+            {
+                RectTransform root = _slots[i].Rect;
+                float angle = _startAngle + i * angleStep;
                 float radians = angle * Mathf.Deg2Rad;
-
-                slot.Root.anchorMin = new Vector2(0.5f, 0.5f);
-                slot.Root.anchorMax = new Vector2(0.5f, 0.5f);
-                slot.Root.pivot = new Vector2(0.5f, 0.5f);
-                slot.Root.anchoredPosition = new Vector2(
-                    Mathf.Sin(radians) * radius + socketCenterOffset.x,
-                    Mathf.Cos(radians) * radius + socketCenterOffset.y);
-                slot.Root.sizeDelta = new Vector2(slotSize, slotSize);
-                slot.Root.localRotation = orientRadially
-                    ? Quaternion.Euler(0f, 0f, -angle)
-                    : Quaternion.identity;
+                root.anchoredPosition = new Vector2(
+                    Mathf.Sin(radians) * _radius + _socketCenterOffset.x,
+                    Mathf.Cos(radians) * _radius + _socketCenterOffset.y);
+                root.sizeDelta = new Vector2(_slotSize, _slotSize);
+                root.localRotation = _isOrientedRadially ? Quaternion.Euler(0f, 0f, -angle) : Quaternion.identity;
             }
         }
 
-        private SliceSlot CreateSlot(RectTransform parent, int index)
-        {
-            if (slotPrefab != null)
-                return CreateSlotFromPrefab(parent, index);
-
-            var rootGo = new GameObject("ui_panel_wheel_slice_" + (index + 1), typeof(RectTransform));
-            rootGo.layer = gameObject.layer;
-            rootGo.transform.SetParent(parent, false);
-
-            var iconGo = new GameObject("ui_image_wheel_reward_" + (index + 1) + "_value", typeof(RectTransform));
-            iconGo.layer = gameObject.layer;
-            iconGo.transform.SetParent(rootGo.transform, false);
-
-            var icon = iconGo.AddComponent<Image>();
-            icon.raycastTarget = false;
-            icon.type = Image.Type.Simple;
-            icon.preserveAspect = true;
-
-            var iconRect = (RectTransform)iconGo.transform;
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = Vector2.zero;
-            iconRect.offsetMax = Vector2.zero;
-
-            // Prize count sits at the slot's bottom edge, which faces the hub.
-            var amountGo = new GameObject("ui_text_wheel_amount_value", typeof(RectTransform));
-            amountGo.layer = gameObject.layer;
-            amountGo.transform.SetParent(rootGo.transform, false);
-
-            var amount = amountGo.AddComponent<TextMeshProUGUI>();
-            amount.text = string.Empty;
-            amount.fontSize = 26f;
-            amount.alignment = TextAlignmentOptions.Center;
-            amount.color = Color.white;
-            amount.raycastTarget = false;
-            amount.textWrappingMode = TextWrappingModes.NoWrap;
-
-            var amountRect = (RectTransform)amountGo.transform;
-            amountRect.anchorMin = new Vector2(0f, 0f);
-            amountRect.anchorMax = new Vector2(1f, 0f);
-            amountRect.pivot = new Vector2(0.5f, 1f);
-            amountRect.sizeDelta = new Vector2(0f, 32f);
-            amountRect.anchoredPosition = new Vector2(0f, 8f);
-
-            return new SliceSlot { Root = (RectTransform)rootGo.transform, Icon = icon, Amount = amount };
-        }
-
-        private SliceSlot CreateSlotFromPrefab(RectTransform parent, int index)
-        {
-            var instance = Instantiate(slotPrefab, parent, false);
-            instance.name = "ui_panel_wheel_slice_" + (index + 1);
-            instance.gameObject.layer = gameObject.layer;
-
-            return new SliceSlot
-            {
-                Root = (RectTransform)instance.transform,
-                Icon = instance.Icon,
-                Amount = instance.Amount
-            };
-        }
+        #endregion
 
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
-            if (slicesRoot == null) slicesRoot = (RectTransform)transform;
+            if (!_slicesRoot)
+            {
+                _slicesRoot = (RectTransform)transform;
+            }
+            if (!_slotPrefab)
+            {
+                Debug.LogError("WheelLayout requires a slot prefab.", this);
+                return;
+            }
             // Domain reload restores the authored count before the runtime slot cache exists.
-            if (_slots.Count >= _sliceCount) ApplyLayout();
+            if (_slots.Count >= _sliceCount)
+            {
+                ApplyLayout();
+            }
         }
+
+        #endregion
 #endif
     }
 }

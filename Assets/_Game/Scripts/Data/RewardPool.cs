@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Vertigo.WheelOfFortune.Data
 {
@@ -7,8 +8,8 @@ namespace Vertigo.WheelOfFortune.Data
     [Serializable]
     public struct RewardPoolItem
     {
-        public RewardDefinition reward;
-        [Min(0f)] public float weight;
+        [FormerlySerializedAs("reward")] public RewardDefinition Reward;
+        [Min(0f), FormerlySerializedAs("weight")] public float Weight;
     }
 
     /// <summary>
@@ -18,8 +19,36 @@ namespace Vertigo.WheelOfFortune.Data
     [CreateAssetMenu(menuName = "Wheel of Fortune/Reward Pool", fileName = "Pool_")]
     public sealed class RewardPool : ScriptableObject
     {
-        [SerializeField] private RewardPoolItem[] entries = new RewardPoolItem[0];
+        #region Serialized Values
 
-        public RewardPoolItem[] Entries { get { return entries; } }
+        [SerializeField, FormerlySerializedAs("entries")] private RewardPoolItem[] _entries = new RewardPoolItem[0];
+
+        #endregion
+
+        #region Accessors
+
+        public RewardPoolItem[] Entries
+        {
+            get { return _entries; }
+        }
+
+        #endregion
+
+#if UNITY_EDITOR
+        #region Validation
+
+        private void OnValidate()
+        {
+            foreach (RewardPoolItem entry in _entries)
+            {
+                if (!entry.Reward)
+                {
+                    Debug.LogError("Reward pool contains an empty entry: " + name, this);
+                }
+            }
+        }
+
+        #endregion
+#endif
     }
 }

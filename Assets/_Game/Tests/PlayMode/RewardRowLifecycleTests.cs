@@ -21,11 +21,11 @@ namespace Vertigo.WheelOfFortune.Tests
             foreach (UnityEngine.Object candidate in Resources.FindObjectsOfTypeAll(type))
             {
                 var component = (Component)candidate;
-                if (component.gameObject.scene == SceneManager.GetActiveScene()) view = component;
+                if (component.gameObject.scene == SceneManager.GetActiveScene() && component.gameObject.activeInHierarchy) view = component;
             }
             Assert.IsTrue(view);
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
-            var content = (RectTransform)type.GetField("content", FLAGS).GetValue(view);
+            var content = (RectTransform)type.GetField("_content", FLAGS).GetValue(view);
             int initialChildren = content.childCount;
             Array data = Array.CreateInstance(rowType, 1);
             data.SetValue(Activator.CreateInstance(rowType, new object[] { "test-row", null, "Test", 123L }), 0);
@@ -35,9 +35,9 @@ namespace Vertigo.WheelOfFortune.Tests
             var active = (IDictionary)type.GetField("_active", FLAGS).GetValue(view);
             object widgets = active["test-row"];
             Type widgetsType = widgets.GetType();
-            var rect = (RectTransform)widgetsType.GetField("Rect").GetValue(widgets);
-            var group = (CanvasGroup)widgetsType.GetField("Group").GetValue(widgets);
-            var icon = (Component)widgetsType.GetField("Icon").GetValue(widgets);
+            var rect = (RectTransform)widgetsType.GetProperty("Rect").GetValue(widgets);
+            var group = (CanvasGroup)widgetsType.GetProperty("Group").GetValue(widgets);
+            var icon = (Component)widgetsType.GetProperty("Icon").GetValue(widgets);
             Assert.AreEqual(Vector3.one, rect.localScale);
             Assert.AreEqual(Vector3.one, icon.transform.localScale);
             Assert.AreEqual(1f, group.alpha);

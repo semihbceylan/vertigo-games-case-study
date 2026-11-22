@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79db9aa44fdb4420eb5a17b40e50bc77, type: 3}
   m_Name: Reward_PumpkinHelmet
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.RewardDefinition
-  rewardId: pumpkin
-  displayName: Pumpkin Helmet
-  icon: {fileID: 21300000, guid: 6a707b48c5fe04e4caa298592b494540, type: 3}
-  amount: 5
-  category: 2
-  showcaseBig: 0
-  minimumZone: 1
-  maximumZone: 0
-  isAmountScaled: 0
-  iconScaleMultiplier: 1
+  _rewardId: pumpkin
+  _displayName: Pumpkin Helmet
+  _icon: {fileID: 21300000, guid: 6a707b48c5fe04e4caa298592b494540, type: 3}
+  _amount: 5
+  _category: {fileID: 11400000, guid: 34d4742f47c944781932fb7249a69217, type: 2}
+  _isShowcased: 0
+  _minimumZone: 1
+  _maximumZone: 0
+  _isAmountScaled: 0
+  _iconScaleMultiplier: 1
+  _currency: {fileID: 0}

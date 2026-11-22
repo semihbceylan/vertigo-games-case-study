@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Core;
@@ -9,12 +10,14 @@ namespace Vertigo.WheelOfFortune.Game
 {
     public interface IWheelVisualPresenter
     {
-        void Fill(ZoneWheel wheel, WheelDefinition definition, RectTransform rotation, Image baseImage, WheelLayout layout);
+        void Fill(ZoneWheel wheel, WheelDefinition definition, IWheelDisc disc);
     }
 
     /// <summary>Shared live, incoming-disc and editor-preview wheel projection.</summary>
     public sealed class WheelVisualPresenter : IWheelVisualPresenter
     {
+        #region Projection
+
         private readonly RewardCatalogPresenter _catalog;
 
         public WheelVisualPresenter(RewardCatalogPresenter catalog)
@@ -22,38 +25,33 @@ namespace Vertigo.WheelOfFortune.Game
             _catalog = catalog;
         }
 
-        public void Fill(ZoneWheel wheel, WheelDefinition definition, RectTransform rotation, Image baseImage, WheelLayout layout)
+        public void Fill(ZoneWheel wheel, WheelDefinition definition, IWheelDisc disc)
         {
-            if (wheel == null || !layout) return;
-            if (baseImage && definition && definition.BaseSprite) baseImage.sprite = definition.BaseSprite;
+            WheelLayout layout = disc.Layout;
+            disc.Base.sprite = definition.BaseSprite;
             layout.SetSliceCount(wheel.SliceCount);
             for (int i = 0; i < wheel.SliceCount; i++)
             {
                 Image icon = layout.GetIcon(i);
-                var amount = layout.GetAmountText(i);
-                if (!icon) continue;
+                TMP_Text amount = layout.GetAmountText(i);
                 WheelSlice slice = wheel[i];
                 if (slice.IsBomb)
                 {
-                    icon.sprite = definition ? definition.BombSprite : null;
-                    layout.SetSlotIconScale(i, layout.BombIconScale);
-                    if (amount) amount.gameObject.SetActive(false);
+                    icon.sprite = definition.BombSprite;
+                    layout.SetSlotIconScale(i, definition.BombIconScale);
+                    amount.gameObject.SetActive(false);
+                    continue;
                 }
-                else
-                {
-                    RewardDefinition reward = _catalog.Resolve(slice.Reward.RewardId);
-                    icon.sprite = reward ? reward.Icon : null;
-                    layout.SetSlotIconScale(i, layout.StandardIconScale * (reward ? reward.IconScaleMultiplier : 1f));
-                    if (amount)
-                    {
-                        amount.gameObject.SetActive(true);
-                        amount.text = RewardAmountFormatter.Format(slice.Reward.Amount);
-                    }
-                }
-                icon.color = Color.white;
+                RewardDefinition reward = _catalog.ResolveRequired(slice.Reward.RewardId);
+                icon.sprite = reward.Icon;
+                layout.SetSlotIconScale(i, layout.RewardIconScale * reward.IconScaleMultiplier);
+                amount.gameObject.SetActive(true);
+                amount.text = RewardAmountFormatter.Format(slice.Reward.Amount);
             }
-            if (rotation) rotation.localRotation = Quaternion.identity;
+            disc.Rect.localRotation = Quaternion.identity;
             layout.ApplyLayout();
         }
+
+        #endregion
     }
 }

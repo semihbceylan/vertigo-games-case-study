@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Vertigo.WheelOfFortune.Core
 {
@@ -31,8 +32,12 @@ namespace Vertigo.WheelOfFortune.Core
         }
     }
 
+    /// <summary>One configured zone policy: which zones it matches and how strongly.</summary>
     public sealed class ZoneRule
     {
+        /// <summary>A maximum zone of zero means the rule never stops matching.</summary>
+        public const int UNBOUNDED_MAXIMUM_ZONE = 0;
+
         public ZoneKind Kind { get; }
         public int Interval { get; }
         public int MinimumZone { get; }
@@ -42,52 +47,138 @@ namespace Vertigo.WheelOfFortune.Core
         public ZoneRule(ZoneKind kind, int interval, int minimumZone, int maximumZone, int priority)
         {
             Kind = kind ?? throw new ArgumentNullException(nameof(kind));
-            if (interval < 1 || minimumZone < 1 || (maximumZone != 0 && maximumZone < minimumZone))
+            if (interval < 1 || minimumZone < 1 || (maximumZone != UNBOUNDED_MAXIMUM_ZONE && maximumZone < minimumZone))
+            {
                 throw new ArgumentOutOfRangeException(nameof(interval), "Invalid zone rule bounds.");
+            }
             Interval = interval;
             MinimumZone = minimumZone;
             MaximumZone = maximumZone;
             Priority = priority;
         }
 
+        public bool IsUnbounded
+        {
+            get { return MaximumZone == UNBOUNDED_MAXIMUM_ZONE; }
+        }
+
         public bool Matches(int zone)
         {
-            return zone >= MinimumZone && (MaximumZone == 0 || zone <= MaximumZone) && zone % Interval == 0;
+            return zone >= MinimumZone && (IsUnbounded || zone <= MaximumZone) && zone % Interval == 0;
+        }
+
+        /// <summary>True when <paramref name="other"/> wins every zone this rule could match.</summary>
+        public bool IsShadowedBy(ZoneRule other)
+        {
+            return other.Priority > Priority && Interval % other.Interval == 0 &&
+                other.MinimumZone <= MinimumZone &&
+                (other.IsUnbounded || (!IsUnbounded && other.MaximumZone >= MaximumZone));
         }
     }
 
-    /// <summary>Immutable rule snapshot shared by gameplay and content resolution.</summary>
+    /// <summary>Immutable rule snapshot shared by gameplay and presentation resolution.</summary>
     public sealed class ZoneRules
     {
+        /// <summary>Returned by <see cref="FindNextZone"/> when the rule never matches again.</summary>
+        public const int NO_ZONE = 0;
+        /// <summary>A final zone of zero means the run is endless.</summary>
+        public const int ENDLESS_FINAL_ZONE = 0;
+        private const int FIRST_ZONE = 1;
+
         private readonly ZoneRule[] _rules;
 
         public ZoneRules(params ZoneRule[] rules)
         {
-            if (rules == null || rules.Length == 0) throw new ArgumentException("Zone rules are required.", nameof(rules));
+            if (rules == null || rules.Length == 0)
+            {
+                throw new ArgumentException("Zone rules are required.", nameof(rules));
+            }
             _rules = (ZoneRule[])rules.Clone();
-            var ids = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+            var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (ZoneRule rule in _rules)
             {
-                if (rule == null || !ids.Add(rule.Kind.Id)) throw new ArgumentException("Zone rule identities must be unique.", nameof(rules));
+                if (rule == null || !ids.Add(rule.Kind.Id))
+                {
+                    throw new ArgumentException("Zone rule identities must be unique.", nameof(rules));
+                }
             }
         }
 
         public ZoneKind Resolve(int zone)
         {
-            if (zone < 1) throw new ArgumentOutOfRangeException(nameof(zone));
+            return ResolveRule(zone).Kind;
+        }
+
+        /// <summary>
+        /// The first zone after <paramref name="currentZone"/> resolved to <paramref name="kindId"/>,
+        /// or <see cref="NO_ZONE"/> when it never wins again before <paramref name="finalZone"/>.
+        /// </summary>
+        public int FindNextZone(int currentZone, string kindId, int finalZone)
+        {
+            ZoneRule match = FindRule(kindId);
+            foreach (ZoneRule other in _rules)
+            {
+                if (match.IsShadowedBy(other))
+                {
+                    return NO_ZONE;
+                }
+            }
+
+            long limit = finalZone > ENDLESS_FINAL_ZONE ? finalZone : int.MaxValue;
+            if (!match.IsUnbounded)
+            {
+                limit = Math.Min(limit, match.MaximumZone);
+            }
+            long firstMatch = ((long)match.MinimumZone + match.Interval - 1) / match.Interval * match.Interval;
+            long candidate = Math.Max(((long)currentZone / match.Interval + 1) * match.Interval, firstMatch);
+            for (; candidate <= limit; candidate += match.Interval)
+            {
+                if (ResolveRule((int)candidate) == match)
+                {
+                    return (int)candidate;
+                }
+            }
+            return NO_ZONE;
+        }
+
+        private ZoneRule FindRule(string kindId)
+        {
+            foreach (ZoneRule rule in _rules)
+            {
+                if (string.Equals(rule.Kind.Id, kindId, StringComparison.Ordinal))
+                {
+                    return rule;
+                }
+            }
+            throw new ArgumentException("Zone rule identity is not configured: " + kindId, nameof(kindId));
+        }
+
+        private ZoneRule ResolveRule(int zone)
+        {
+            if (zone < FIRST_ZONE)
+            {
+                throw new ArgumentOutOfRangeException(nameof(zone));
+            }
             ZoneRule selected = null;
             foreach (ZoneRule rule in _rules)
             {
-                if (!rule.Matches(zone)) continue;
-                if (selected == null || rule.Priority > selected.Priority) selected = rule;
+                if (rule.Matches(zone) && (selected == null || rule.Priority > selected.Priority))
+                {
+                    selected = rule;
+                }
             }
-            if (selected == null) throw new InvalidOperationException("No zone rule matches zone " + zone);
+            if (selected == null)
+            {
+                throw new InvalidOperationException("No zone rule matches zone " + zone);
+            }
             foreach (ZoneRule rule in _rules)
             {
                 if (rule != selected && rule.Priority == selected.Priority && rule.Matches(zone))
+                {
                     throw new InvalidOperationException("Zone rules have ambiguous priorities at zone " + zone);
+                }
             }
-            return selected.Kind;
+            return selected;
         }
     }
 

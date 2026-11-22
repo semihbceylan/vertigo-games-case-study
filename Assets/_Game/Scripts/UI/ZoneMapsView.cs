@@ -1,14 +1,17 @@
 using System;
 using TMPro;
 using UnityEngine;
+using Vertigo.WheelOfFortune.Core;
 using Vertigo.WheelOfFortune.Data;
 
 namespace Vertigo.WheelOfFortune.UI
 {
-    /// <summary>Authored map entries display the next matching configured zone rule.</summary>
+    /// <summary>Authored map entries display the next zone resolved to their configured rule.</summary>
     [DisallowMultipleComponent]
     public sealed class ZoneMapsView : MonoBehaviour
     {
+        #region Map Entries
+
         [Serializable]
         private sealed class MapEntry
         {
@@ -16,22 +19,32 @@ namespace Vertigo.WheelOfFortune.UI
             [SerializeField] private GameObject _root;
             [SerializeField] private TMP_Text _value;
 
-            public void Refresh(int zone, ZoneConfiguration configuration)
+            public void Refresh(int zone, ZoneCatalog zones)
             {
-                int next = configuration.FindNextZone(zone, _rule);
-                _root.SetActive(next > 0);
-                if (next > 0) _value.text = next.ToString();
+                int next = zones.FindNextZone(zone, _rule);
+                bool hasNext = next != ZoneRules.NO_ZONE;
+                _root.SetActive(hasNext);
+                if (hasNext)
+                {
+                    _value.text = next.ToString();
+                }
             }
         }
 
         [SerializeField] private MapEntry[] _entries = new MapEntry[0];
 
-        public void Set(int currentZone, ZoneConfiguration configuration)
+        #endregion
+
+        #region Public API
+
+        public void Set(int currentZone, ZoneCatalog zones)
         {
             foreach (MapEntry entry in _entries)
             {
-                entry.Refresh(currentZone, configuration);
+                entry.Refresh(currentZone, zones);
             }
         }
+
+        #endregion
     }
 }

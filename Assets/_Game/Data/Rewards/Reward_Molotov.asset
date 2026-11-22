@@ -12,9 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79db9aa44fdb4420eb5a17b40e50bc77, type: 3}
   m_Name: Reward_Molotov
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Data.RewardDefinition
-  rewardId: molotov
-  displayName: Molotov
-  icon: {fileID: 21300000, guid: c80ef16ddee50446ca2287bf4eb9929a, type: 3}
-  amount: 20
-  category: 5
-  showcaseBig: 0
+  _rewardId: molotov
+  _displayName: Molotov
+  _icon: {fileID: 21300000, guid: c80ef16ddee50446ca2287bf4eb9929a, type: 3}
+  _amount: 20
+  _category: {fileID: 11400000, guid: fa79da88497af40f381b193b7b4e064b, type: 2}
+  _isShowcased: 0
+  _minimumZone: 1
+  _maximumZone: 0
+  _isAmountScaled: 1
+  _iconScaleMultiplier: 1
+  _currency: {fileID: 0}

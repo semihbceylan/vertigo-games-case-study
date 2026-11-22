@@ -1,62 +1,57 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Vertigo.WheelOfFortune.Wheel
 {
-    /// <summary>
-    /// Reference holder for the wheel hierarchy. Resolves child references by name in the editor.
-    /// </summary>
-    [DisallowMultipleComponent]
-    public sealed class WheelView : MonoBehaviour
+    /// <summary>The live wheel: its rotating disc plus the tier-specific indicator.</summary>
+    public interface IWheelView
     {
-        [SerializeField] private RectTransform wheelRotation;
-        [SerializeField] private Image wheelBase;
-        [SerializeField] private Image wheelIndicator;
-        [SerializeField] private RectTransform slicesRoot;
-        [SerializeField] private Button spinButton;
+        IWheelDisc Disc { get; }
+        void SetIndicator(Sprite sprite);
+    }
 
-        public RectTransform WheelRotation { get { return wheelRotation; } }
-        public Image WheelBase { get { return wheelBase; } }
-        public Image WheelIndicator { get { return wheelIndicator; } }
-        public RectTransform SlicesRoot { get { return slicesRoot; } }
-        public Button SpinButton { get { return spinButton; } }
+    /// <summary>Serialized references for the live wheel disc and its tier indicator.</summary>
+    [DisallowMultipleComponent]
+    public sealed class WheelView : MonoBehaviour, IWheelView
+    {
+        #region Serialized References
+
+        [SerializeField] private WheelDiscView _disc;
+        [SerializeField, FormerlySerializedAs("wheelIndicator")] private Image _indicator;
+
+        #endregion
+
+        #region Public API
+
+        public IWheelDisc Disc
+        {
+            get { return _disc; }
+        }
+
+        public void SetIndicator(Sprite sprite)
+        {
+            _indicator.sprite = sprite;
+        }
+
+        #endregion
 
 #if UNITY_EDITOR
+        #region Editor Wiring
+
         private void OnValidate()
         {
-            if (wheelRotation == null)
+            if (!_disc)
             {
-                var t = transform.Find("ui_panel_wheel_rotation");
-                if (t != null) wheelRotation = (RectTransform)t;
+                _disc = GetComponentInChildren<WheelDiscView>(true);
             }
-
-            if (wheelRotation != null)
+            if (!_disc || !_indicator)
             {
-                if (wheelBase == null)
-                {
-                    var t = wheelRotation.Find("ui_image_wheel_base_value");
-                    if (t != null) wheelBase = t.GetComponent<Image>();
-                }
-
-                if (slicesRoot == null)
-                {
-                    var t = wheelRotation.Find("ui_layout_wheel_slices");
-                    if (t != null) slicesRoot = (RectTransform)t;
-                }
-            }
-
-            if (wheelIndicator == null)
-            {
-                var t = transform.Find("ui_image_wheel_indicator_value");
-                if (t != null) wheelIndicator = t.GetComponent<Image>();
-            }
-
-            if (spinButton == null)
-            {
-                var t = transform.Find("ui_button_spin");
-                if (t != null) spinButton = t.GetComponent<Button>();
+                Debug.LogError("WheelView requires serialized disc and indicator references.", this);
             }
         }
+
+        #endregion
 #endif
     }
 }
