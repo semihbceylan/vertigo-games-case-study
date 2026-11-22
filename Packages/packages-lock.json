@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.coplaydev.unity-mcp": {
-      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
+      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#81542a7e86292b5c4c21b1782c5af23b567f45ce",
       "depth": 0,
       "source": "git",
       "dependencies": {
@@ -15,7 +15,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "aa5fc638d623f56178d50329d9ad8c541a57fe66"
+      "hash": "81542a7e86292b5c4c21b1782c5af23b567f45ce"
     },
     "com.unity.2d.animation": {
       "version": "13.0.6",
@@ -116,15 +116,6 @@
       },
       "url": "https://packages.unity.com"
     },
-    "com.unity.bindings.openimageio": {
-      "version": "1.0.2",
-      "depth": 1,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.collections": "1.2.4"
-      },
-      "url": "https://packages.unity.com"
-    },
     "com.unity.burst": {
       "version": "1.8.30",
       "depth": 2,
@@ -215,17 +206,6 @@
       "depth": 1,
       "source": "registry",
       "dependencies": {},
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.recorder": {
-      "version": "5.1.7",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.timeline": "1.8.7",
-        "com.unity.collections": "1.2.4",
-        "com.unity.bindings.openimageio": "1.0.2"
-      },
       "url": "https://packages.unity.com"
     },
     "com.unity.render-pipelines.core": {
