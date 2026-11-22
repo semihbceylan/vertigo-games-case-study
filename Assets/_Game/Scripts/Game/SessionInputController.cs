@@ -15,18 +15,16 @@ namespace Vertigo.WheelOfFortune.Game
         private readonly GameSession _session;
         private readonly IClickSource _spinButton;
         private readonly IClickSource _leaveButton;
-        private readonly IClickSource _restartButton;
         private readonly ILossPanelInput _lossPanel;
         private readonly IResultsInput _results;
         private bool _isBound;
 
         public SessionInputController(GameSession session, IClickSource spinButton, IClickSource leaveButton,
-            IClickSource restartButton, ILossPanelInput lossPanel, IResultsInput results)
+            ILossPanelInput lossPanel, IResultsInput results)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _spinButton = spinButton;
             _leaveButton = leaveButton;
-            _restartButton = restartButton;
             _lossPanel = lossPanel;
             _results = results;
         }
@@ -44,7 +42,6 @@ namespace Vertigo.WheelOfFortune.Game
             }
             _spinButton.Clicked += OnSpinClicked;
             _leaveButton.Clicked += OnLeaveClicked;
-            _restartButton.Clicked += OnRestartRequested;
             _lossPanel.RestartRequested += OnRestartRequested;
             _lossPanel.ReviveRequested += OnReviveRequested;
             _results.RestartRequested += OnRestartRequested;
@@ -59,7 +56,6 @@ namespace Vertigo.WheelOfFortune.Game
             }
             _spinButton.Clicked -= OnSpinClicked;
             _leaveButton.Clicked -= OnLeaveClicked;
-            _restartButton.Clicked -= OnRestartRequested;
             _lossPanel.RestartRequested -= OnRestartRequested;
             _lossPanel.ReviveRequested -= OnReviveRequested;
             _results.RestartRequested -= OnRestartRequested;

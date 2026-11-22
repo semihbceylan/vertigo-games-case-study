@@ -118,6 +118,11 @@ namespace Vertigo.WheelOfFortune.Tests
             }
         }
 
+        private static readonly string[] HUD_SECTIONS =
+        {
+            "ui_panel_game_header", "ui_panel_game_rewards", "ui_panel_game_zone_maps", "ui_panel_game_wheel"
+        };
+
         [Test]
         public void ModalViewsReferenceEveryHudSection()
         {
@@ -134,10 +139,16 @@ namespace Vertigo.WheelOfFortune.Tests
                         var groups = serialized.FindProperty("_underlyingHud");
                         if (groups == null) continue;
                         count++;
-                        Assert.AreEqual(4, groups.arraySize, view.name);
+                        var hidden = new System.Collections.Generic.HashSet<string>();
                         for (int i = 0; i < groups.arraySize; i++)
                         {
-                            Assert.IsTrue(groups.GetArrayElementAtIndex(i).objectReferenceValue, view.name);
+                            UnityEngine.Object group = groups.GetArrayElementAtIndex(i).objectReferenceValue;
+                            Assert.IsTrue(group, view.name);
+                            hidden.Add(group.name);
+                        }
+                        foreach (string section in HUD_SECTIONS)
+                        {
+                            Assert.IsTrue(hidden.Contains(section), view.name + " must hide " + section);
                         }
                     }
                 }

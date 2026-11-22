@@ -46,7 +46,6 @@ namespace Vertigo.WheelOfFortune.UI
         void SetRewards(IReadOnlyList<RewardRowData> rows);
         void SetLeaveAvailable(bool isAvailable);
         void SetLeaveVisible(bool isVisible);
-        void SetRestartAvailable(bool isAvailable);
     }
 
     /// <summary>Presentation commands; the view owns its serialized widget references.</summary>

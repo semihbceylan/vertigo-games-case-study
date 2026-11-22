@@ -24,6 +24,7 @@ namespace Vertigo.WheelOfFortune.UI
         private const float NORMALIZED_MIN = -1f;
         private const float NORMALIZED_MAX = 1f;
         private const float SPRITE_PIXELS_PER_UNIT = 100f;
+        private const float SQUARE_ASPECT = 1f;
         private static readonly Vector2 SPRITE_PIVOT = new Vector2(0.5f, 0.5f);
         private const string GENERATED_NAME = "ui_vignette_generated";
 
@@ -43,6 +44,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField, Range(MINIMUM_SOFTNESS, 2f)] private float _softness = 0.6f;
 
         [Header("Quality")]
+        [Tooltip("Texels along the longer side; the shorter side follows the target's aspect ratio so the sprite is never stretched.")]
         [SerializeField, Range(MINIMUM_RESOLUTION, MAXIMUM_RESOLUTION)] private int _resolution = 256;
 
         private Texture2D _texture;
@@ -57,7 +59,8 @@ namespace Vertigo.WheelOfFortune.UI
             public float VerticalRadius;
             public float ClearRadius;
             public float Softness;
-            public int Resolution;
+            public int Width;
+            public int Height;
         }
 
         #endregion
@@ -72,6 +75,14 @@ namespace Vertigo.WheelOfFortune.UI
         private void OnDisable()
         {
             ReleaseGenerated();
+        }
+
+        private void OnRectTransformDimensionsChange()
+        {
+            if (isActiveAndEnabled)
+            {
+                Rebuild();
+            }
         }
 
         #endregion
@@ -91,11 +102,12 @@ namespace Vertigo.WheelOfFortune.UI
             }
             _builtSettings = settings;
 
-            int size = settings.Resolution;
-            if (!_texture || _texture.width != size)
+            int width = settings.Width;
+            int height = settings.Height;
+            if (!_texture || _texture.width != width || _texture.height != height)
             {
                 ReleaseGenerated();
-                _texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                _texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
                     wrapMode = TextureWrapMode.Clamp,
@@ -104,26 +116,26 @@ namespace Vertigo.WheelOfFortune.UI
                 };
             }
 
-            var pixels = new Color32[size * size];
+            var pixels = new Color32[width * height];
             float inner = settings.ClearRadius;
             float outer = inner + settings.Softness;
-            for (int y = 0; y < size; y++)
+            for (int y = 0; y < height; y++)
             {
-                float v = Mathf.Lerp(NORMALIZED_MIN, NORMALIZED_MAX, (y + TEXEL_CENTRE) / size) / settings.VerticalRadius;
-                for (int x = 0; x < size; x++)
+                float v = Mathf.Lerp(NORMALIZED_MIN, NORMALIZED_MAX, (y + TEXEL_CENTRE) / height) / settings.VerticalRadius;
+                for (int x = 0; x < width; x++)
                 {
-                    float u = Mathf.Lerp(NORMALIZED_MIN, NORMALIZED_MAX, (x + TEXEL_CENTRE) / size) / settings.HorizontalRadius;
+                    float u = Mathf.Lerp(NORMALIZED_MIN, NORMALIZED_MAX, (x + TEXEL_CENTRE) / width) / settings.HorizontalRadius;
                     float distance = Mathf.Sqrt(u * u + v * v);
                     float darkness = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(inner, outer, distance));
                     byte alpha = (byte)Mathf.RoundToInt(darkness * settings.Intensity * byte.MaxValue);
-                    pixels[y * size + x] = new Color32(byte.MaxValue, byte.MaxValue, byte.MaxValue, alpha);
+                    pixels[y * width + x] = new Color32(byte.MaxValue, byte.MaxValue, byte.MaxValue, alpha);
                 }
             }
             _texture.SetPixels32(pixels);
             _texture.Apply(false, false);
 
             DestroyGenerated(_sprite);
-            _sprite = Sprite.Create(_texture, new Rect(0f, 0f, size, size), SPRITE_PIVOT, SPRITE_PIXELS_PER_UNIT);
+            _sprite = Sprite.Create(_texture, new Rect(0f, 0f, width, height), SPRITE_PIVOT, SPRITE_PIXELS_PER_UNIT);
             _sprite.name = GENERATED_NAME;
             _sprite.hideFlags = HideFlags.HideAndDontSave;
             _target.sprite = _sprite;
@@ -132,6 +144,11 @@ namespace Vertigo.WheelOfFortune.UI
 
         private Settings CaptureSettings()
         {
+            int resolution = Mathf.Clamp(_resolution, MINIMUM_RESOLUTION, MAXIMUM_RESOLUTION);
+            Vector2 size = _target.rectTransform.rect.size;
+            float aspect = size.x > 0f && size.y > 0f ? size.x / size.y : SQUARE_ASPECT;
+            int width = aspect >= SQUARE_ASPECT ? resolution : Mathf.Max(MINIMUM_RESOLUTION, Mathf.RoundToInt(resolution * aspect));
+            int height = aspect >= SQUARE_ASPECT ? Mathf.Max(MINIMUM_RESOLUTION, Mathf.RoundToInt(resolution / aspect)) : resolution;
             return new Settings
             {
                 Color = _color,
@@ -140,7 +157,8 @@ namespace Vertigo.WheelOfFortune.UI
                 VerticalRadius = _verticalRadius,
                 ClearRadius = _clearRadius,
                 Softness = Mathf.Max(MINIMUM_SOFTNESS, _softness),
-                Resolution = Mathf.Clamp(_resolution, MINIMUM_RESOLUTION, MAXIMUM_RESOLUTION)
+                Width = width,
+                Height = height
             };
         }
 

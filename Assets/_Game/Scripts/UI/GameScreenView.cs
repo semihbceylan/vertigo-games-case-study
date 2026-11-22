@@ -18,7 +18,6 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private ZoneMapsView _zoneMaps;
         [SerializeField] private RewardsListView _rewardsList;
         [SerializeField] private UIButton _leaveButton;
-        [SerializeField] private UIButton _restartButton;
         [SerializeField] private FeedbackView _feedback;
         [SerializeField] private ResultsView _results;
         [SerializeField] private JackpotShowcaseView _showcase;
@@ -53,11 +52,6 @@ namespace Vertigo.WheelOfFortune.UI
         public void SetLeaveVisible(bool isVisible)
         {
             _leaveButton.gameObject.SetActive(isVisible);
-        }
-
-        public void SetRestartAvailable(bool isAvailable)
-        {
-            _restartButton.IsInteractable = isAvailable;
         }
 
         public Sequence PlayZoneTransition(int zone, ZoneCatalog zones)
@@ -118,9 +112,8 @@ namespace Vertigo.WheelOfFortune.UI
                 if (!_results && child.name == "ui_panel_results_screen") _results = child.GetComponent<ResultsView>();
                 if (!_showcase && child.name == "ui_panel_jackpot_showcase") _showcase = child.GetComponent<JackpotShowcaseView>();
                 if (!_leaveButton && child.name == "ui_button_leave") _leaveButton = child.GetComponent<UIButton>();
-                if (!_restartButton && child.name == "ui_button_restart") _restartButton = child.GetComponent<UIButton>();
             }
-            if (!_zoneBar || !_zoneMaps || !_rewardsList || !_feedback || !_results || !_showcase || !_leaveButton || !_restartButton)
+            if (!_zoneBar || !_zoneMaps || !_rewardsList || !_feedback || !_results || !_showcase || !_leaveButton)
             {
                 Debug.LogError("GameScreenView has missing serialized widget references.", this);
             }

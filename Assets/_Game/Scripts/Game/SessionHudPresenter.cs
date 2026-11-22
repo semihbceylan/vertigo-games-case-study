@@ -84,7 +84,6 @@ namespace Vertigo.WheelOfFortune.Game
             _screen.SetLeaveAvailable(_session.CanLeave);
             _spinButton.IsInteractable = _session.CanSpin;
             _screen.SetLeaveVisible(!_session.CanRestart);
-            _screen.SetRestartAvailable(_session.IsLost);
             _currencyHud.SetDeathScreenVisible(_session.IsLost);
             RefreshRewards();
         }

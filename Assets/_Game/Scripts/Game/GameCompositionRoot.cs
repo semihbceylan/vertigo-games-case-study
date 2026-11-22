@@ -24,7 +24,6 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private ResultsView _results;
         [SerializeField] private SpinButton _spinButton;
         [SerializeField] private UIButton _leaveButton;
-        [SerializeField] private UIButton _restartButton;
         [SerializeField] private RewardPresentationController _rewardPresentation;
         [SerializeField] private WheelTransitionController _wheelTransitionController;
         [SerializeField] private CurrencyHudView _currencyHud;
@@ -70,7 +69,7 @@ namespace Vertigo.WheelOfFortune.Game
             _hudPresenter = new SessionHudPresenter(_session, zones, _screen, _spinButton, _currencyHud, catalog);
             _presentation.Bind(_session, _hudPresenter);
             _currencySettlement = new RunCurrencySettlement(events, _session.Wallet, currencyWallet, catalog);
-            _input = new SessionInputController(_session, _spinButton, _leaveButton, _restartButton, _lossPanel, _results);
+            _input = new SessionInputController(_session, _spinButton, _leaveButton, _lossPanel, _results);
             _isComposed = true;
         }
 
@@ -146,7 +145,7 @@ namespace Vertigo.WheelOfFortune.Game
             if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
             if (!_devZoneTeleport) _devZoneTeleport = GetComponent<DevZoneTeleport>();
             if (!_configuration || !_configuration.Zones || !_wheelView || !_wheelSpinner || !_screen || !_lossPanel ||
-                !_results || !_spinButton || !_leaveButton || !_restartButton || !_rewardPresentation ||
+                !_results || !_spinButton || !_leaveButton || !_rewardPresentation ||
                 !_wheelTransitionController || !_currencyHud)
             {
                 Debug.LogError("GameCompositionRoot has missing serialized references.", this);

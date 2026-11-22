@@ -17,6 +17,8 @@ namespace Vertigo.WheelOfFortune.UI
         #region Configuration and Runtime
 
         private const float SCROLL_START = 0f;
+        /// <summary>Half of the free space goes on each side of a centred row.</summary>
+        private const float CENTRE_OFFSET = 0.5f;
         private const string TILE_NAME_PREFIX = "ui_panel_result_reward_";
 
         [SerializeField] private CanvasGroup _group;
@@ -86,7 +88,10 @@ namespace Vertigo.WheelOfFortune.UI
         public void Show(IReadOnlyList<RewardRowData> rewards)
         {
             BuildTiles(rewards);
-            _scroll.horizontalNormalizedPosition = SCROLL_START;
+            if (_scroll.horizontal)
+            {
+                _scroll.horizontalNormalizedPosition = SCROLL_START;
+            }
             _hudVisibility.Hide();
             _group.blocksRaycasts = true;
             _group.interactable = true;
@@ -163,8 +168,13 @@ namespace Vertigo.WheelOfFortune.UI
                 _tiles[i].gameObject.SetActive(false);
             }
 
-            // Grow the content along the scroll axis so the list can overflow the viewport.
-            _content.sizeDelta = new Vector2(count * _tileWidth, _content.sizeDelta.y);
+            // Grow the content so longer runs scroll; a row that fits is centred and does not scroll.
+            float rowWidth = count * _tileWidth;
+            float viewportWidth = _scroll.viewport.rect.width;
+            bool isScrollable = rowWidth > viewportWidth;
+            _content.sizeDelta = new Vector2(rowWidth, _content.sizeDelta.y);
+            _content.anchoredPosition = new Vector2(isScrollable ? 0f : (viewportWidth - rowWidth) * CENTRE_OFFSET, 0f);
+            _scroll.horizontal = isScrollable;
         }
 
         #endregion

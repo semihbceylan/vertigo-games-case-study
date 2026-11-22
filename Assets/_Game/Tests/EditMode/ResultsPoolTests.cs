@@ -28,6 +28,9 @@ namespace Vertigo.WheelOfFortune.Tests
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/UI/ui_panel_result_tile.prefab");
                 type.GetField("_group", PRIVATE_INSTANCE).SetValue(view, owner.GetComponent<CanvasGroup>());
                 type.GetField("_content", PRIVATE_INSTANCE).SetValue(view, (RectTransform)owner.transform);
+                var scroll = owner.AddComponent<UnityEngine.UI.ScrollRect>();
+                scroll.viewport = (RectTransform)owner.transform;
+                type.GetField("_scroll", PRIVATE_INSTANCE).SetValue(view, scroll);
                 type.GetField("_tilePrefab", PRIVATE_INSTANCE).SetValue(view, prefab.GetComponent(tileType));
                 type.GetField("_animation", PRIVATE_INSTANCE).SetValue(view,
                     AssetDatabase.LoadMainAssetAtPath("Assets/_Game/Data/Animation_Results.asset"));

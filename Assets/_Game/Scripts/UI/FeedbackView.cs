@@ -28,10 +28,8 @@ namespace Vertigo.WheelOfFortune.UI
 
         [Header("Death card")]
         [SerializeField] private RectTransform _deathScreen;
-        [SerializeField] private TMP_Text _deathTitle;
         [SerializeField] private Image _deathIcon;
         [SerializeField] private UIButton _restartButton;
-        [SerializeField] private TMP_Text _actionLabel;
         [SerializeField] private UIButton _reviveButton;
         [SerializeField] private TMP_Text _reviveLabel;
         [SerializeField] private TMP_Text _reviveStatus;
@@ -48,10 +46,10 @@ namespace Vertigo.WheelOfFortune.UI
         [Tooltip("Rects the dim leaves clear (the rewards pane and the death card).")]
         [SerializeField] private RectTransform _spotlightA;
         [SerializeField] private RectTransform _spotlightB;
+        [Tooltip("Shrinks each cut-out so it stays inside the opaque part of a framed panel, in canvas units.")]
+        [SerializeField, Min(0f)] private float _spotlightInset = 8f;
 
         [Header("Copy")]
-        [SerializeField] private string _lossTitle = "OH NO, A BOMB EXPLODED RIGHT IN YOUR HANDS!";
-        [SerializeField] private string _restartLabel = "RESTART";
         [SerializeField] private string _reviveLimitReachedText = "Revive limit reached — restart for free";
         [SerializeField] private string _singleReviveRemainingText = "1 revive remaining";
         [Tooltip("{0} is the number of revives left.")]
@@ -107,6 +105,15 @@ namespace Vertigo.WheelOfFortune.UI
             }
         }
 
+        /// <summary>Keeps the spotlight cut-outs aligned when the screen size or orientation changes.</summary>
+        private void OnRectTransformDimensionsChange()
+        {
+            if (_dimOverlay && _dimOverlay.gameObject.activeInHierarchy)
+            {
+                ApplySpotlight();
+            }
+        }
+
         private void OnRestartClicked()
         {
             Hide();
@@ -133,10 +140,8 @@ namespace Vertigo.WheelOfFortune.UI
         {
             _hudVisibility.Hide();
             SetLossWidgetsActive(true);
-            _deathTitle.text = _lossTitle;
             _deathIcon.sprite = bombIcon;
             _deathIcon.enabled = bombIcon;
-            _actionLabel.text = _restartLabel;
             ApplySpotlight();
             SetBlocking(true);
             FadeTo(_animation.VisibleAlpha);
@@ -218,15 +223,16 @@ namespace Vertigo.WheelOfFortune.UI
             RectTransform dimRect = (RectTransform)_dimOverlay.transform;
             Vector2 size = dimRect.rect.size;
             _dimMaterial.SetVector(DIM_SIZE_ID, new Vector4(size.x, size.y, 0f, 0f));
-            _dimMaterial.SetVector(CUTOUT_A_ID, GetCutout(_spotlightA, dimRect));
-            _dimMaterial.SetVector(CUTOUT_B_ID, GetCutout(_spotlightB, dimRect));
+            _dimMaterial.SetVector(CUTOUT_A_ID, GetCutout(_spotlightA, dimRect, _spotlightInset));
+            _dimMaterial.SetVector(CUTOUT_B_ID, GetCutout(_spotlightB, dimRect, _spotlightInset));
         }
 
-        private static Vector4 GetCutout(RectTransform target, RectTransform dimRect)
+        private static Vector4 GetCutout(RectTransform target, RectTransform dimRect, float inset)
         {
-            Vector3 local = dimRect.InverseTransformPoint(target.position);
+            // Use the rect centre, not the pivot, so panes with edge pivots are spotlit where they are.
+            Vector3 local = dimRect.InverseTransformPoint(target.TransformPoint(target.rect.center));
             Vector2 halfSize = target.rect.size * HALF_EXTENT;
-            return new Vector4(local.x, local.y, halfSize.x, halfSize.y);
+            return new Vector4(local.x, local.y, Mathf.Max(0f, halfSize.x - inset), Mathf.Max(0f, halfSize.y - inset));
         }
 
         private void SetBlocking(bool isBlocking)
@@ -261,15 +267,13 @@ namespace Vertigo.WheelOfFortune.UI
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
             {
                 if (!_deathScreen && child.name == "ui_image_feedback_death_screen") _deathScreen = (RectTransform)child;
-                if (!_deathTitle && child.name == "ui_text_feedback_title_value") _deathTitle = child.GetComponent<TMP_Text>();
                 if (!_deathIcon && child.name == "ui_image_feedback_death_value") _deathIcon = child.GetComponent<Image>();
                 if (!_restartButton && child.name == "ui_button_feedback_action") _restartButton = child.GetComponent<UIButton>();
                 if (!_dimOverlay && child.name == "ui_image_feedback_dim") _dimOverlay = child.GetComponent<Image>();
                 if (!_damageGlow && child.name == "ui_image_feedback_damage_glow") _damageGlow = child.GetComponent<Image>();
             }
-            if (!_actionLabel && _restartButton) _actionLabel = _restartButton.GetComponentInChildren<TMP_Text>(true);
             if (!_recoverableRewardsPanel && _recoverableRewardsList) _recoverableRewardsPanel = _recoverableRewardsList.transform.parent.gameObject;
-            if (!_group || !_deathScreen || !_deathTitle || !_deathIcon || !_restartButton || !_actionLabel || !_reviveButton ||
+            if (!_group || !_deathScreen || !_deathIcon || !_restartButton || !_reviveButton ||
                 !_reviveLabel || !_reviveStatus || !_recoverableRewardsPanel || !_recoverableRewardsList || !_dimOverlay ||
                 !_damageGlow || !_spotlightA || !_spotlightB || !_animation)
             {

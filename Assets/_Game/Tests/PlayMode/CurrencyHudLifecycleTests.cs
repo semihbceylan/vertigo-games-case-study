@@ -138,7 +138,8 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.Less(scroll.verticalNormalizedPosition, 0.01f);
             var revive = (Component)feedback.GetType().GetField("_reviveButton", FIELDS).GetValue(feedback);
             object price = feedback.GetType().GetField("_reviveLabel", FIELDS).GetValue(feedback);
-            object restart = feedback.GetType().GetField("_actionLabel", FIELDS).GetValue(feedback);
+            var restartButton = (Component)feedback.GetType().GetField("_restartButton", FIELDS).GetValue(feedback);
+            object restart = restartButton.GetComponentInChildren(price.GetType(), true);
             Assert.AreEqual(price.GetType().GetProperty("fontSize").GetValue(price),
                 restart.GetType().GetProperty("fontSize").GetValue(restart));
             StringAssert.Contains("orange", revive.GetComponent<Image>().sprite.name);
