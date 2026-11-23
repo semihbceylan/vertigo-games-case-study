@@ -3,7 +3,7 @@
 A mobile wheel-spin risk game built in Unity for the Vertigo Games game developer case study.
 
 At every zone the player **spins a wheel**. Each normal wheel holds several rewards and exactly one
-**bomb**. Spin to grow your loot, or leave from a safe or super zone and bank it before a bomb wipes it out.
+**bomb**. Spin to grow your loot, or leave from any zone and bank it before a bomb wipes it out.
 Deeper zones offer better rewards, not just bigger numbers.
 
 Gameplay video: https://youtu.be/mDGNfFYK1HE
@@ -30,7 +30,7 @@ Gameplay video: https://youtu.be/mDGNfFYK1HE
    - The panel previews the cleared rewards (scrollable) and shows the Cash and Gold balances.
      Their **+** buttons open a demo top-up panel whose Buy/Ad buttons are disabled placeholders:
      no payment happens and no currency is credited.
-3. **EXIT** — banks the run. It is only possible in a **safe or super zone**, while the wheel is
+3. **EXIT** — banks the run. It is possible in **every zone** (each zone rule asset has a leave flag), while the wheel is
    stopped and every presentation (reward flight, showcase, zone transition) has finished.
 4. Clearing the configured **final zone** (60 by default) completes the mission and banks
    everything. The results screen then reads "CONGRATULATIONS! YOU COMPLETED THE MISSION!" with a
@@ -159,7 +159,7 @@ balances).
 
 **134 test cases: 108 EditMode + 26 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
 
-- **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super
+- **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in zones whose rule allows it
   zones while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb
   slot selection; forced spin outcomes that never touch wheel building; the bomb slot handed to the
   loss presentation; mission completion versus cashing out; reward-pool progression; state input

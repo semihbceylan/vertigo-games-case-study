@@ -18,7 +18,7 @@ MonoBehaviour:
   _maximumZone: 0
   _priority: 0
   _isBombFree: 0
-  _isLeaveAllowed: 0
+  _isLeaveAllowed: 1
   _wheel: {fileID: 11400000, guid: 80719afb17fcc4dfda071f69a1d3b13e, type: 2}
   _currentBackground: {fileID: 3680065742417715221, guid: 8391d587bdccd469bae755de2b74f091, type: 3}
   _textColor: {r: 1, g: 1, b: 1, a: 1}

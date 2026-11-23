@@ -12,7 +12,7 @@
 ## Gameplay contract
 
 - A bomb clears all rewards collected in the current run. After loss presentation, restart from the configured starting zone.
-- Leaving is allowed only in a safe or super zone while the wheel is stopped and presentation transitions are complete.
+- Leaving (banking) is allowed in every zone while the wheel is stopped and presentation transitions are complete (user decision, 2026-11-23; supersedes the safe/super-only rule). It stays a per-zone-rule flag in data.
 - Every normal wheel must contain exactly one bomb, guaranteed by code rather than authored slice flags. Select its slot again for each zone using injected randomness; coincidental repeated slots are valid.
 - Safe and super wheels contain no bombs.
 - Default data: every fifth zone is safe, every thirtieth is super. Super takes priority when rules overlap. These intervals belong in configuration, not hardcoded gameplay/UI checks.
