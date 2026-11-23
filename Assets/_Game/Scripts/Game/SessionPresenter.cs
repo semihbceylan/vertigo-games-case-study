@@ -88,11 +88,11 @@ namespace Vertigo.WheelOfFortune.Game
             _bombImpact.Play(bombSliceIndex, _openLossPanel);
         }
 
-        public void ShowResults()
+        public void ShowResults(bool isMissionComplete)
         {
             _bombImpact.Cancel();
             _currencyHud.SetDeathScreenVisible(false);
-            _screen.ShowResults(_catalog.BuildRows(_session.Wallet));
+            _screen.ShowResults(_catalog.BuildRows(_session.Wallet), isMissionComplete);
         }
 
         private void OpenLossPanel()

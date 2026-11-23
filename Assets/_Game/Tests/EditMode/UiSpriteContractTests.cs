@@ -85,13 +85,14 @@ namespace Vertigo.WheelOfFortune.Tests
             {
                 StringAssert.IsMatch(@"^ui_(canvas|panel|image|text|button|layout|list|scroll)_[a-z0-9_]+$", rect.name);
                 if (rect.name.StartsWith("ui_text_leave") || rect.name == "ui_text_restart" ||
-                    rect.name.StartsWith("ui_text_results_restart") || rect.name == "ui_text_safe_zone" ||
+                    rect.name == "ui_text_safe_zone" ||
                     rect.name == "ui_text_super_zone" || rect.name.EndsWith("_caption"))
                 {
                     Assert.IsFalse(rect.name.EndsWith("_value"), rect.name);
                 }
                 if (rect.name.StartsWith("ui_image_wheel_base") || rect.name.StartsWith("ui_image_wheel_indicator") ||
-                    rect.name.StartsWith("ui_text_wheel_amount") || rect.name.StartsWith("ui_image_reward_icon"))
+                    rect.name.StartsWith("ui_text_wheel_amount") || rect.name.StartsWith("ui_image_reward_icon") ||
+                    rect.name.StartsWith("ui_text_results_title") || rect.name.StartsWith("ui_text_results_restart"))
                 {
                     StringAssert.EndsWith("_value", rect.name);
                 }

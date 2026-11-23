@@ -53,7 +53,7 @@ namespace Vertigo.WheelOfFortune.UI
     {
         void ShowBomb(Sprite bombIcon);
         void SetReviveOffer(long cost, int remaining, IReadOnlyList<RewardRowData> rows);
-        void ShowResults(IReadOnlyList<RewardRowData> rows);
+        void ShowResults(IReadOnlyList<RewardRowData> rows, bool isMissionComplete);
         Sequence PlayZoneTransition(int zone, ZoneCatalog zones);
         void HideFeedback();
         void ResetPanels();

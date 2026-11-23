@@ -32,7 +32,10 @@ Gameplay video: https://youtu.be/mDGNfFYK1HE
      no payment happens and no currency is credited.
 3. **EXIT** — banks the run. It is only possible in a **safe or super zone**, while the wheel is
    stopped and every presentation (reward flight, showcase, zone transition) has finished.
-4. Reaching the configured **final zone** (60 by default) completes the run and banks everything.
+4. Clearing the configured **final zone** (60 by default) completes the mission and banks
+   everything. The results screen then reads "CONGRATULATIONS! YOU COMPLETED THE MISSION!" with a
+   **COLLECT REWARDS** button; cashing out early shows "YOU GOT:" with **RESTART**. The completed
+   state has one instance per outcome, so this needs no flag.
 
 Banked rewards that are linked to a currency asset (Cash, Gold) are credited to the persistent
 balances only when a run completes successfully. Run loot and persistent balances are kept apart.
@@ -153,21 +156,21 @@ balances).
 
 ## Tests
 
-**132 test cases: 107 EditMode + 25 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
+**134 test cases: 108 EditMode + 26 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
 
 - **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super
   zones while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb
   slot selection; forced spin outcomes that never touch wheel building; the bomb slot handed to the
-  loss presentation; reward-pool progression; state input gating and stale-completion rejection;
-  revive pricing, limits and insufficient funds; currency spending, persistence and starting
-  balances; event bus subscription semantics; zone rule resolution and next-zone lookup; scene and
-  prefab contracts (naming, sliced borders, aspect, broken references, Canvas Scaler, TextMeshPro,
-  persistent calls, modal HUD coverage).
+  loss presentation; mission completion versus cashing out; reward-pool progression; state input
+  gating and stale-completion rejection; revive pricing, limits and insufficient funds; currency
+  spending, persistence and starting balances; event bus subscription semantics; zone rule
+  resolution and next-zone lookup; scene and prefab contracts (naming, sliced borders, aspect,
+  broken references, Canvas Scaler, TextMeshPro, persistent calls, modal HUD coverage).
 - **PlayMode** (`Assets/_Game/Tests/PlayMode`): repeated enable/disable of buttons, modals and rows;
   cancelled transitions and presentations that never advance the flow; pooled slot reuse across
-  zones; vignette resource release; loss and top-up panels; single-use reward completion; bomb
-  impact hand-off and cancellation; admin tap gesture, forced bomb spin and speed reset; pointer
-  flick reset on disable; count-up rolling and settling.
+  zones; vignette resource release; loss and top-up panels; results copy per outcome; single-use
+  reward completion; bomb impact hand-off and cancellation; admin tap gesture, forced bomb spin and
+  speed reset; pointer flick reset on disable; count-up rolling and settling.
 
 Run them from Window > General > Test Runner.
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.WheelOfFortune.Data;
@@ -9,7 +10,8 @@ namespace Vertigo.WheelOfFortune.UI
 {
     /// <summary>
     /// End-of-run summary. Lists every banked reward as a pooled tile inside a horizontally
-    /// scrolling, masked viewport and fades in/out with its panel animation profile.
+    /// scrolling, masked viewport and fades in/out with its panel animation profile. Clearing the
+    /// final zone shows celebratory copy; cashing out early shows the plain summary.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ResultsView : MonoBehaviour, IResultsInput
@@ -29,6 +31,14 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private ResultTileView _tilePrefab;
         [SerializeField, Min(1)] private int _poolCapacity = 32;
         [SerializeField] private PanelAnimation _animation;
+
+        [Header("Copy")]
+        [SerializeField] private TMP_Text _title;
+        [SerializeField] private TMP_Text _actionLabel;
+        [SerializeField] private string _cashedOutTitle = "YOU GOT:";
+        [SerializeField] private string _cashedOutAction = "RESTART";
+        [SerializeField, TextArea] private string _missionCompleteTitle = "CONGRATULATIONS!\nYOU COMPLETED THE MISSION!";
+        [SerializeField] private string _missionCompleteAction = "COLLECT REWARDS";
 
         private readonly List<ResultTileView> _tiles = new List<ResultTileView>();
         private Tween _fade;
@@ -85,8 +95,10 @@ namespace Vertigo.WheelOfFortune.UI
         #region Visibility
 
         /// <summary>Populates the summary with the banked rewards and fades the screen in.</summary>
-        public void Show(IReadOnlyList<RewardRowData> rewards)
+        public void Show(IReadOnlyList<RewardRowData> rewards, bool isMissionComplete)
         {
+            _title.text = isMissionComplete ? _missionCompleteTitle : _cashedOutTitle;
+            _actionLabel.text = isMissionComplete ? _missionCompleteAction : _cashedOutAction;
             BuildTiles(rewards);
             if (_scroll.horizontal)
             {
@@ -190,8 +202,10 @@ namespace Vertigo.WheelOfFortune.UI
                 if (!_content && child.name == "ui_layout_results_content") _content = (RectTransform)child;
                 if (!_scroll && child.name == "ui_scroll_results") _scroll = child.GetComponent<ScrollRect>();
                 if (!_restartButton && child.name == "ui_button_results_restart") _restartButton = child.GetComponent<UIButton>();
+                if (!_title && child.name == "ui_text_results_title_value") _title = child.GetComponent<TMP_Text>();
+                if (!_actionLabel && child.name == "ui_text_results_restart_value") _actionLabel = child.GetComponent<TMP_Text>();
             }
-            if (!_group || !_content || !_scroll || !_restartButton || !_tilePrefab || !_animation)
+            if (!_group || !_content || !_scroll || !_restartButton || !_tilePrefab || !_animation || !_title || !_actionLabel)
             {
                 Debug.LogError("ResultsView has missing serialized references.", this);
             }

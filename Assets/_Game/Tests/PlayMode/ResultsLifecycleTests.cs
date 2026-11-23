@@ -74,6 +74,26 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.AreEqual(1f, _hud.alpha);
         }
 
+        [UnityTest]
+        public IEnumerator MissionCompleteShowsCelebrationCopyAndCashOutShowsSummary()
+        {
+            yield return null;
+            Type rowType = Type.GetType("Vertigo.WheelOfFortune.UI.RewardRowData, Assembly-CSharp", true);
+            object rows = Array.CreateInstance(rowType, 0);
+            _type.GetMethod("Show").Invoke(_view, new object[] { rows, true });
+            Assert.AreEqual(Field("_missionCompleteTitle"), Text("_title"));
+            Assert.AreEqual(Field("_missionCompleteAction"), Text("_actionLabel"));
+            _type.GetMethod("Show").Invoke(_view, new object[] { rows, false });
+            Assert.AreEqual(Field("_cashedOutTitle"), Text("_title"));
+            Assert.AreEqual(Field("_cashedOutAction"), Text("_actionLabel"));
+        }
+
+        private string Text(string field)
+        {
+            object label = Field(field);
+            return (string)label.GetType().GetProperty("text").GetValue(label);
+        }
+
         private object Field(string name)
         {
             return _type.GetField(name, PRIVATE_INSTANCE).GetValue(_view);
@@ -82,7 +102,7 @@ namespace Vertigo.WheelOfFortune.Tests
         private void Show()
         {
             Type rowType = Type.GetType("Vertigo.WheelOfFortune.UI.RewardRowData, Assembly-CSharp", true);
-            _type.GetMethod("Show").Invoke(_view, new object[] { Array.CreateInstance(rowType, 0) });
+            _type.GetMethod("Show").Invoke(_view, new object[] { Array.CreateInstance(rowType, 0), false });
         }
 
         private float FadeDuration()

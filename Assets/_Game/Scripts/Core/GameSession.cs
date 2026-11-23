@@ -26,7 +26,8 @@ namespace Vertigo.WheelOfFortune.Core
         private readonly RewardPresentationState _rewardPresentation;
         private readonly ZoneTransitionState _zoneTransition;
         private readonly LostState _lost;
-        private readonly CompletedState _completed;
+        private readonly CompletedState _cashedOut;
+        private readonly CompletedState _missionComplete;
         private SessionState _state;
         private int _operationVersion;
         private readonly RewardWallet _recoverableRewards = new RewardWallet();
@@ -80,7 +81,8 @@ namespace Vertigo.WheelOfFortune.Core
             _rewardPresentation = new RewardPresentationState(this);
             _zoneTransition = new ZoneTransitionState(this);
             _lost = new LostState(this);
-            _completed = new CompletedState(this);
+            _cashedOut = new CompletedState(this, false);
+            _missionComplete = new CompletedState(this, true);
             Zone = _startingZone;
             PendingSliceIndex = NO_PENDING_SLICE;
             _state = _ready;
@@ -184,7 +186,7 @@ namespace Vertigo.WheelOfFortune.Core
             PendingSliceIndex = NO_PENDING_SLICE;
             if (_finalZone > ZoneRules.ENDLESS_FINAL_ZONE && Zone >= _finalZone)
             {
-                ChangeState(_completed);
+                ChangeState(_missionComplete);
                 return;
             }
             Zone++;
@@ -270,7 +272,7 @@ namespace Vertigo.WheelOfFortune.Core
                     base.Leave();
                     return;
                 }
-                Session.ChangeState(Session._completed);
+                Session.ChangeState(Session._cashedOut);
             }
 
             public override void JumpToZone(int zone)
@@ -396,9 +398,19 @@ namespace Vertigo.WheelOfFortune.Core
             }
         }
 
+        /// <summary>
+        /// Run banked. One instance ends a run cashed out early; the other ends it by clearing the
+        /// final zone, which the results presentation celebrates.
+        /// </summary>
         private sealed class CompletedState : SessionState
         {
-            public CompletedState(GameSession session) : base(session) { }
+            private readonly bool _isMissionComplete;
+
+            public CompletedState(GameSession session, bool isMissionComplete) : base(session)
+            {
+                _isMissionComplete = isMissionComplete;
+            }
+
             public override bool IsCompleted { get { return true; } }
             public override bool IsRestartAllowed { get { return true; } }
 
@@ -411,7 +423,7 @@ namespace Vertigo.WheelOfFortune.Core
             {
                 Session.BankedTotal = Session.Wallet.AccumulatedAmount;
                 Session.Events.Publish(new RunCompleted(Session.BankedTotal));
-                Session._presentation?.ShowResults();
+                Session._presentation?.ShowResults(_isMissionComplete);
             }
         }
 

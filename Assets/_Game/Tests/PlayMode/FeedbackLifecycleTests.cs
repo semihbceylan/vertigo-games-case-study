@@ -71,7 +71,7 @@ namespace Vertigo.WheelOfFortune.Tests
             Type presenterType = presenter.GetType();
             // Results must also cancel a bomb impact whose loss-panel hand-off is still pending.
             presenterType.GetMethod("ShowLoss").Invoke(presenter, new object[] { 1, 0 });
-            presenterType.GetMethod("ShowResults").Invoke(presenter, null);
+            presenterType.GetMethod("ShowResults").Invoke(presenter, new object[] { false });
             object results = type.GetField("_results", FLAGS).GetValue(controller);
             var groups = (CanvasGroup[])results.GetType().GetField("_underlyingHud", FLAGS).GetValue(results);
             Assert.AreEqual(4, groups.Length);

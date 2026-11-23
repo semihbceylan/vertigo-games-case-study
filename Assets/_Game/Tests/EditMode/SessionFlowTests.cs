@@ -12,6 +12,7 @@ namespace Vertigo.WheelOfFortune.Tests
             public Action RewardComplete;
             public Action TransitionComplete;
             public int ResultsCount;
+            public bool IsMissionComplete;
             public int LossCount;
             public int LossSliceIndex;
 
@@ -35,7 +36,11 @@ namespace Vertigo.WheelOfFortune.Tests
                 LossCount++;
                 LossSliceIndex = bombSliceIndex;
             }
-            public void ShowResults() { ResultsCount++; }
+            public void ShowResults(bool isMissionComplete)
+            {
+                ResultsCount++;
+                IsMissionComplete = isMissionComplete;
+            }
             public void Reset() { }
             public void Cancel() { }
         }
@@ -84,6 +89,16 @@ namespace Vertigo.WheelOfFortune.Tests
             Assert.IsTrue(_session.IsCompleted);
             Assert.AreEqual(1, _presentation.ResultsCount);
             Assert.AreEqual(10, _session.BankedTotal);
+            Assert.IsTrue(_presentation.IsMissionComplete, "Clearing the final zone is a completed mission.");
+        }
+
+        [Test]
+        public void LeavingASafeZoneBanksWithoutCompletingTheMission()
+        {
+            _session.Leave();
+            Assert.IsTrue(_session.IsCompleted);
+            Assert.AreEqual(1, _presentation.ResultsCount);
+            Assert.IsFalse(_presentation.IsMissionComplete, "Cashing out early is not a completed mission.");
         }
 
         [Test]

@@ -13,7 +13,8 @@ namespace Vertigo.WheelOfFortune.Core
         void PlayZoneTransition(Action onComplete);
         /// <summary>Shows the bomb hit on <paramref name="bombSliceIndex"/> and then the loss panel.</summary>
         void ShowLoss(int zone, int bombSliceIndex);
-        void ShowResults();
+        /// <summary>Shows the banked rewards; <paramref name="isMissionComplete"/> when the final zone was cleared.</summary>
+        void ShowResults(bool isMissionComplete);
         void Reset();
         void Cancel();
     }

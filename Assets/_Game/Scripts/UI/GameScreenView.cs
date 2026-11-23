@@ -74,10 +74,10 @@ namespace Vertigo.WheelOfFortune.UI
             _feedback.SetRecoverableRewards(rows);
         }
 
-        public void ShowResults(IReadOnlyList<RewardRowData> rows)
+        public void ShowResults(IReadOnlyList<RewardRowData> rows, bool isMissionComplete)
         {
             _feedback.HideImmediate();
-            _results.Show(rows);
+            _results.Show(rows, isMissionComplete);
         }
 
         public void HideJackpot()
