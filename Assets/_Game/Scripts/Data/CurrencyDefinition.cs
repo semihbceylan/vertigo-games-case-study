@@ -11,6 +11,8 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField] private string _currencyId;
         [SerializeField] private string _displayName;
         [SerializeField] private Sprite _icon;
+        [Tooltip("Balance a new player starts with, before anything has been saved.")]
+        [SerializeField, Min(0)] private long _startingBalance;
 
         #endregion
 
@@ -29,6 +31,11 @@ namespace Vertigo.WheelOfFortune.Data
         public Sprite Icon
         {
             get { return _icon; }
+        }
+
+        public long StartingBalance
+        {
+            get { return _startingBalance; }
         }
 
         #endregion

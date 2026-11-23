@@ -167,7 +167,7 @@ namespace Vertigo.WheelOfFortune.Tests
             type.GetMethod("ShowInsufficientFunds").Invoke(view, null);
             object status = type.GetField("_reviveStatus", FIELDS).GetValue(view);
             // The currency name comes from the configured revive currency asset, not from the copy.
-            Assert.AreEqual("Not enough Gold — 4 revives remaining", Text(status));
+            Assert.AreEqual("Not enough Gold. 4 revives remaining", Text(status));
             Assert.IsTrue(button.GetComponent<Button>().interactable);
             type.GetMethod("SetReviveOffer").Invoke(view, new object[] { 825L, 0 });
             Assert.IsTrue(button.gameObject.activeSelf);

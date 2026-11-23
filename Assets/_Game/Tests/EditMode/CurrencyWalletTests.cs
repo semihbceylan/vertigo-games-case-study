@@ -12,9 +12,9 @@ namespace Vertigo.WheelOfFortune.Tests
             private readonly Dictionary<string, long> _balances = new Dictionary<string, long>();
             public bool HasSaveFailure { get; set; }
 
-            public long Load(string currencyId)
+            public bool TryLoad(string currencyId, out long balance)
             {
-                return _balances.TryGetValue(currencyId, out long balance) ? balance : 0;
+                return _balances.TryGetValue(currencyId, out balance);
             }
 
             public void Save(string currencyId, long balance)
@@ -76,6 +76,18 @@ namespace Vertigo.WheelOfFortune.Tests
             _wallet.TrySpend("gold", 25);
             var reloaded = new CurrencyWallet(_store, new EventBus());
             Assert.AreEqual(75, reloaded.GetBalance("gold"));
+        }
+
+        [Test]
+        public void NewPlayersStartWithConfiguredBalanceButASavedZeroStaysZero()
+        {
+            var starting = new Dictionary<string, long> { { "gold", 750 } };
+            var wallet = new CurrencyWallet(_store, new EventBus(), starting);
+            Assert.AreEqual(750, wallet.GetBalance("gold"));
+            Assert.AreEqual(0, wallet.GetBalance("cash"));
+            Assert.IsTrue(wallet.TrySpend("gold", 750));
+            var reloaded = new CurrencyWallet(_store, new EventBus(), starting);
+            Assert.AreEqual(0, reloaded.GetBalance("gold"), "A spent starting balance must not be granted again.");
         }
 
         [TestCase(0)]

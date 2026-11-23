@@ -59,7 +59,8 @@ namespace Vertigo.WheelOfFortune.Game
             var catalog = new RewardCatalogPresenter();
             catalog.Configure(_configuration.Zones);
             var events = new EventBus();
-            var currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events);
+            var currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events,
+                _configuration.CreateStartingBalances());
             _currencyHud.Bind(currencyWallet, events);
             _lossPanel.SetReviveCurrency(_configuration.ReviveCurrency);
 

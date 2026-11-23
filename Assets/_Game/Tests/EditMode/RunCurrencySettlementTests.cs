@@ -9,10 +9,9 @@ namespace Vertigo.WheelOfFortune.Tests
         private sealed class Store : ICurrencyStore
         {
             private readonly Dictionary<string, long> _balances = new Dictionary<string, long>();
-            public long Load(string id)
+            public bool TryLoad(string currencyId, out long balance)
             {
-                long balance;
-                return _balances.TryGetValue(id, out balance) ? balance : 0;
+                return _balances.TryGetValue(currencyId, out balance);
             }
             public void Save(string id, long balance)
             {

@@ -15,3 +15,4 @@ MonoBehaviour:
   _currencyId: gold
   _displayName: Gold
   _icon: {fileID: 21300000, guid: f0ee256b98cd74950b698bf4023f7adf, type: 3}
+  _startingBalance: 750

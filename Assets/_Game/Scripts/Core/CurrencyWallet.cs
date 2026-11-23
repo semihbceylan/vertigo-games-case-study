@@ -5,7 +5,8 @@ namespace Vertigo.WheelOfFortune.Core
 {
     public interface ICurrencyStore
     {
-        long Load(string currencyId);
+        /// <summary>False when nothing has been saved yet for <paramref name="currencyId"/>.</summary>
+        bool TryLoad(string currencyId, out long balance);
         void Save(string currencyId, long balance);
     }
 
@@ -28,7 +29,10 @@ namespace Vertigo.WheelOfFortune.Core
         }
     }
 
-    /// <summary>Persistent currency balances, independent of rewards at risk in a run.</summary>
+    /// <summary>
+    /// Persistent currency balances, independent of rewards at risk in a run. A currency with no saved
+    /// balance starts at its configured starting balance; once saved, the stored value always wins.
+    /// </summary>
     public sealed class CurrencyWallet : ICurrencyWallet
     {
         #region Dependencies
@@ -36,11 +40,26 @@ namespace Vertigo.WheelOfFortune.Core
         private readonly ICurrencyStore _store;
         private readonly IEventBus _events;
         private readonly Dictionary<string, long> _balances = new Dictionary<string, long>();
+        private readonly Dictionary<string, long> _startingBalances = new Dictionary<string, long>();
 
-        public CurrencyWallet(ICurrencyStore store, IEventBus events)
+        public CurrencyWallet(ICurrencyStore store, IEventBus events,
+            IReadOnlyDictionary<string, long> startingBalances = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _events = events ?? throw new ArgumentNullException(nameof(events));
+            if (startingBalances == null)
+            {
+                return;
+            }
+            foreach (KeyValuePair<string, long> pair in startingBalances)
+            {
+                ValidateId(pair.Key);
+                if (pair.Value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(startingBalances), "Starting balances cannot be negative.");
+                }
+                _startingBalances.Add(pair.Key, pair.Value);
+            }
         }
 
         #endregion
@@ -52,7 +71,10 @@ namespace Vertigo.WheelOfFortune.Core
             ValidateId(currencyId);
             if (!_balances.TryGetValue(currencyId, out long balance))
             {
-                balance = _store.Load(currencyId);
+                if (!_store.TryLoad(currencyId, out balance))
+                {
+                    _startingBalances.TryGetValue(currencyId, out balance);
+                }
                 if (balance < 0)
                 {
                     throw new InvalidOperationException("Stored currency balance cannot be negative.");

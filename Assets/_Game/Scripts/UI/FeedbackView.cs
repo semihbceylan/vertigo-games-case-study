@@ -50,12 +50,12 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField, Min(0f)] private float _spotlightInset = 8f;
 
         [Header("Copy")]
-        [SerializeField] private string _reviveLimitReachedText = "Revive limit reached — restart for free";
+        [SerializeField] private string _reviveLimitReachedText = "Revive limit reached. Restart for free.";
         [SerializeField] private string _singleReviveRemainingText = "1 revive remaining";
         [Tooltip("{0} is the number of revives left.")]
         [SerializeField] private string _revivesRemainingFormat = "{0} revives remaining";
         [Tooltip("{0} is the revive currency's display name, {1} is the remaining-revives text.")]
-        [SerializeField] private string _insufficientFundsFormat = "Not enough {0} — {1}";
+        [SerializeField] private string _insufficientFundsFormat = "Not enough {0}. {1}";
 
         [SerializeField] private PanelAnimation _animation;
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];

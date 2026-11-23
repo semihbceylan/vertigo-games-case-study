@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Vertigo.WheelOfFortune.Core;
 
@@ -17,6 +18,10 @@ namespace Vertigo.WheelOfFortune.Data
         [Tooltip("Use a fixed seed so runs (and the editor preview) are reproducible.")]
         [SerializeField] private bool _isDeterministicRandom;
         [SerializeField] private int _randomSeed = 12345;
+
+        [Header("Economy")]
+        [Tooltip("Every persistent currency; each one's starting balance is granted to new players.")]
+        [SerializeField] private CurrencyDefinition[] _currencies = new CurrencyDefinition[0];
 
         [Header("Revive")]
         [SerializeField] private CurrencyDefinition _reviveCurrency;
@@ -48,6 +53,21 @@ namespace Vertigo.WheelOfFortune.Data
             get { return _reviveCurrency; }
         }
 
+        /// <summary>Starting balances keyed by currency ID, for the persistent currency wallet.</summary>
+        public Dictionary<string, long> CreateStartingBalances()
+        {
+            var balances = new Dictionary<string, long>(StringComparer.Ordinal);
+            foreach (CurrencyDefinition currency in _currencies)
+            {
+                if (!currency)
+                {
+                    throw new InvalidOperationException("Currency list contains an empty entry.");
+                }
+                balances.Add(currency.CurrencyId, currency.StartingBalance);
+            }
+            return balances;
+        }
+
         public RevivePolicy CreateRevivePolicy()
         {
             if (!_reviveCurrency)
@@ -67,6 +87,10 @@ namespace Vertigo.WheelOfFortune.Data
             if (!_zones || !_reviveCurrency)
             {
                 Debug.LogError("Game configuration requires zones and a revive currency.", this);
+            }
+            if (Array.IndexOf(_currencies, _reviveCurrency) < 0)
+            {
+                Debug.LogError("The revive currency must be listed in the game's currencies.", this);
             }
         }
 

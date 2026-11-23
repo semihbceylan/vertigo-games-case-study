@@ -542,12 +542,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.UI.ScreenVignette
   _target: {fileID: 85013087}
-  _color: {r: 0.85, g: 0.02, b: 0.02, a: 1}
-  _intensity: 0.5
+  _color: {r: 0.55, g: 0.03, b: 0.03, a: 1}
+  _intensity: 0.32
   _horizontalRadius: 1.15
   _verticalRadius: 1.15
-  _clearRadius: 0.85
-  _softness: 0.4
+  _clearRadius: 0.8
+  _softness: 0.55
+  _edgeBreakup: 0.22
+  _grain: 0.55
+  _noiseScale: 3.5
+  _noiseOctaves: 4
+  _noiseSeed: 7
   _resolution: 256
 --- !u!114 &85013087
 MonoBehaviour:
@@ -562,7 +567,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.85, g: 0.02, b: 0.02, a: 1}
+  m_Color: {r: 0.55, g: 0.03, b: 0.03, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 0
@@ -1735,6 +1740,11 @@ MonoBehaviour:
   _verticalRadius: 1
   _clearRadius: 0.52
   _softness: 1.33
+  _edgeBreakup: 0
+  _grain: 0
+  _noiseScale: 3
+  _noiseOctaves: 4
+  _noiseSeed: 0
   _resolution: 256
 --- !u!1 &230758142
 GameObject:
@@ -2418,6 +2428,81 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 277733709}
+  m_CullTransparentMesh: 1
+--- !u!1 &296440052
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 296440053}
+  - component: {fileID: 296440055}
+  - component: {fileID: 296440054}
+  m_Layer: 0
+  m_Name: ui_image_currency_hud_background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &296440053
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 296440052}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 996224937}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 24, y: 12}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &296440054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 296440052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.45}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 3680065742417715221, guid: 8391d587bdccd469bae755de2b74f091, type: 3}
+  m_Type: 1
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &296440055
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 296440052}
   m_CullTransparentMesh: 1
 --- !u!1 &303257311
 GameObject:
@@ -6583,6 +6668,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 296440053}
   - {fileID: 1738586357}
   - {fileID: 2091749683}
   - {fileID: 1059874367}
@@ -6781,10 +6867,10 @@ MonoBehaviour:
   _spotlightA: {fileID: 1747683120}
   _spotlightB: {fileID: 625989}
   _spotlightInset: 8
-  _reviveLimitReachedText: "Revive limit reached \u2014 restart for free"
+  _reviveLimitReachedText: Revive limit reached. Restart for free.
   _singleReviveRemainingText: 1 revive remaining
   _revivesRemainingFormat: '{0} revives remaining'
-  _insufficientFundsFormat: "Not enough {0} \u2014 {1}"
+  _insufficientFundsFormat: Not enough {0}. {1}
   _animation: {fileID: 11400000, guid: ed375e93879e442908e5e6a164cd67f5, type: 2}
   _underlyingHud:
   - {fileID: 1569208913}

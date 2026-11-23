@@ -13,9 +13,9 @@ namespace Vertigo.WheelOfFortune.Tests
         {
             private readonly Dictionary<string, long> _balances = new Dictionary<string, long>();
 
-            public long Load(string currencyId)
+            public bool TryLoad(string currencyId, out long balance)
             {
-                return _balances.TryGetValue(currencyId, out long value) ? value : 0;
+                return _balances.TryGetValue(currencyId, out balance);
             }
 
             public void Save(string currencyId, long balance)

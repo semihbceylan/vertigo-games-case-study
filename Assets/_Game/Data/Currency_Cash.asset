@@ -15,3 +15,4 @@ MonoBehaviour:
   _currencyId: cash
   _displayName: Cash
   _icon: {fileID: 21300000, guid: 3ce3833add9a1492cb9a722c6abd88e3, type: 3}
+  _startingBalance: 4000

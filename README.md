@@ -104,7 +104,9 @@ unless a reward opts out (cosmetics).
   Restart, revive and results cancel a pending hand-off, so a stale impact can never reopen the
   panel.
 - **Economy.** `CurrencyWallet` supports any number of currencies with checked credit and spend;
-  insufficient funds leave the balance untouched. `PlayerPrefsCurrencyStore` is a local demo
+  insufficient funds leave the balance untouched. Each `CurrencyDefinition` has a starting balance
+  (default data: 750 Gold, 4,000 Cash) that new players get until a balance is first saved; a saved
+  zero is never topped up again. `PlayerPrefsCurrencyStore` is a local demo
   adapter, not a tamper-resistant backend.
 
 ### Listener lifecycle
@@ -134,13 +136,13 @@ unless a reward opts out (cosmetics).
 
 ## Tests
 
-**126 test cases: 103 EditMode + 23 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
+**127 test cases: 104 EditMode + 23 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
 
 - **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super zones
   while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb slot
   selection; the bomb slot handed to the loss presentation; reward-pool progression; state input
   gating and stale-completion rejection; revive pricing, limits and insufficient funds; currency
-  spending and persistence; event bus subscription semantics; zone rule resolution and next-zone
+  spending, persistence and starting balances; event bus subscription semantics; zone rule resolution and next-zone
   lookup; scene and prefab contracts (naming, sliced borders, aspect, broken references, Canvas
   Scaler, TextMeshPro, persistent calls, modal HUD coverage).
 - **PlayMode** (`Assets/_Game/Tests/PlayMode`): repeated enable/disable of buttons, modals and
