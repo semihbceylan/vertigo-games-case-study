@@ -25,6 +25,8 @@ namespace Vertigo.WheelOfFortune.Data
         [SerializeField] private Sprite _currentBackground;
         [SerializeField] private Color _textColor = Color.white;
         [SerializeField] private Color _currentTextColor = Color.black;
+        [Tooltip("Optional icon on this zone type's map card, e.g. its headline reward.")]
+        [SerializeField] private Sprite _mapIcon;
 
         #endregion
 
@@ -53,6 +55,11 @@ namespace Vertigo.WheelOfFortune.Data
         public Color CurrentTextColor
         {
             get { return _currentTextColor; }
+        }
+
+        public Sprite MapIcon
+        {
+            get { return _mapIcon; }
         }
 
         public ZoneRule ToRule()

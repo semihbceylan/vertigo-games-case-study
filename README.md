@@ -90,12 +90,13 @@ unless a reward opts out (cosmetics).
   clicks (`UIButton.Clicked`, `FeedbackView.RestartRequested`, …) and animation-completion
   callbacks stay as `Action`/`UnityAction` delegates, because they have a single, nearby listener.
 - **Data-driven content.** Zone rule assets define matching (interval, range), priority, wheel, bomb
-  policy, leave permission and strip visuals. Gameplay and UI resolve zones through the same core
-  `ZoneRules` (`ZoneCatalog` adds the asset visuals), including the "next safe/super zone" maps.
-  Rewards carry explicit fields: category asset (display order), showcase flag, zone availability,
-  amount scaling, icon scale and optional currency. IDs only identify content. New rewards, wheel
-  tiers, zone types, categories and currencies are new assets; no code changes are needed.
-  Invalid data (unknown reward IDs, empty pool entries, uncovered or ambiguous zones) is rejected.
+  policy, leave permission, strip visuals and the map-card icon. Gameplay and UI resolve zones
+  through the same core `ZoneRules` (`ZoneCatalog` adds the asset visuals), including the "next
+  safe/super zone" maps. Rewards carry explicit fields: category asset (display order), showcase
+  flag, zone availability, amount scaling, icon scale and optional currency. IDs only identify
+  content. New rewards, wheel tiers, zone types, categories and currencies are new assets; no code
+  changes are needed. Invalid data (unknown reward IDs, empty pool entries, uncovered or ambiguous
+  zones) is rejected.
 - **Animation profiles.** Every tween reads its durations, delays, easing, scales, alphas and tints
   from ScriptableObject profiles validated with `[Min]`/`[Range]`: `WheelSpinAnimation`,
   `WheelTransitionAnimation`, `ZoneStripAnimation`, `RewardFlyAnimation`, `RewardListAnimation`,

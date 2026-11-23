@@ -23,3 +23,4 @@ MonoBehaviour:
   _currentBackground: {fileID: 1191495608715028336, guid: eeb87878f3a854777b3a60b105b936a1, type: 3}
   _textColor: {r: 0.55, g: 1, b: 0.45, a: 1}
   _currentTextColor: {r: 0.55, g: 1, b: 0.45, a: 1}
+  _mapIcon: {fileID: 21300000, guid: 95172e82c254744d5ab1db921fa993bc, type: 3}
