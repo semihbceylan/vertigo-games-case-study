@@ -3833,9 +3833,9 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 286}
+  m_AnchoredPosition: {x: 0, y: 350}
   m_SizeDelta: {x: 58, y: 80}
-  m_Pivot: {x: 0.5, y: 0}
+  m_Pivot: {x: 0.5, y: 0.8}
 --- !u!114 &591241480
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6625,6 +6625,7 @@ MonoBehaviour:
   _deathScreenContent:
   - {fileID: 996224939}
   - {fileID: 1029679692}
+  _countAnimation: {fileID: 11400000, guid: a8d8b648ead6b4d078f074fb328d2b98, type: 2}
 --- !u!225 &996224939
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -10834,6 +10835,7 @@ MonoBehaviour:
   _rowPrefab: {fileID: 3540572821946514792, guid: 82ce337c5da3942cdb0799bd605ac336, type: 3}
   _poolCapacity: 32
   _animation: {fileID: 11400000, guid: ad47bc5893d2c4cfea600fdebfd6943f, type: 2}
+  _countAnimation: {fileID: 11400000, guid: a8d8b648ead6b4d078f074fb328d2b98, type: 2}
 --- !u!114 &1643441868
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11198,6 +11200,7 @@ MonoBehaviour:
   _rowPrefab: {fileID: 3540572821946514792, guid: 82ce337c5da3942cdb0799bd605ac336, type: 3}
   _poolCapacity: 32
   _animation: {fileID: 11400000, guid: ad47bc5893d2c4cfea600fdebfd6943f, type: 2}
+  _countAnimation: {fileID: 11400000, guid: a8d8b648ead6b4d078f074fb328d2b98, type: 2}
 --- !u!114 &1665278322
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12667,6 +12670,7 @@ GameObject:
   - component: {fileID: 1799305255}
   - component: {fileID: 1799305257}
   - component: {fileID: 1799305256}
+  - component: {fileID: 1799305258}
   m_Layer: 5
   m_Name: ui_panel_game_root
   m_TagString: Untagged
@@ -12692,6 +12696,7 @@ RectTransform:
   - {fileID: 1569208912}
   - {fileID: 2092670026}
   - {fileID: 1631464311}
+  - {fileID: 1855584103}
   - {fileID: 795129100}
   - {fileID: 155976358}
   - {fileID: 1644529500}
@@ -12725,6 +12730,7 @@ MonoBehaviour:
   _rewardPresentation: {fileID: 1799305255}
   _wheelTransitionController: {fileID: 1799305254}
   _currencyHud: {fileID: 996224938}
+  _bombImpact: {fileID: 1799305258}
   _devZoneTeleport: {fileID: 1799305257}
 --- !u!114 &1799305253
 MonoBehaviour:
@@ -12822,6 +12828,22 @@ MonoBehaviour:
   - Key: 42
     IsRelative: 0
     Zone: 60
+--- !u!114 &1799305258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1799305250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 464e0c7598b604f188dab0e298df3239, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.UI.BombImpactView
+  _shakeTarget: {fileID: 1965311981}
+  _flash: {fileID: 1855584104}
+  _wheelLayout: {fileID: 1868522356}
+  _animation: {fileID: 11400000, guid: 991d5cea3229b4b5a9c41d4de9c89fcc, type: 2}
 --- !u!1 &1820582451
 GameObject:
   m_ObjectHideFlags: 0
@@ -13163,6 +13185,81 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1850702580}
+  m_CullTransparentMesh: 1
+--- !u!1 &1855584102
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1855584103}
+  - component: {fileID: 1855584105}
+  - component: {fileID: 1855584104}
+  m_Layer: 5
+  m_Name: ui_image_bomb_flash
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1855584103
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855584102}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1799305251}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1855584104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855584102}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1855584105
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855584102}
   m_CullTransparentMesh: 1
 --- !u!1 &1868522354
 GameObject:
@@ -13972,6 +14069,7 @@ GameObject:
   - component: {fileID: 1965311985}
   - component: {fileID: 1965311984}
   - component: {fileID: 1965311986}
+  - component: {fileID: 1965311987}
   m_Layer: 5
   m_Name: ui_panel_game_wheel
   m_TagString: Untagged
@@ -14157,6 +14255,21 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &1965311987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965311980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05672bfe0e9f3440f9ec708e71f416bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Vertigo.WheelOfFortune.Wheel.WheelIndicatorFlick
+  _indicator: {fileID: 591241479}
+  _ticker: {fileID: 1965311985}
+  _animation: {fileID: 11400000, guid: 256ecb472136d4654808258ec1edd6a4, type: 2}
 --- !u!1 &1969743889
 GameObject:
   m_ObjectHideFlags: 0

@@ -27,6 +27,7 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private RewardPresentationController _rewardPresentation;
         [SerializeField] private WheelTransitionController _wheelTransitionController;
         [SerializeField] private CurrencyHudView _currencyHud;
+        [SerializeField] private BombImpactView _bombImpact;
         [Tooltip("Optional editor/development zone teleport.")]
         [SerializeField] private DevZoneTeleport _devZoneTeleport;
 
@@ -63,11 +64,11 @@ namespace Vertigo.WheelOfFortune.Game
             _lossPanel.SetReviveCurrency(_configuration.ReviveCurrency);
 
             _presentation = new SessionPresenter(zones, _wheelView, _wheelSpinner, _screen, _rewardPresentation,
-                _wheelTransitionController, new WheelVisualPresenter(catalog), catalog);
+                _wheelTransitionController, new WheelVisualPresenter(catalog), catalog, _bombImpact, _currencyHud);
             _session = new GameSession(zones.Rules, new WheelTierFactory(_configuration.Zones), CreateRandomSource(),
                 zones.StartingZone, zones.FinalZone, events, _presentation, currencyWallet,
                 _configuration.CreateRevivePolicy());
-            _hudPresenter = new SessionHudPresenter(_session, zones, _screen, _spinButton, _currencyHud, catalog);
+            _hudPresenter = new SessionHudPresenter(_session, zones, _screen, _spinButton, catalog);
             _presentation.Bind(_session, _hudPresenter);
             _currencySettlement = new RunCurrencySettlement(events, _session.Wallet, currencyWallet, catalog);
             _input = new SessionInputController(_session, _spinButton, _leaveButton, _lossPanel, _results);
@@ -145,9 +146,10 @@ namespace Vertigo.WheelOfFortune.Game
             if (!_rewardPresentation) _rewardPresentation = GetComponent<RewardPresentationController>();
             if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
             if (!_devZoneTeleport) _devZoneTeleport = GetComponent<DevZoneTeleport>();
+            if (!_bombImpact) _bombImpact = GetComponentInChildren<BombImpactView>(true);
             if (!_configuration || !_configuration.Zones || !_wheelView || !_wheelSpinner || !_screen || !_lossPanel ||
                 !_results || !_spinButton || !_leaveButton || !_rewardPresentation ||
-                !_wheelTransitionController || !_currencyHud)
+                !_wheelTransitionController || !_currencyHud || !_bombImpact)
             {
                 Debug.LogError("GameCompositionRoot has missing serialized references.", this);
             }

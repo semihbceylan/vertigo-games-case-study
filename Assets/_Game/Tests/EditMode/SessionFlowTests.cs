@@ -13,6 +13,7 @@ namespace Vertigo.WheelOfFortune.Tests
             public Action TransitionComplete;
             public int ResultsCount;
             public int LossCount;
+            public int LossSliceIndex;
 
             public void PlaySpin(int sliceIndex, ZoneWheel wheel, Action onComplete)
             {
@@ -29,7 +30,11 @@ namespace Vertigo.WheelOfFortune.Tests
                 TransitionComplete = onComplete;
             }
 
-            public void ShowLoss(int zone) { LossCount++; }
+            public void ShowLoss(int zone, int bombSliceIndex)
+            {
+                LossCount++;
+                LossSliceIndex = bombSliceIndex;
+            }
             public void ShowResults() { ResultsCount++; }
             public void Reset() { }
             public void Cancel() { }
@@ -119,6 +124,20 @@ namespace Vertigo.WheelOfFortune.Tests
             _session.Restart();
             Assert.AreEqual(2, _session.Zone);
             Assert.IsTrue(_session.IsSpinAllowed);
+        }
+
+        [Test]
+        public void LossPresentationReceivesTheBombSlotWhichRestartClears()
+        {
+            _session = new GameSession(TestZones.CreateRules(),
+                new FakeWheelFactory(BombWheel), new ScriptedRandom(),
+                startingZone: 2, presentation: _presentation);
+            _session.BeginSpin();
+            _presentation.SpinComplete();
+            Assert.AreEqual(0, _presentation.LossSliceIndex);
+            Assert.AreEqual(0, _session.PendingSliceIndex);
+            _session.Restart();
+            Assert.AreEqual(-1, _session.PendingSliceIndex);
         }
 
         private void AssertBlocked()

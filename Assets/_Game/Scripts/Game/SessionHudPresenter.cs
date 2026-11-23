@@ -22,18 +22,16 @@ namespace Vertigo.WheelOfFortune.Game
         private readonly ZoneCatalog _zones;
         private readonly ISessionHudView _screen;
         private readonly IButtonInteractability _spinButton;
-        private readonly ICurrencyHudView _currencyHud;
         private readonly RewardCatalogPresenter _catalog;
         private bool _isSubscribed;
 
         public SessionHudPresenter(GameSession session, ZoneCatalog zones, ISessionHudView screen,
-            IButtonInteractability spinButton, ICurrencyHudView currencyHud, RewardCatalogPresenter catalog)
+            IButtonInteractability spinButton, RewardCatalogPresenter catalog)
         {
             _session = session;
             _zones = zones;
             _screen = screen;
             _spinButton = spinButton;
-            _currencyHud = currencyHud;
             _catalog = catalog;
         }
 
@@ -84,7 +82,6 @@ namespace Vertigo.WheelOfFortune.Game
             _screen.SetLeaveAvailable(_session.IsLeaveAllowed);
             _spinButton.IsInteractable = _session.IsSpinAllowed;
             _screen.SetLeaveVisible(!_session.IsRestartAllowed);
-            _currencyHud.SetDeathScreenVisible(_session.IsLost);
             RefreshRewards();
         }
 

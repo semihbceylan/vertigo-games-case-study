@@ -20,7 +20,8 @@ Gameplay video: https://youtu.be/mDGNfFYK1HE
 
 1. **SPIN** — the result is chosen before the animation starts, so the animation can never change it.
    A reward is added to the run's loot and the run advances to the next zone.
-2. **BOMB** — every reward collected in the run is cleared immediately and the loss panel opens.
+2. **BOMB** — every reward collected in the run is cleared immediately. The wheel shakes, the screen
+   flashes and the bomb grows, then the loss panel opens.
    - **RESTART** starts a new run from the configured starting zone. It is free.
    - **REVIVE** spends persistent **Gold**: `100 + 25 × (zone − 1)` by default. It restores the
      rewards the bomb cleared, gives a fresh wheel for the same zone, and is limited to **4 per run**.
@@ -95,7 +96,13 @@ unless a reward opts out (cosmetics).
 - **Animation profiles.** Every tween reads its durations, delays, easing, scales, alphas and tints
   from ScriptableObject profiles validated with `[Min]`/`[Range]`: `WheelSpinAnimation`,
   `WheelTransitionAnimation`, `ZoneStripAnimation`, `RewardFlyAnimation`, `RewardListAnimation`,
-  `ShowcaseAnimation` and `PanelAnimation`.
+  `ShowcaseAnimation`, `PanelAnimation`, `IndicatorFlickAnimation` (the pointer kicks on every
+  slice tick), `BombImpactAnimation` (shake, flash and bomb growth before the loss panel) and
+  `CountUpAnimation` (reward amounts and balances roll to their new value).
+- **Loss presentation.** The session hands the bomb slot to `ShowLoss`. `BombImpactView` plays the
+  hit and hands off to the loss panel and loss-screen balances through a single-use callback.
+  Restart, revive and results cancel a pending hand-off, so a stale impact can never reopen the
+  panel.
 - **Economy.** `CurrencyWallet` supports any number of currencies with checked credit and spend;
   insufficient funds leave the balance untouched. `PlayerPrefsCurrencyStore` is a local demo
   adapter, not a tamper-resistant backend.
@@ -107,9 +114,11 @@ unless a reward opts out (cosmetics).
   skips binding. Every binding is idempotent, and the event bus also ignores duplicate handlers.
 - Views pair their own button and event subscriptions in `OnEnable`/`OnDisable` (`UIButton`,
   `FeedbackView`, `ResultsView`, `CurrencyHudView`, `JackpotShowcaseView`,
-  `RewardPresentationController`). PlayMode tests cover repeated enable/disable cycles.
+  `RewardPresentationController`, and `WheelIndicatorFlick` listening to the local `SliceTicked`
+  event of `WheelSliceTickSound`). PlayMode tests cover repeated enable/disable cycles.
 - Every tween is linked to its owner with `SetLink(gameObject)` and killed on disable/destroy.
-  Callbacks are named methods. Runtime resources (the loss-dim material, generated vignette
+  Callbacks are named methods. Interrupted count-ups settle on their target when disabled.
+  The pointer flick restarts one reusable sequence per tick instead of allocating. Runtime resources (the loss-dim material, generated vignette
   textures) are destroyed when no longer needed.
 
 ### UI
@@ -125,18 +134,20 @@ unless a reward opts out (cosmetics).
 
 ## Tests
 
-**122 test cases: 102 EditMode + 20 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
+**126 test cases: 103 EditMode + 23 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
 
 - **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super zones
   while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb slot
-  selection; reward-pool progression; state input gating and stale-completion rejection; revive
-  pricing, limits and insufficient funds; currency spending and persistence; event bus subscription
-  semantics; zone rule resolution and next-zone lookup; scene and prefab contracts (naming, sliced
-  borders, aspect, broken references, Canvas Scaler, TextMeshPro, persistent calls, modal HUD
-  coverage).
+  selection; the bomb slot handed to the loss presentation; reward-pool progression; state input
+  gating and stale-completion rejection; revive pricing, limits and insufficient funds; currency
+  spending and persistence; event bus subscription semantics; zone rule resolution and next-zone
+  lookup; scene and prefab contracts (naming, sliced borders, aspect, broken references, Canvas
+  Scaler, TextMeshPro, persistent calls, modal HUD coverage).
 - **PlayMode** (`Assets/_Game/Tests/PlayMode`): repeated enable/disable of buttons, modals and
   rows; cancelled transitions and presentations that never advance the flow; pooled slot reuse
-  across zones; vignette resource release; loss and top-up panels; single-use reward completion.
+  across zones; vignette resource release; loss and top-up panels; single-use reward completion;
+  bomb impact hand-off and cancellation; pointer flick reset on disable; count-up rolling and
+  settling.
 
 Run them from Window > General > Test Runner.
 

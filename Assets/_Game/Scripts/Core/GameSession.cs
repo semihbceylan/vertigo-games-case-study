@@ -95,7 +95,6 @@ namespace Vertigo.WheelOfFortune.Core
         public bool IsSpinAllowed { get { return _state.IsSpinAllowed; } }
         public bool IsLeaveAllowed { get { return _state.IsLeaveAllowed; } }
         public bool IsRestartAllowed { get { return _state.IsRestartAllowed; } }
-        public bool IsLost { get { return _state.IsLost; } }
         public bool IsReviveAllowed { get { return _state.IsReviveAllowed; } }
         public int RevivesRemaining { get { return _revivePolicy == null ? 0 : _revivePolicy.MaxRevives - _revivesUsed; } }
         public long ReviveCost { get { return _revivePolicy == null ? 0 : _revivePolicy.GetCost(Zone); } }
@@ -209,7 +208,6 @@ namespace Vertigo.WheelOfFortune.Core
             public virtual bool IsLeaveAllowed { get { return false; } }
             public virtual bool IsRestartAllowed { get { return false; } }
             public virtual bool IsReviveAllowed { get { return false; } }
-            public virtual bool IsLost { get { return false; } }
 
             public virtual bool TryRevive()
             {
@@ -308,7 +306,7 @@ namespace Vertigo.WheelOfFortune.Core
                         Session._recoverableRewards.Add(grant);
                     }
                     Session.Wallet.Clear();
-                    Session.PendingSliceIndex = NO_PENDING_SLICE;
+                    // The bomb slot stays pending while lost so the loss presentation can show the hit.
                     Session.ChangeState(Session._lost);
                     return;
                 }
@@ -354,7 +352,6 @@ namespace Vertigo.WheelOfFortune.Core
         {
             public LostState(GameSession session) : base(session) { }
             public override bool IsRestartAllowed { get { return true; } }
-            public override bool IsLost { get { return true; } }
             public override bool IsReviveAllowed { get { return Session._currencies != null && Session._revivePolicy != null && Session.RevivesRemaining > 0; } }
 
             public override bool TryRevive()
@@ -384,7 +381,7 @@ namespace Vertigo.WheelOfFortune.Core
 
             public override void Enter()
             {
-                Session._presentation?.ShowLoss(Session.Zone);
+                Session._presentation?.ShowLoss(Session.Zone, Session.PendingSliceIndex);
             }
 
             public override void Restart()

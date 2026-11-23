@@ -14,6 +14,8 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private TMP_Text _amount;
         [SerializeField] private CanvasGroup _group;
 
+        private AmountCounter _counter;
+
         #endregion
 
         #region Public API
@@ -36,6 +38,19 @@ namespace Vertigo.WheelOfFortune.UI
         public CanvasGroup Group
         {
             get { return _group; }
+        }
+
+        /// <summary>Rolls the amount label; created on first use because pooled rows start inactive.</summary>
+        public AmountCounter Counter
+        {
+            get
+            {
+                if (_counter == null)
+                {
+                    _counter = new AmountCounter(_amount, gameObject);
+                }
+                return _counter;
+            }
         }
 
         #endregion

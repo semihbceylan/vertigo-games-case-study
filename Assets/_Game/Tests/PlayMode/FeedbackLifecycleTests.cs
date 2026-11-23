@@ -69,7 +69,8 @@ namespace Vertigo.WheelOfFortune.Tests
             const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
             object presenter = type.GetField("_presentation", FLAGS).GetValue(controller);
             Type presenterType = presenter.GetType();
-            presenterType.GetMethod("ShowLoss").Invoke(presenter, new object[] { 1 });
+            // Results must also cancel a bomb impact whose loss-panel hand-off is still pending.
+            presenterType.GetMethod("ShowLoss").Invoke(presenter, new object[] { 1, 0 });
             presenterType.GetMethod("ShowResults").Invoke(presenter, null);
             object results = type.GetField("_results", FLAGS).GetValue(controller);
             var groups = (CanvasGroup[])results.GetType().GetField("_underlyingHud", FLAGS).GetValue(results);

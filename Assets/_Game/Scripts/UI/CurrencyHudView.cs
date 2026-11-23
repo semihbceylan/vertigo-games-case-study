@@ -27,9 +27,12 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private CanvasGroup[] _underlyingHud = new CanvasGroup[0];
         [SerializeField] private CanvasGroup _balancesGroup;
         [SerializeField] private CanvasGroup[] _deathScreenContent = new CanvasGroup[0];
+        [SerializeField] private CountUpAnimation _countAnimation;
 
         private ModalHudVisibility _hudVisibility;
         private ModalHudVisibility _deathScreenVisibility;
+        private AmountCounter _cashCounter;
+        private AmountCounter _goldCounter;
         private ICurrencyWallet _wallet;
         private IEventBus _events;
         private bool _isSubscribed;
@@ -42,6 +45,7 @@ namespace Vertigo.WheelOfFortune.UI
         {
             _hudVisibility = new ModalHudVisibility(_underlyingHud);
             _deathScreenVisibility = new ModalHudVisibility(_deathScreenContent);
+            EnsureCounters();
             CloseTopUp();
         }
 
@@ -51,7 +55,7 @@ namespace Vertigo.WheelOfFortune.UI
             _goldPlus.Clicked += OpenTopUp;
             _close.Clicked += CloseTopUp;
             Subscribe();
-            Refresh();
+            Refresh(false);
         }
 
         private void OnDisable()
@@ -61,6 +65,11 @@ namespace Vertigo.WheelOfFortune.UI
             _close.Clicked -= CloseTopUp;
             Unsubscribe();
             CloseTopUp();
+            if (_cashCounter != null)
+            {
+                _cashCounter.Complete();
+                _goldCounter.Complete();
+            }
         }
 
         #endregion
@@ -76,7 +85,7 @@ namespace Vertigo.WheelOfFortune.UI
             {
                 Subscribe();
             }
-            Refresh();
+            Refresh(false);
         }
 
         private void Subscribe()
@@ -101,17 +110,41 @@ namespace Vertigo.WheelOfFortune.UI
 
         private void OnBalanceChanged(CurrencyBalanceChanged message)
         {
-            Refresh();
+            Refresh(true);
         }
 
-        private void Refresh()
+        /// <summary>Binding shows balances immediately; later balance changes roll to the new value.</summary>
+        private void Refresh(bool isAnimated)
         {
             if (_wallet == null)
             {
                 return;
             }
-            _cashAmount.text = RewardAmountFormatter.Format(_wallet.GetBalance(_cash.CurrencyId));
-            _goldAmount.text = RewardAmountFormatter.Format(_wallet.GetBalance(_gold.CurrencyId));
+            EnsureCounters();
+            ShowBalance(_cashCounter, _cash, isAnimated);
+            ShowBalance(_goldCounter, _gold, isAnimated);
+        }
+
+        /// <summary>Bind can run before Awake when the HUD starts inactive, so counters are made on first use.</summary>
+        private void EnsureCounters()
+        {
+            if (_cashCounter != null)
+            {
+                return;
+            }
+            _cashCounter = new AmountCounter(_cashAmount, gameObject);
+            _goldCounter = new AmountCounter(_goldAmount, gameObject);
+        }
+
+        private void ShowBalance(AmountCounter counter, CurrencyDefinition currency, bool isAnimated)
+        {
+            long balance = _wallet.GetBalance(currency.CurrencyId);
+            if (isAnimated)
+            {
+                counter.CountTo(balance, _countAnimation);
+                return;
+            }
+            counter.Set(balance);
         }
 
         public void SetDeathScreenVisible(bool isVisible)
@@ -149,5 +182,19 @@ namespace Vertigo.WheelOfFortune.UI
         }
 
         #endregion
+
+#if UNITY_EDITOR
+        #region Editor Wiring
+
+        private void OnValidate()
+        {
+            if (!_cash || !_gold || !_cashAmount || !_goldAmount || !_countAnimation)
+            {
+                Debug.LogError("CurrencyHudView requires serialized currencies, balance labels and a count-up profile.", this);
+            }
+        }
+
+        #endregion
+#endif
     }
 }

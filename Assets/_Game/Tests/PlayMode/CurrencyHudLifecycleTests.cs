@@ -12,6 +12,8 @@ namespace Vertigo.WheelOfFortune.Tests
     public sealed class CurrencyHudLifecycleTests
     {
         private const BindingFlags FIELDS = BindingFlags.Instance | BindingFlags.NonPublic;
+        /// <summary>Longer than the authored bomb impact hand-off plus the loss panel fade.</summary>
+        private const float BOMB_IMPACT_WAIT = 1.2f;
 
         private static string Text(object label)
         {
@@ -51,6 +53,9 @@ namespace Vertigo.WheelOfFortune.Tests
                 session.GetType().GetMethod("ResolveSpin").Invoke(session, new object[] { i });
                 break;
             }
+            // Balances open with the loss panel, after the bomb impact hands off.
+            Assert.AreEqual(0f, balances.alpha);
+            yield return new WaitForSecondsRealtime(BOMB_IMPACT_WAIT);
             Assert.AreEqual(1f, balances.alpha);
             object cash = type.GetField("_cashAmount", FIELDS).GetValue(view);
             object gold = type.GetField("_goldAmount", FIELDS).GetValue(view);
@@ -121,7 +126,7 @@ namespace Vertigo.WheelOfFortune.Tests
                 session.GetType().GetMethod("ResolveSpin").Invoke(session, new object[] { i });
                 break;
             }
-            yield return new WaitForSecondsRealtime(0.4f);
+            yield return new WaitForSecondsRealtime(BOMB_IMPACT_WAIT);
             Assert.IsTrue((bool)wallet.GetType().GetProperty("IsEmpty").GetValue(wallet));
             Component feedback = Find("Vertigo.WheelOfFortune.UI.FeedbackView");
             var list = (Component)feedback.GetType().GetField("_recoverableRewardsList", FIELDS).GetValue(feedback);

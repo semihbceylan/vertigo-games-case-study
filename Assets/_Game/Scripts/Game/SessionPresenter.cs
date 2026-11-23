@@ -23,16 +23,21 @@ namespace Vertigo.WheelOfFortune.Game
         private readonly IWheelTransition _transition;
         private readonly IWheelVisualPresenter _visuals;
         private readonly RewardCatalogPresenter _catalog;
+        private readonly IBombImpact _bombImpact;
+        private readonly ICurrencyHudView _currencyHud;
         private readonly Vector2 _wheelHome;
         private readonly Action<IWheelDisc> _populateIncoming;
         private readonly Action _finishZoneTransition;
+        private readonly Action _openLossPanel;
         private GameSession _session;
         private ISessionHudPresenter _hud;
         private Action _zoneComplete;
+        private int _lossZone;
 
         public SessionPresenter(ZoneCatalog zones, IWheelView wheel, IWheelSpinPresentation spinner,
             ISessionScreenView screen, IRewardPresentation rewards, IWheelTransition transition,
-            IWheelVisualPresenter visuals, RewardCatalogPresenter catalog)
+            IWheelVisualPresenter visuals, RewardCatalogPresenter catalog, IBombImpact bombImpact,
+            ICurrencyHudView currencyHud)
         {
             _zones = zones;
             _wheel = wheel;
@@ -42,10 +47,13 @@ namespace Vertigo.WheelOfFortune.Game
             _transition = transition;
             _visuals = visuals;
             _catalog = catalog;
+            _bombImpact = bombImpact;
+            _currencyHud = currencyHud;
             _wheelHome = wheel.Disc.Rect.anchoredPosition;
             // Cache delegates once so each zone transition does not allocate new ones.
             _populateIncoming = PopulateIncoming;
             _finishZoneTransition = FinishZoneTransition;
+            _openLossPanel = OpenLossPanel;
         }
 
         public void Bind(GameSession session, ISessionHudPresenter hud)
@@ -73,16 +81,26 @@ namespace Vertigo.WheelOfFortune.Game
             _rewards.Play(grant, _catalog.ResolveRequired(grant.RewardId), sliceIndex, onComplete);
         }
 
-        public void ShowLoss(int zone)
+        /// <summary>Plays the bomb hit first; the loss panel and balances open when the impact hands off.</summary>
+        public void ShowLoss(int zone, int bombSliceIndex)
         {
-            _screen.ShowBomb(_zones.GetWheelForZone(zone).BombSprite);
-            _screen.SetReviveOffer(_session.ReviveCost, _session.RevivesRemaining,
-                _catalog.BuildRowsFromTotals(_session.RecoverableRewards));
+            _lossZone = zone;
+            _bombImpact.Play(bombSliceIndex, _openLossPanel);
         }
 
         public void ShowResults()
         {
+            _bombImpact.Cancel();
+            _currencyHud.SetDeathScreenVisible(false);
             _screen.ShowResults(_catalog.BuildRows(_session.Wallet));
+        }
+
+        private void OpenLossPanel()
+        {
+            _screen.ShowBomb(_zones.GetWheelForZone(_lossZone).BombSprite);
+            _screen.SetReviveOffer(_session.ReviveCost, _session.RevivesRemaining,
+                _catalog.BuildRowsFromTotals(_session.RecoverableRewards));
+            _currencyHud.SetDeathScreenVisible(true);
         }
 
         public void PlayZoneTransition(Action onComplete)
@@ -106,6 +124,8 @@ namespace Vertigo.WheelOfFortune.Game
             _spinner.CancelSpin();
             _rewards.Cancel();
             _transition.Cancel();
+            _bombImpact.Cancel();
+            _currencyHud.SetDeathScreenVisible(false);
             _screen.HideJackpot();
         }
 

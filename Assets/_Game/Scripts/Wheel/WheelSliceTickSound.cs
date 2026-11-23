@@ -1,10 +1,12 @@
+using System;
 using UnityEngine;
 
 namespace Vertigo.WheelOfFortune.Wheel
 {
     /// <summary>
     /// Ratchet tick: plays a click every time a slice boundary passes under the pointer while the
-    /// wheel is spinning. Pure observer — never affects the outcome.
+    /// wheel is spinning, and notifies local observers such as the pointer flick. Pure observer —
+    /// never affects the outcome.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WheelSliceTickSound : MonoBehaviour
@@ -25,6 +27,13 @@ namespace Vertigo.WheelOfFortune.Wheel
         private int _lastTickStep;
         private float _lastTickUnwrappedAngle;
         private bool _isTracking;
+
+        #endregion
+
+        #region Events
+
+        /// <summary>Raised once per slice boundary crossing during a spin.</summary>
+        public event Action SliceTicked;
 
         #endregion
 
@@ -81,6 +90,10 @@ namespace Vertigo.WheelOfFortune.Wheel
         private void PlayTick()
         {
             _audioSource.PlayOneShot(_clickClip, _volume);
+            if (SliceTicked != null)
+            {
+                SliceTicked.Invoke();
+            }
         }
 
         #endregion

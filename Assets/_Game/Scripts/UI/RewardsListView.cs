@@ -41,6 +41,7 @@ namespace Vertigo.WheelOfFortune.UI
         [SerializeField] private RewardRowView _rowPrefab;
         [SerializeField, Min(1)] private int _poolCapacity = 32;
         [SerializeField] private RewardListAnimation _animation;
+        [SerializeField] private CountUpAnimation _countAnimation;
 
         private readonly Dictionary<string, RewardRowView> _active = new Dictionary<string, RewardRowView>();
         private readonly List<RewardRowView> _pool = new List<RewardRowView>();
@@ -68,6 +69,8 @@ namespace Vertigo.WheelOfFortune.UI
             foreach (KeyValuePair<string, RewardRowView> pair in _active)
             {
                 RewardRowView row = pair.Value;
+                // Settle the amount before killing tweens, or the interrupted roll loses its target.
+                row.Counter.Complete();
                 KillRowTweens(row);
                 row.Rect.localScale = Vector3.one;
                 row.Group.alpha = _animation.VisibleAlpha;
@@ -100,6 +103,7 @@ namespace Vertigo.WheelOfFortune.UI
             row.Rect.DOKill();
             row.Group.DOKill();
             row.Icon.rectTransform.DOKill();
+            row.Counter.Kill();
         }
 
         #endregion
@@ -161,7 +165,14 @@ namespace Vertigo.WheelOfFortune.UI
 
                 row.gameObject.SetActive(true);
                 row.Icon.sprite = rowData.Icon;
-                row.Amount.text = RewardAmountFormatter.Format(rowData.Amount);
+                if (isNew)
+                {
+                    row.Counter.Set(rowData.Amount);
+                }
+                else
+                {
+                    row.Counter.CountTo(rowData.Amount, _countAnimation);
+                }
 
                 float targetY = -(i * _rowHeight);
                 if (isNew)
@@ -271,9 +282,9 @@ namespace Vertigo.WheelOfFortune.UI
                 Transform content = transform.Find("ui_layout_rewards_content");
                 if (content) _content = (RectTransform)content;
             }
-            if (!_content || !_rowPrefab || !_animation)
+            if (!_content || !_rowPrefab || !_animation || !_countAnimation)
             {
-                Debug.LogError("RewardsListView requires serialized content, row prefab and animation profile.", this);
+                Debug.LogError("RewardsListView requires serialized content, row prefab and animation profiles.", this);
             }
         }
 

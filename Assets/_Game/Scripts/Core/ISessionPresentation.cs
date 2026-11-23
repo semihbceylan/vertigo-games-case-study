@@ -11,7 +11,8 @@ namespace Vertigo.WheelOfFortune.Core
         void PlaySpin(int sliceIndex, ZoneWheel wheel, Action onComplete);
         void PresentReward(RewardGrant grant, int sliceIndex, Action onComplete);
         void PlayZoneTransition(Action onComplete);
-        void ShowLoss(int zone);
+        /// <summary>Shows the bomb hit on <paramref name="bombSliceIndex"/> and then the loss panel.</summary>
+        void ShowLoss(int zone, int bombSliceIndex);
         void ShowResults();
         void Reset();
         void Cancel();
