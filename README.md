@@ -6,7 +6,7 @@ At every zone the player **spins a wheel**. Each normal wheel holds several rewa
 **bomb**. Spin to grow your loot, or leave from any zone and bank it before a bomb wipes it out.
 Deeper zones offer better rewards, not just bigger numbers.
 
-Gameplay video: https://youtu.be/mDGNfFYK1HE
+Gameplay video: https://youtu.be/cMBnZDup3nQ
 
 ## Screenshots
 
