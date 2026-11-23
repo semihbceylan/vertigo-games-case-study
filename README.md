@@ -127,7 +127,7 @@ unless a reward opts out (cosmetics).
 
 Tap the invisible bottom-right corner 4 times within 1.5 seconds to open it (both values are
 serialized). It shows the current state, zone, revives and balances, and offers zone jumps (±1, ±5,
-next safe, next super), a forced next spin (a chosen slot or the bomb), animation speed (1×, 0.5×,
+next safe, next super), a forced next spin (a chosen slot or the bomb), animation speed (1×, 2×, 0.5×,
 0.25× via `DOTween.timeScale`) and currency tools (grant, set Gold to 0, reset to starting
 balances).
 

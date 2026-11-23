@@ -53,8 +53,8 @@ namespace Vertigo.WheelOfFortune.Game
         [Header("Speed")]
         [SerializeField] private UIButton _speed;
         [SerializeField] private TMP_Text _speedLabel;
-        [Tooltip("Animation speeds the speed button cycles through; applied to every DOTween tween.")]
-        [SerializeField] private float[] _timeScales = { 1f, 0.5f, 0.25f };
+        [Tooltip("Animation speeds the speed button cycles through, starting with the first; applied to every DOTween tween.")]
+        [SerializeField, Min(0.01f)] private float[] _timeScales = { 1f, 2f, 0.5f, 0.25f };
 
         [Header("Currency")]
         [SerializeField] private UIButton _addGold;
@@ -538,6 +538,14 @@ namespace Vertigo.WheelOfFortune.Game
             if (_timeScales == null || _timeScales.Length == 0)
             {
                 Debug.LogError("AdminPanel needs at least one animation speed.", this);
+                return;
+            }
+            foreach (float scale in _timeScales)
+            {
+                if (scale <= 0f)
+                {
+                    Debug.LogError("AdminPanel animation speeds must be positive.", this);
+                }
             }
         }
 
