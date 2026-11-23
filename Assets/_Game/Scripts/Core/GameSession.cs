@@ -17,6 +17,7 @@ namespace Vertigo.WheelOfFortune.Core
         private readonly ZoneRules _rules;
         private readonly IZoneWheelFactory _factory;
         private readonly IRandomSource _random;
+        private readonly IRandomSource _spinRandom;
         private readonly int _startingZone;
         private readonly int _finalZone;
         private readonly ISessionPresentation _presentation;
@@ -60,11 +61,13 @@ namespace Vertigo.WheelOfFortune.Core
         public GameSession(ZoneRules rules, IZoneWheelFactory factory, IRandomSource random,
             int startingZone = ZoneRules.FIRST_ZONE, int finalZone = ZoneRules.ENDLESS_FINAL_ZONE,
             IEventBus events = null, ISessionPresentation presentation = null,
-            ICurrencyWallet currencies = null, RevivePolicy revivePolicy = null)
+            ICurrencyWallet currencies = null, RevivePolicy revivePolicy = null, IRandomSource spinRandom = null)
         {
             _rules = rules;
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _random = random ?? throw new ArgumentNullException(nameof(random));
+            // Spin outcomes may use their own source (a debug override) without touching wheel building.
+            _spinRandom = spinRandom ?? random;
             _startingZone = Math.Max(ZoneRules.FIRST_ZONE, startingZone);
             _finalZone = Math.Max(ZoneRules.ENDLESS_FINAL_ZONE, finalZone);
             _presentation = presentation;
@@ -100,6 +103,9 @@ namespace Vertigo.WheelOfFortune.Core
         public long ReviveCost { get { return _revivePolicy == null ? 0 : _revivePolicy.GetCost(Zone); } }
         public bool IsCompleted { get { return _state.IsCompleted; } }
         public bool IsZoneTransitioning { get { return _state.IsZoneTransitioning; } }
+
+        /// <summary>Current state's type name, for diagnostics only; flow never branches on it.</summary>
+        public string StateName { get { return _state.GetType().Name; } }
 
         #endregion
 
@@ -253,7 +259,7 @@ namespace Vertigo.WheelOfFortune.Core
 
             public override void BeginSpin()
             {
-                Session.PendingSliceIndex = Session._random.NextInt(0, Session.CurrentWheel.SliceCount);
+                Session.PendingSliceIndex = Session._spinRandom.NextInt(0, Session.CurrentWheel.SliceCount);
                 Session.ChangeState(Session._spinning);
             }
 

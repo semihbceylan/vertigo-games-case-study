@@ -74,7 +74,7 @@ unless a reward opts out (cosmetics).
   their subscriptions with its enable/disable lifecycle. Input routing (`SessionInputController`),
   session presentation (`SessionPresenter`), HUD projection (`SessionHudPresenter`), wheel rendering
   (`WheelVisualPresenter`), wheel transitions (`WheelTransitionController`), reward flights and the
-  showcase (`RewardPresentationController`), the dev teleport (`DevZoneTeleport`) and the edit-mode
+  showcase (`RewardPresentationController`), the debug panel (`AdminPanel`) and the edit-mode
   preview (`WheelEditorPreview`) are separate classes.
 - **Interfaces at boundaries.** Presenters talk to views through `ISessionScreenView`,
   `ISessionHudView`, `IWheelView`/`IWheelDisc`, `IWheelSpinPresentation`, `IWheelTransition`,
@@ -123,6 +123,23 @@ unless a reward opts out (cosmetics).
   The pointer flick restarts one reusable sequence per tick instead of allocating. Runtime resources (the loss-dim material, generated vignette
   textures) are destroyed when no longer needed.
 
+### Admin panel (debug builds only)
+
+Tap the invisible bottom-right corner 4 times within 1.5 seconds to open it (both values are
+serialized). It shows the current state, zone, revives and balances, and offers zone jumps (±1, ±5,
+next safe, next super), a forced next spin (a chosen slot or the bomb), animation speed (1×, 0.5×,
+0.25× via `DOTween.timeScale`) and currency tools (grant, set Gold to 0, reset to starting
+balances).
+
+- It exists only in the editor and development builds: `AdminPanel` deactivates itself when
+  `Debug.isDebugBuild` is false, and the composition root binds it only in debug builds.
+- Commands use the public session and wallet APIs. Zone jumps are accepted only by the Ready state.
+  A forced spin goes through `ForcedOutcomeRandom`, a decorator on a separate spin-only random
+  source, so it can never change wheel building or the one-bomb rule. A forced slot is cleared if
+  the wheel is replaced before the spin.
+- The readout refreshes from `SessionChanged` and `CurrencyBalanceChanged` on the event bus;
+  disabling the panel unsubscribes and restores the animation speed.
+
 ### UI
 
 - Canvas Scaler **Scale With Screen Size / Expand** (1920×1080 reference), TextMeshPro everywhere,
@@ -136,20 +153,21 @@ unless a reward opts out (cosmetics).
 
 ## Tests
 
-**127 test cases: 104 EditMode + 23 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
+**132 test cases: 107 EditMode + 25 PlayMode**, all passing (Unity Test Runner, Unity 6000.3.23f1).
 
-- **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super zones
-  while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb slot
-  selection; the bomb slot handed to the loss presentation; reward-pool progression; state input
-  gating and stale-completion rejection; revive pricing, limits and insufficient funds; currency
-  spending, persistence and starting balances; event bus subscription semantics; zone rule resolution and next-zone
-  lookup; scene and prefab contracts (naming, sliced borders, aspect, broken references, Canvas
-  Scaler, TextMeshPro, persistent calls, modal HUD coverage).
-- **PlayMode** (`Assets/_Game/Tests/PlayMode`): repeated enable/disable of buttons, modals and
-  rows; cancelled transitions and presentations that never advance the flow; pooled slot reuse
-  across zones; vignette resource release; loss and top-up panels; single-use reward completion;
-  bomb impact hand-off and cancellation; pointer flick reset on disable; count-up rolling and
-  settling.
+- **EditMode** (`Assets/_Game/Tests/EditMode`): bomb clears the wallet; exit only in safe/super
+  zones while stopped; exactly one bomb on normal wheels and none on safe/super; deterministic bomb
+  slot selection; forced spin outcomes that never touch wheel building; the bomb slot handed to the
+  loss presentation; reward-pool progression; state input gating and stale-completion rejection;
+  revive pricing, limits and insufficient funds; currency spending, persistence and starting
+  balances; event bus subscription semantics; zone rule resolution and next-zone lookup; scene and
+  prefab contracts (naming, sliced borders, aspect, broken references, Canvas Scaler, TextMeshPro,
+  persistent calls, modal HUD coverage).
+- **PlayMode** (`Assets/_Game/Tests/PlayMode`): repeated enable/disable of buttons, modals and rows;
+  cancelled transitions and presentations that never advance the flow; pooled slot reuse across
+  zones; vignette resource release; loss and top-up panels; single-use reward completion; bomb
+  impact hand-off and cancellation; admin tap gesture, forced bomb spin and speed reset; pointer
+  flick reset on disable; count-up rolling and settling.
 
 Run them from Window > General > Test Runner.
 

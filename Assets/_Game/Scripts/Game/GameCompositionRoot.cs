@@ -28,8 +28,8 @@ namespace Vertigo.WheelOfFortune.Game
         [SerializeField] private WheelTransitionController _wheelTransitionController;
         [SerializeField] private CurrencyHudView _currencyHud;
         [SerializeField] private BombImpactView _bombImpact;
-        [Tooltip("Optional editor/development zone teleport.")]
-        [SerializeField] private DevZoneTeleport _devZoneTeleport;
+        [Tooltip("Optional hidden debug panel; only bound in the editor and development builds.")]
+        [SerializeField] private AdminPanel _adminPanel;
 
         #endregion
 
@@ -47,10 +47,6 @@ namespace Vertigo.WheelOfFortune.Game
             Compose();
             BindListeners();
             _session.StartNewRun();
-            if (_devZoneTeleport)
-            {
-                _devZoneTeleport.Bind(_session);
-            }
         }
 
         private void Compose()
@@ -59,20 +55,27 @@ namespace Vertigo.WheelOfFortune.Game
             var catalog = new RewardCatalogPresenter();
             catalog.Configure(_configuration.Zones);
             var events = new EventBus();
-            var currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events,
-                _configuration.CreateStartingBalances());
+            var startingBalances = _configuration.CreateStartingBalances();
+            var currencyWallet = new CurrencyWallet(new PlayerPrefsCurrencyStore(), events, startingBalances);
+            IRandomSource random = CreateRandomSource();
+            // Debug builds route spin outcomes through an overridable source; release builds never do.
+            ForcedOutcomeRandom spinRandom = Debug.isDebugBuild && _adminPanel ? new ForcedOutcomeRandom(random) : null;
             _currencyHud.Bind(currencyWallet, events);
             _lossPanel.SetReviveCurrency(_configuration.ReviveCurrency);
 
             _presentation = new SessionPresenter(zones, _wheelView, _wheelSpinner, _screen, _rewardPresentation,
                 _wheelTransitionController, new WheelVisualPresenter(catalog), catalog, _bombImpact, _currencyHud);
-            _session = new GameSession(zones.Rules, new WheelTierFactory(_configuration.Zones), CreateRandomSource(),
+            _session = new GameSession(zones.Rules, new WheelTierFactory(_configuration.Zones), random,
                 zones.StartingZone, zones.FinalZone, events, _presentation, currencyWallet,
-                _configuration.CreateRevivePolicy());
+                _configuration.CreateRevivePolicy(), spinRandom);
             _hudPresenter = new SessionHudPresenter(_session, zones, _screen, _spinButton, catalog);
             _presentation.Bind(_session, _hudPresenter);
             _currencySettlement = new RunCurrencySettlement(events, _session.Wallet, currencyWallet, catalog);
             _input = new SessionInputController(_session, _spinButton, _leaveButton, _lossPanel, _results);
+            if (spinRandom != null)
+            {
+                _adminPanel.Bind(_session, zones, spinRandom, currencyWallet, startingBalances);
+            }
             _isComposed = true;
         }
 
@@ -146,7 +149,7 @@ namespace Vertigo.WheelOfFortune.Game
             if (!_spinButton) _spinButton = GetComponentInChildren<SpinButton>(true);
             if (!_rewardPresentation) _rewardPresentation = GetComponent<RewardPresentationController>();
             if (!_wheelTransitionController) _wheelTransitionController = GetComponent<WheelTransitionController>();
-            if (!_devZoneTeleport) _devZoneTeleport = GetComponent<DevZoneTeleport>();
+            if (!_adminPanel) _adminPanel = GetComponentInChildren<AdminPanel>(true);
             if (!_bombImpact) _bombImpact = GetComponentInChildren<BombImpactView>(true);
             if (!_configuration || !_configuration.Zones || !_wheelView || !_wheelSpinner || !_screen || !_lossPanel ||
                 !_results || !_spinButton || !_leaveButton || !_rewardPresentation ||
